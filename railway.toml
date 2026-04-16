@@ -1,8 +1,11 @@
 # Use a raiz do monorepo como diretório raiz do serviço no Railway (não apps/api),
 # senão workspaces e Prisma não resolvem.
+#
+# Limpa node_modules antes de npm ci: o cache apps/web/node_modules/.vite do Vite
+# costuma dar EBUSY (rmdir) quando o Railpack reaproveita layers e o npm ci tenta apagar.
 [build]
 builder = "railpack"
-buildCommand = "npm ci && npm run build:api"
+buildCommand = "rm -rf node_modules apps/*/node_modules packages/*/node_modules && npm ci && npm run build:api"
 
 [deploy]
 preDeployCommand = ["npx prisma migrate deploy"]
