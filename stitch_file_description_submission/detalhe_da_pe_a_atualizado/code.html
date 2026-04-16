@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agente - Detalhe da Peça</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#271819",
+                        "on-tertiary-container": "#f6fff4",
+                        "surface-dim": "#efd3d5",
+                        "primary-fixed": "#ffdadb",
+                        "on-surface": "#271819",
+                        "on-primary-fixed-variant": "#91002d",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#fd8895",
+                        "background": "#fff8f7",
+                        "primary-container": "#da3054",
+                        "outline-variant": "#e2bec0",
+                        "secondary-fixed-dim": "#ffb2b8",
+                        "primary-fixed-dim": "#ffb2b8",
+                        "surface-container-high": "#fee1e3",
+                        "tertiary-fixed-dim": "#5bde8d",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#fffbff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#7f2736",
+                        "inverse-primary": "#ffb2b8",
+                        "error": "#ba1a1a",
+                        "inverse-on-surface": "#ffeced",
+                        "outline": "#8e6f71",
+                        "on-primary": "#ffffff",
+                        "secondary": "#9e3e4c",
+                        "inverse-surface": "#3d2c2d",
+                        "surface-container": "#ffe9e9",
+                        "on-surface-variant": "#5a4042",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#fff0f0",
+                        "tertiary-fixed": "#7afca7",
+                        "on-tertiary-fixed-variant": "#00522a",
+                        "on-secondary-fixed": "#40000f",
+                        "on-secondary-container": "#75202f",
+                        "primary": "#b60e3d",
+                        "surface": "#fff8f7",
+                        "tertiary-container": "#008649",
+                        "surface-variant": "#f8dcdd",
+                        "tertiary": "#006a39",
+                        "secondary-fixed": "#ffdadb",
+                        "error-container": "#ffdad6",
+                        "surface-bright": "#fff8f7",
+                        "on-tertiary-fixed": "#00210e",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#f8dcdd",
+                        "surface-tint": "#ba1340",
+                        "on-primary-fixed": "#40000f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .editorial-shadow {
+            box-shadow: 0 12px 40px rgba(186, 19, 64, 0.06);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-primary/20">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-[#fff8f7]/80 backdrop-blur-md flex justify-between items-center px-6 h-16">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 duration-200 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-[#271819]/60">arrow_back</span>
+</button>
+<span class="text-xl font-bold text-[#271819] font-headline tracking-tight">Agente</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#271819]/60 hover:opacity-80 transition-opacity cursor-pointer">search</span>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high">
+<img alt="Perfil" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbt4cDXDHD6Rsg9y6-5bTlj5lt8J9M5F4u0QAB0RcXSc8BUn7IoFzGB-DxboNfgzTjnHmseRB3GrQqVt9pGgfxal_fjFupDXoAvrox4bjQ3JYO9SPRHB9rAg-WEs_AKhYzDF-Xir_xPoEcpiAQ1WMj8ved1JTrW-pY2OR7l0Qmk0H5XcwRtZElmQqGsE7X33LpHRrcAe4aqZHpDK5nKeiB8cvIUjZWZaJxQnR8r1SXB9QAmfDIoZ1tryTUPJblZ1Q_VLKaeFn7tQ"/>
+</div>
+</div>
+</nav>
+<main class="pt-16 pb-48">
+<!-- Carousel Section -->
+<section class="px-6 py-6">
+<div class="relative w-full aspect-[3/4] rounded-xl overflow-hidden editorial-shadow bg-surface-container-low group">
+<div class="flex h-full overflow-x-auto snap-x snap-mandatory hide-scrollbar">
+<div class="flex-shrink-0 w-full h-full snap-center">
+<img alt="Visualização 1" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEDbIpadjKYG8zXo7vzshUIPF0DlnmcgSqgXTzLC0HyfJXVU6y9Uxm6PVQLAIQFcNnFwhN3L8ksfSr2cotJALprIExKadPk866Y4lnQ8Id2A-aJCGqaZgj7QBRy7VV82ywWRoiAWJY2K6IX4qiIqz7SOcfnOuX5o_SHyMgud2Zz4xx6RF2KAT9glKW0bpKwkEk3pGbZoDBkgnuQfDasMR6IJJEofNauqBUD8F7EQNjFLCqqL18Mkz3Cs0UnnPmKAUZ-DUR_ppjWA"/>
+</div>
+<div class="flex-shrink-0 w-full h-full snap-center">
+<img alt="Visualização 2" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuS-Gj_E5hVv4N5-7h8OaW4eL4P-j9O6R0T7Y1u5W4G8E3K2-2I1T3L5W6X7Z8Y9A0B1C2D3E4F5G6H7I8J9K0L1M2N3O4P5Q6R7S8T9U"/>
+</div>
+</div>
+<!-- Status Overlay -->
+<div class="absolute top-6 left-6">
+<span class="px-4 py-1.5 rounded-full bg-tertiary/10 text-tertiary text-[10px] uppercase tracking-[0.1em] font-bold backdrop-blur-md border border-tertiary/20">
+                    Disponível
+                </span>
+</div>
+<!-- Dot Indicators -->
+<div class="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-white/40"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-white/40"></div>
+</div>
+</div>
+</section>
+<!-- Product Details -->
+<section class="px-8 space-y-8">
+<!-- Header Group -->
+<div class="space-y-2">
+<p class="text-[12px] uppercase tracking-[0.15em] text-on-surface-variant font-bold font-label">Acervo</p>
+<p class="text-on-surface text-sm -mt-1 mb-2 font-medium">Consignação — Maria Luiza</p>
+<h1 class="text-3xl font-extrabold font-headline leading-tight text-on-background">Blazer Crimson Heritage</h1>
+<p class="text-primary font-bold text-xl font-headline tracking-tight">R$ 2.125,00</p>
+</div>
+<!-- Meta Bento Info -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-5 rounded-xl space-y-1">
+<span class="text-[10px] uppercase tracking-[0.1em] text-on-surface-variant font-bold opacity-60">Marca</span>
+<p class="text-on-surface font-bold text-base leading-tight">Saint Laurent</p>
+</div>
+<div class="bg-surface-container-low p-5 rounded-xl space-y-1">
+<span class="text-[10px] uppercase tracking-[0.1em] text-on-surface-variant font-bold opacity-60">Tamanho</span>
+<p class="text-on-surface font-bold text-base leading-tight">Médio (38)</p>
+</div>
+<div class="bg-surface-container-low p-5 rounded-xl space-y-1">
+<span class="text-[10px] uppercase tracking-[0.1em] text-on-surface-variant font-bold opacity-60">Cor / Estampa</span>
+<p class="text-on-surface font-bold text-base leading-tight">Crimson Sólido</p>
+</div>
+<div class="bg-surface-container-low p-5 rounded-xl space-y-1">
+<span class="text-[10px] uppercase tracking-[0.1em] text-on-surface-variant font-bold opacity-60">Condição</span>
+<p class="text-on-surface font-bold text-base leading-tight">Ótimo</p>
+</div>
+</div>
+<!-- Medidas Section -->
+<div class="space-y-4 pt-4">
+<h3 class="text-[12px] uppercase tracking-[0.15em] text-on-surface-variant font-bold">Medidas (cm)</h3>
+<div class="grid grid-cols-4 gap-2">
+<div class="text-center p-2 rounded-lg border border-outline-variant/30">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase opacity-60">Busto</p>
+<p class="font-bold text-on-surface">92</p>
+</div>
+<div class="text-center p-2 rounded-lg border border-outline-variant/30">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase opacity-60">Cintura</p>
+<p class="font-bold text-on-surface">78</p>
+</div>
+<div class="text-center p-2 rounded-lg border border-outline-variant/30">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase opacity-60">Cava</p>
+<p class="font-bold text-on-surface">24</p>
+</div>
+<div class="text-center p-2 rounded-lg border border-outline-variant/30">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase opacity-60">Compr.</p>
+<p class="font-bold text-on-surface">72</p>
+</div>
+</div>
+</div>
+<!-- Status History (Timeline) -->
+<div class="space-y-4 pt-4">
+<h3 class="text-[12px] uppercase tracking-[0.15em] text-on-surface-variant font-bold">Histórico</h3>
+<div class="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-[3px] before:top-2 before:bottom-2 before:w-[1px] before:bg-outline-variant/40">
+<div class="relative">
+<div class="absolute -left-[27px] top-1.5 w-2 h-2 rounded-full bg-tertiary"></div>
+<p class="text-sm font-bold text-on-surface leading-tight">Cadastrado</p>
+<p class="text-xs text-on-surface-variant opacity-60 font-medium">10 abr · 14:30</p>
+</div>
+<div class="relative">
+<div class="absolute -left-[27px] top-1.5 w-2 h-2 rounded-full bg-outline-variant"></div>
+<p class="text-sm font-bold text-on-surface/40 leading-tight">Reservado</p>
+<p class="text-xs text-on-surface-variant/40 font-medium">Pendente</p>
+</div>
+</div>
+</div>
+<!-- Client Card (Hidden by default unless Reserved/Sold) -->
+<div class="hidden bg-surface-container-highest/30 p-4 rounded-xl flex items-center justify-between border border-outline-variant/20">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed-dim flex items-center justify-center text-on-secondary-fixed">
+<span class="font-bold text-sm">AM</span>
+</div>
+<div>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant opacity-60">Cliente Reservado</p>
+<p class="font-bold text-on-surface">Alice Mendes</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm">
+<span class="material-symbols-outlined text-base text-tertiary">chat</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm">
+<span class="material-symbols-outlined text-base text-primary">alternate_email</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Action Bar Shell -->
+<div class="fixed bottom-0 w-full bg-[#fff8f7]/80 backdrop-blur-xl px-6 py-6 flex flex-col gap-3 rounded-t-[2.5rem] editorial-shadow z-50">
+<div class="flex gap-3">
+<button class="flex-1 min-h-[64px] bg-gradient-to-br from-primary to-primary-container text-on-primary font-headline font-bold rounded-xl active:scale-95 transition-all text-sm uppercase tracking-widest shadow-lg shadow-primary/20">
+            Vender
+        </button>
+<button class="flex-1 min-h-[64px] bg-surface-container-highest text-on-surface font-headline font-bold rounded-xl active:scale-95 transition-all text-sm uppercase tracking-widest">
+            Reservar
+        </button>
+</div>
+<button class="w-full py-4 text-on-surface-variant text-[11px] font-bold uppercase tracking-[0.15em] opacity-60 hover:opacity-100 transition-opacity">
+        Tornar Indisponível
+    </button>
+</div>
+<!-- Desktop Side Context -->
+<div class="hidden md:flex fixed left-0 top-0 h-full w-20 flex-col items-center py-8 bg-surface-container-lowest border-r border-outline-variant/10 z-40">
+<div class="space-y-12 flex flex-col items-center">
+<span class="material-symbols-outlined text-primary scale-110">inventory_2</span>
+<span class="material-symbols-outlined text-on-surface-variant/40 hover:text-primary transition-colors cursor-pointer">payments</span>
+<span class="material-symbols-outlined text-on-surface-variant/40 hover:text-primary transition-colors cursor-pointer">group</span>
+<span class="material-symbols-outlined text-on-surface-variant/40 hover:text-primary transition-colors cursor-pointer">analytics</span>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#271819",
+                        "on-tertiary-container": "#f6fff4",
+                        "surface-dim": "#efd3d5",
+                        "primary-fixed": "#ffdadb",
+                        "on-surface": "#271819",
+                        "on-primary-fixed-variant": "#91002d",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#fd8895",
+                        "background": "#fff8f7",
+                        "primary-container": "#da3054",
+                        "outline-variant": "#e2bec0",
+                        "secondary-fixed-dim": "#ffb2b8",
+                        "primary-fixed-dim": "#ffb2b8",
+                        "surface-container-high": "#fee1e3",
+                        "tertiary-fixed-dim": "#5bde8d",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#fffbff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#7f2736",
+                        "inverse-primary": "#ffb2b8",
+                        "error": "#ba1a1a",
+                        "inverse-on-surface": "#ffeced",
+                        "outline": "#8e6f71",
+                        "on-primary": "#ffffff",
+                        "secondary": "#9e3e4c",
+                        "inverse-surface": "#3d2c2d",
+                        "surface-container": "#ffe9e9",
+                        "on-surface-variant": "#5a4042",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#fff0f0",
+                        "tertiary-fixed": "#7afca7",
+                        "on-tertiary-fixed-variant": "#00522a",
+                        "on-secondary-fixed": "#40000f",
+                        "on-secondary-container": "#75202f",
+                        "primary": "#b60e3d",
+                        "surface": "#fff8f7",
+                        "tertiary-container": "#008649",
+                        "surface-variant": "#f8dcdd",
+                        "tertiary": "#006a39",
+                        "secondary-fixed": "#ffdadb",
+                        "error-container": "#ffdad6",
+                        "surface-bright": "#fff8f7",
+                        "on-tertiary-fixed": "#00210e",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#f8dcdd",
+                        "surface-tint": "#ba1340",
+                        "on-primary-fixed": "#40000f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Manrope', sans-serif; background-color: #fff8f7; color: #271819; }
+        h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-40">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#fff8f7]/80 dark:bg-stone-950/80 backdrop-blur-md">
+<div class="flex justify-between items-center px-6 h-16 w-full max-w-7xl mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high">
+<img alt="Perfil do usuário" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBa4Ntn-zlFPKKN_QdIEJlame2OTSukJK5sLGv9CJdZdMtqW4N6p-11w_dybhY-pbAHp_pfzdQUS8gxbKkE6lGqoe6_jShUlMYJKG_37XR96061Zld9TfX_F424Fkj31hpLkcQZC8j_mgpKQJ0HKExHITW6-pwO3-7GHEqn9VqxweeROD6_lse_VU0z-lWpt-l_pQ5pPjR7CPVlBc2L_akduQp76akfPTc9ghLbG0bywbSYVEPZn3K2Gq1TR4Nnxw1FMUOyaM9_Ww"/>
+</div>
+<span class="text-xl font-bold text-[#271819] dark:text-[#fff8f7] font-['Plus_Jakarta_Sans'] tracking-tight">Agente</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-[#271819]/60 hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-7xl mx-auto">
+<!-- Hero Section -->
+<section class="mb-8">
+<h1 class="text-6xl font-extrabold tracking-tighter text-on-background mb-2">Estoque</h1>
+</section>
+<!-- Search Bar -->
+<div class="w-full mb-8">
+<label class="block text-[10px] uppercase tracking-[0.1em] font-bold text-on-surface-variant mb-2 ml-1">Buscar peça</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 py-4 px-0 text-lg transition-all placeholder:text-outline" placeholder="Buscar por nome, cor ou categoria..." type="text"/>
+</div>
+</div>
+<!-- Filters Section -->
+<div class="flex flex-col gap-6 mb-12">
+<!-- Level 1: Status -->
+<div>
+<label class="block text-[9px] uppercase tracking-widest font-bold text-outline mb-3">Status</label>
+<div class="flex gap-2 overflow-x-auto no-scrollbar w-full">
+<button class="px-5 py-2.5 rounded-full bg-primary text-white font-bold text-xs whitespace-nowrap">Todos</button>
+<button class="px-5 py-2.5 rounded-full bg-surface-container-low text-on-surface-variant font-bold text-xs whitespace-nowrap hover:bg-surface-container-high transition-colors">Disponível</button>
+<button class="px-5 py-2.5 rounded-full bg-surface-container-low text-on-surface-variant font-bold text-xs whitespace-nowrap hover:bg-surface-container-high transition-colors">Reservado</button>
+<button class="px-5 py-2.5 rounded-full bg-surface-container-low text-on-surface-variant font-bold text-xs whitespace-nowrap hover:bg-surface-container-high transition-colors">Indisponível</button>
+</div>
+</div>
+<!-- Level 2: Category -->
+<div>
+<label class="block text-[9px] uppercase tracking-widest font-bold text-outline mb-3">Categoria</label>
+<div class="flex gap-2 overflow-x-auto no-scrollbar w-full">
+<button class="px-5 py-2.5 rounded-full bg-primary text-white font-bold text-xs whitespace-nowrap">Todas</button>
+<button class="px-5 py-2.5 rounded-full bg-surface-container-low text-on-surface-variant font-bold text-xs whitespace-nowrap hover:bg-surface-container-high transition-colors">Roupas femininas</button>
+<button class="px-5 py-2.5 rounded-full bg-surface-container-low text-on-surface-variant font-bold text-xs whitespace-nowrap hover:bg-surface-container-high transition-colors">Roupas masculinas</button>
+<button class="px-5 py-2.5 rounded-full bg-surface-container-low text-on-surface-variant font-bold text-xs whitespace-nowrap hover:bg-surface-container-high transition-colors">Calçados</button>
+<button class="px-5 py-2.5 rounded-full bg-surface-container-low text-on-surface-variant font-bold text-xs whitespace-nowrap hover:bg-surface-container-high transition-colors">Acessórios</button>
+</div>
+</div>
+</div>
+<!-- Inventory Grid: Uniform 2-column grid -->
+<div class="grid grid-cols-2 gap-x-4 gap-y-10">
+<!-- Item 1: Available -->
+<div class="group">
+<div class="relative aspect-[4/5] mb-4 rounded-xl overflow-hidden bg-surface-container-low">
+<img alt="Produto 1" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDVbFRPwo923mmj6cVOdEVxdicqFi2Pyl-DNgbG3IxqAYhRns2kmq0-kU5kbbKRklfdzcja9rxq84Bc0zUu5WgmSGIBcIxlgjCuA6MnEq8Gs8FdNx_KOrjij1X5ENQl3nGvdZiTGxKxTiBh-D0E7_eTBwjkEb8Vt4iGXr4tltEXNhSH0_eVJ6EptSX3_IpyZJrSwVUmkkFfYz-H_eTp9-WFZ9pVjR7YAgtF5sJ6AwwQI4MilAC33gUr1wYrHXFoIJcd8S-AhUjdA"/>
+<div class="absolute top-3 left-3">
+<span class="bg-[#006a39]/10 text-[#006a39] px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md">Disponível</span>
+</div>
+</div>
+<div>
+<p class="text-[9px] uppercase tracking-widest text-outline mb-1 font-bold">Roupas / Agasalhos</p>
+<h3 class="text-sm font-bold tracking-tight text-on-background leading-tight mb-1">Blazer de Lã Minimalista</h3>
+<p class="text-sm font-bold text-on-background">R$ 1.250</p>
+</div>
+</div>
+<!-- Item 2: Reserved -->
+<div class="group">
+<div class="relative aspect-[4/5] mb-4 rounded-xl overflow-hidden bg-surface-container-low">
+<img alt="Produto 2" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhk-7aidixWc9Nz27h7_2_LKWuzuQ0Y8xZrBi1bqLkHW2j9Q0wdwoo5SbbyLj8QQSGHfM77ioVmtjWq4zZaIzjq94MK9Kee0Wdqlwn4EylI8foPnWiLbqfguM0U6kMSAIjEfCWbnY3a4mNDzv5qlI2J9g_QhtA8qGwRxsg-7oLjqhzMqv2suEmvC89JqJjzYgnIMUdlR7XHfITKMTfcUrumLMaTWZOjl2PekCMngFF_smr2PY9ls-05g-PtvnL-68jqyEQUUWyxA"/>
+<div class="absolute top-3 left-3">
+<span class="bg-amber-500/10 text-amber-700 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md">Reservado</span>
+</div>
+</div>
+<div>
+<p class="text-[9px] uppercase tracking-widest text-outline mb-1 font-bold">Calçados / Saltos</p>
+<h3 class="text-sm font-bold tracking-tight text-on-background leading-tight mb-1">Scarpin de Cetim de Seda</h3>
+<p class="text-sm font-bold text-on-background">R$ 890</p>
+</div>
+</div>
+<!-- Item 4 (re-numbered): Available -->
+<div class="group">
+<div class="relative aspect-[4/5] mb-4 rounded-xl overflow-hidden bg-surface-container-low">
+<img alt="Produto 4" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBF9eQeD8qkz6zbY9wyJ9ol47Yc_if9W2-mBNwUw2Ddw2mMJmBRTeQjA_biPgV7AXesNCrc6nVo3p5XkWgNJAUdybAsAK9jG6FwfW5L3e2Og-Oq1KhYpByHVa-NHGGRQtUNz7pps9VPq2qg4TSYLWT45ii596AxA1Po7K4FuoJR_i9O9kDYlUsox7NNLlkufHSYv7jlOGNDu6uoYMWPZWupIhVhcHt-G-gzwiqAo7u3iJTR-0N0-OrCROH60dyvwfNvkuz8Cfb3Vw"/>
+<div class="absolute top-3 left-3">
+<span class="bg-[#006a39]/10 text-[#006a39] px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md">Disponível</span>
+</div>
+</div>
+<div>
+<p class="text-[9px] uppercase tracking-widest text-outline mb-1 font-bold">Roupas / Vestidos</p>
+<h3 class="text-sm font-bold tracking-tight text-on-background leading-tight mb-1">Vestido Coluna Escultural</h3>
+<p class="text-sm font-bold text-on-background">R$ 3.100</p>
+</div>
+</div>
+<!-- Item 5: Available -->
+<div class="group">
+<div class="relative aspect-[4/5] mb-4 rounded-xl overflow-hidden bg-surface-container-low">
+<img alt="Produto 5" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIYUKjGR-QM3HG4AX7nHXaKfaHQn_OAZNSwMvS9gTgjMSwGXL5jkULMvg3HrLp8Dk002UyuKJxafMCx54U9eck7vyEO-ypQtvsK4ToKuZe01OO8XmHenhCIy2AX5aEhVFsNeKJPtWvfZPrycDnQV81kihpM3OH0hgBTwXDFC_CGusPzk11NPO-ZzMIcCAd82-lk_beNB_H8oz25cgcMZGfCpt9hj0bvyY_evaiAHLyxafQB1fTsPsoTM17trPUEOlvn5D9VT5y0A"/>
+<div class="absolute top-3 left-3">
+<span class="bg-[#006a39]/10 text-[#006a39] px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md">Disponível</span>
+</div>
+</div>
+<div>
+<p class="text-[9px] uppercase tracking-widest text-outline mb-1 font-bold">Roupas / Básico</p>
+<h3 class="text-sm font-bold tracking-tight text-on-background leading-tight mb-1">Camiseta Algodão Heavyweight</h3>
+<p class="text-sm font-bold text-on-background">R$ 180</p>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar with Integrated Add Button -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-[2.5rem] bg-[#fff8f7]/80 dark:bg-stone-950/80 backdrop-blur-lg shadow-[0_-12px_40px_rgba(186,19,64,0.08)]">
+<div class="flex justify-between items-end h-24 px-6 pb-6 w-full max-w-7xl mx-auto">
+<a class="flex flex-col items-center justify-center text-[#b60e3d] bg-[#b60e3d]/10 rounded-2xl px-3 py-2 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="text-[9px] uppercase tracking-wider font-bold mt-1">Estoque</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#271819]/40 px-2 py-2 mb-1" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-[9px] uppercase tracking-wider font-bold mt-1">Vendas</span>
+</a>
+<!-- Integrated FAB -->
+<div class="relative -top-4">
+<button class="w-16 h-16 rounded-full bg-primary text-white shadow-[0_8px_25px_rgba(186,19,64,0.35)] flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-4xl">add</span>
+</button>
+</div>
+<a class="flex flex-col items-center justify-center text-[#271819]/40 px-2 py-2 mb-1" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[9px] uppercase tracking-wider font-bold mt-1">Clientes</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#271819]/40 px-2 py-2 mb-1" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[9px] uppercase tracking-wider font-bold mt-1">Relatórios</span>
+</a>
+</div>
+</nav>
+</body></html>

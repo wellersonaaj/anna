@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gerenciar Fila - Agente Brechó</title>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#b60e3d",
+                        "primary-container": "#fff1f3",
+                        "on-primary-container": "#b60e3d",
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        headline: ["Plus Jakarta Sans", "Public Sans", "sans-serif"],
+                        body: ["Manrope", "Public Sans", "sans-serif"],
+                        label: ["Manrope", "Public Sans", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .drag-handle { cursor: grab; }
+        .drag-handle:active { cursor: grabbing; }
+        body { -webkit-tap-highlight-color: transparent; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-[#fff8f7] font-body text-gray-900 selection:bg-rose-100">
+<!-- Header (TopAppBar adapted for focused task) -->
+<header class="fixed top-0 left-0 w-full bg-[#fff8f7] border-b border-rose-100 z-40 h-16 flex items-center px-4 gap-3">
+<button class="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-rose-50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex items-center gap-3 overflow-hidden">
+<img class="w-10 h-10 rounded-lg object-cover border border-rose-100 shrink-0" data-alt="Close-up of a vintage silk blazer with elegant texture and soft rose color against a clean white studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ0hDajefpBa3ro6L5l_vKJaM0MD_vom4kUvVCoB89kOhYi4b4l4CjAkeRFhII1wGzpa29J7S1iNxWfo-uu5FbB29nBquVM7QIHFBwwLQt9sHNtXC_BIMr9hGIwHj70P7UH0j_uWVmXT83DN3MvWZbb6xDOZbZH6DpTJNB23QHAy6dV_x2hCRwXqSaDP9IFVvk7FjxM6NXCzlCLRs2XAD7fyDrotWNbUVXwhho53LvHBL5FdmxXL3JyHgxGHFh9pTiE_uhRPTOhg"/>
+<div class="flex flex-col min-w-0">
+<h1 class="text-sm font-bold text-gray-900 truncate font-headline">Blazer de Seda Vintage</h1>
+<p class="text-[11px] text-[#b60e3d] font-semibold">3 pessoas na fila</p>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-20 pb-40 px-4 max-w-md mx-auto">
+<!-- Queue List -->
+<div class="space-y-3"><!-- Item 1 (Active/Primary) -->
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-50 flex items-center gap-3 relative overflow-hidden group">
+<div class="drag-handle text-gray-300 shrink-0">
+<span class="material-symbols-outlined" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+        1
+    </div>
+<div class="flex-1 min-w-0 ml-1">
+<p class="font-bold text-gray-900 truncate">Mariana Silva</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-green-500 text-lg" data-icon="chat">chat</span>
+<span class="material-symbols-outlined text-purple-500 text-lg" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="bg-primary text-white px-4 py-1.5 rounded-full text-xs font-bold hover:opacity-90 active:scale-95 transition-all">
+            Avisar
+        </button>
+<button class="p-2 text-gray-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-50 flex items-center gap-3 relative overflow-hidden">
+<div class="drag-handle text-gray-300 shrink-0">
+<span class="material-symbols-outlined" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="w-8 h-8 bg-rose-100 text-primary rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+        2
+    </div>
+<div class="flex-1 min-w-0 ml-1">
+<p class="font-bold text-gray-900 truncate">Ana Paula Oliveira</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-purple-500 text-lg" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-gray-400 hover:text-red-500 transition-colors ml-auto">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-50 flex items-center gap-3 relative overflow-hidden">
+<div class="drag-handle text-gray-300 shrink-0">
+<span class="material-symbols-outlined" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="w-8 h-8 bg-rose-100 text-primary rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+        3
+    </div>
+<div class="flex-1 min-w-0 ml-1">
+<p class="font-bold text-gray-900 truncate">Beatriz Fontes</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-green-500 text-lg" data-icon="chat">chat</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="bg-primary text-white px-4 py-1.5 rounded-full text-xs font-bold hover:opacity-90 active:scale-95 transition-all">
+            Avisar
+        </button>
+<button class="p-2 text-gray-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div></div>
+</main>
+<!-- Snackbar / Toast Overlay -->
+<div class="fixed bottom-24 left-4 right-4 z-50 pointer-events-none flex justify-center">
+<div class="bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center justify-between w-full max-w-sm pointer-events-auto">
+<span class="text-sm">Item removido da fila</span>
+<button class="text-rose-400 font-bold text-sm uppercase tracking-wider px-2 py-1">Desfazer</button>
+</div>
+</div>
+<!-- Fixed Footer Action -->
+<footer class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-[#fff8f7] via-[#fff8f7] to-transparent z-30">
+<button class="w-full bg-primary text-white h-14 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-rose-200 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+            Adicionar à fila
+        </button>
+</footer>
+<!-- Bottom Sheet Modal (Active Overlay) -->
+<div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-end">
+<div class="w-full bg-white rounded-t-[32px] p-6 pb-10 shadow-2xl animate-slide-up">
+<div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
+<div class="text-center mb-8">
+<div class="w-16 h-16 bg-rose-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+<span class="material-symbols-outlined text-4xl" data-icon="group_work">group_work</span>
+</div>
+<h3 class="text-lg font-bold text-gray-900 mb-2">Há 3 pessoas na fila.</h3>
+<p class="text-gray-500">Passar para <span class="font-bold text-gray-900">Mariana Silva</span>?</p>
+</div>
+<div class="space-y-3">
+<button class="w-full bg-primary text-white h-14 rounded-2xl font-bold active:scale-95 transition-transform">
+                    Sim
+                </button>
+<button class="w-full bg-rose-50 text-primary h-14 rounded-2xl font-bold active:scale-95 transition-transform">
+                    Não, liberar para todos
+                </button>
+</div>
+</div>
+</div>
+</body></html>

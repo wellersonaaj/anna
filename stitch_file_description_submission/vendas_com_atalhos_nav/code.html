@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#b60e3d",
+              background: "#fff8f7",
+              surface: "#ffffff",
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "2xl": "1rem",
+              "3xl": "1.5rem",
+              "full": "9999px"
+            },
+            fontFamily: {
+              headline: ["Plus Jakarta Sans", "sans-serif"],
+              body: ["Manrope", "sans-serif"],
+              label: ["Manrope", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #fff8f7; color: #1a1a1a; scroll-behavior: smooth; }
+        h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-[#fff8f7] pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-[#fff8f7] h-16 border-b border-rose-100 flex justify-between items-center px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#b60e3d] flex items-center justify-center overflow-hidden">
+<img alt="Logo do Brechó" class="w-full h-full object-cover" data-alt="close up of a stylish woman wearing vintage sunglasses and a pink silk scarf, artistic fashion photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfetQAYcG5UtIx2y998NL8GPrh_oPrtaBFdnKAq0Xi2q6hEyifkEAZlccVr5IYXq8yMziPabzsogWi4sdTS3AuoFFWU8qLwERoc5lluKmTQ2Fwdt6wJt35SH4lYktnOJ22EvvyTBxq2GmiNQpd8RQlT4HpeIBV3TgXXv5Q1KyI5D8QlPZ_1iIpc1hXnzL2dMLG0sFyiTJ3KHUtTKKtzTCDFKZEH1_CyGIFPIFkBRfqrkjcCx313jt7BcUhHp7UahdA0RpsTRu-Fw" style=""/>
+</div>
+<span class="text-xl font-bold text-[#b60e3d]" style="">Agente Brechó</span>
+</div>
+</header>
+<!-- Navigation Shortcuts -->
+<div class="fixed top-16 left-0 w-full z-40 bg-[#fff8f7]/95 backdrop-blur-sm border-b border-rose-50/50 py-3 overflow-x-auto no-scrollbar">
+<div class="flex gap-2 px-4 min-w-max">
+<a class="px-4 py-1.5 rounded-full bg-[#fce7eb] text-[#b60e3d] text-xs font-bold whitespace-nowrap shadow-sm active:scale-95 transition-transform" href="#reservados">Reservados</a>
+<a class="px-4 py-1.5 rounded-full bg-[#fce7eb] text-[#b60e3d] text-xs font-bold whitespace-nowrap shadow-sm active:scale-95 transition-transform" href="#aguardando">Aguardando</a>
+<a class="px-4 py-1.5 rounded-full bg-[#fce7eb] text-[#b60e3d] text-xs font-bold whitespace-nowrap shadow-sm active:scale-95 transition-transform" href="#entregues">Entregues</a>
+</div>
+</div>
+<main class="mt-32 px-4 space-y-8">
+<!-- Section 1: Reservados -->
+<section class="scroll-mt-36" id="reservados">
+<div class="flex items-center justify-between mb-4 px-1">
+<h2 class="text-xl font-extrabold text-[#b60e3d]" style="">Reservados</h2>
+<span class="text-xs font-semibold bg-rose-100 text-[#b60e3d] px-2 py-1 rounded-full" style="">3 peças</span>
+</div>
+<div class="space-y-4">
+<!-- Card 1: Urgente (>24h) -->
+<div class="bg-white rounded-3xl p-4 shadow-sm border border-rose-50">
+<div class="flex gap-4">
+<img class="w-20 h-20 rounded-2xl object-cover" data-alt="premium vintage beige wool coat hanging on a minimal wooden hanger against a clean white wall" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpk1CndkaKIwyhoViuGa7LJCm6AZuDYDnMRffWgbWzjwe5ZtSmvQBm_Rs7C-08-Ky0cVqLOkAwOLgVXwArnlvqJaV8EIFs2NzPti6eaoz_qC390Dnae5Nplg3x-ba0tenKsvqAXfG7nwcXs1IPryI1JhHeivyXZzMzNnOu_ZamkiOh96uH1WMLQPDSbaQzn4puVgD7ONjVMBP0PW3Uwp1cLkJkTLf3psBA8DYQgbLYrt0vXhL6pV5AxblQG2yp0r3xGZvDLZhLQ" style=""/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-gray-900 leading-tight" style="">Casaco de Lã Vintage</h3>
+<span class="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider" style="">Urgente</span>
+</div>
+<p class="text-sm text-gray-500 mt-0.5" style="">Reservado por Maria Oliveira</p>
+<div class="flex items-center gap-1.5 mt-2 text-red-500">
+<span class="material-symbols-outlined text-sm" style="">schedule</span>
+<span class="text-xs font-bold italic" style="">há 26h</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
+<div class="flex items-center gap-4">
+<button class="text-gray-400 text-xs font-bold uppercase tracking-widest hover:text-gray-600" style="">Liberar</button>
+<button class="text-[#b60e3d]/60 text-xs font-bold uppercase tracking-widest hover:text-[#b60e3d]" style="">Gerenciar Fila</button>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-9 h-9 flex items-center justify-center rounded-full border border-gray-100 text-green-600 hover:bg-green-50" style="">
+<span class="material-symbols-outlined text-lg" style="">chat</span>
+</button>
+<button class="bg-[#b60e3d] text-white px-6 py-2 rounded-full text-sm font-bold shadow-md shadow-rose-100 active:scale-95 transition-transform" style="">Vender</button>
+</div>
+</div>
+</div>
+<!-- Card 2: Amarelo (>1h) -->
+<div class="bg-white rounded-3xl p-4 shadow-sm border border-rose-50">
+<div class="flex gap-4">
+<img class="w-20 h-20 rounded-2xl object-cover" data-alt="black designer t-shirt folded neatly on a textured fabric background, high-end fashion still life" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuMB8j4u9ab3obHgXJg5K0w-BOEBt6rKhSQn2tbqs_mKI-Gc529xty5Pz6nP12zExHfrx5mIacKlCGvTDA6cUSi5SNphjEB_XRVNuHY3apq6TwfxOLkuaLMWxwkrH15J7Nw38pm7tsiAJIN7eRhqmEdvzQsA0gtkJkr5aUX3BteDCuqG5gKo2kjzo0c85BuShNiD2my7AD9aESMAkUlFi_6i8vql-N0FQIoKnNyEHf5MWRX-wsEPJRZ_YFVtC5G40JRQaP3oKLZQ" style=""/>
+<div class="flex-1">
+<h3 class="font-bold text-gray-900 leading-tight" style="">T-shirt Estampada G</h3>
+<p class="text-sm text-gray-500 mt-0.5" style="">Reservado por Carla Santos</p>
+<div class="flex items-center gap-1.5 mt-2 text-amber-500">
+<span class="material-symbols-outlined text-sm" style="">schedule</span>
+<span class="text-xs font-bold italic" style="">há 2h</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
+<div class="flex items-center gap-4">
+<button class="text-gray-400 text-xs font-bold uppercase tracking-widest hover:text-gray-600" style="">Liberar</button>
+<button class="text-[#b60e3d]/60 text-xs font-bold uppercase tracking-widest hover:text-[#b60e3d]" style="">Gerenciar Fila</button>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-9 h-9 flex items-center justify-center rounded-full border border-gray-100 text-green-600 hover:bg-green-50" style="">
+<span class="material-symbols-outlined text-lg" style="">chat</span>
+</button>
+<button class="bg-[#b60e3d] text-white px-6 py-2 rounded-full text-sm font-bold shadow-md shadow-rose-100 active:scale-95 transition-transform" style="">Vender</button>
+</div>
+</div>
+</div>
+<!-- Card 3: Cinza (<1h) -->
+<div class="bg-white rounded-3xl p-4 shadow-sm border border-rose-50">
+<div class="flex gap-4">
+<img class="w-20 h-20 rounded-2xl object-cover" data-alt="pair of premium blue jeans on a minimalist background, detailed denim texture lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzrKBJQ-SlLYJHizFnoviFYfUetsGm_c_5zO30oKNtPBZXt0EBStyt30TiXXbCrRXiZ1-8x1-lLlKmeyUJcOAvIaVrdtP1r9K2fYaKLUs-BhdpoWQzVD1casYjt7KknMjRSyOSQFCKHr0RSYjcZCbTCfQskk4P87UZdnmnQeypGRTp3tlvtyOdpzfTneGQ6m1nQ_8TdunEpn0LdjrM__H-aLVLjhSUBvMsGd6FOWfqRwqYTAYKx0Z2qIhoNynsTsHLFAsjHtt_7g" style=""/>
+<div class="flex-1">
+<h3 class="font-bold text-gray-900 leading-tight" style="">Calça Jeans Skinny</h3>
+<p class="text-sm text-gray-500 mt-0.5" style="">Reservado por Ana Silva</p>
+<div class="flex items-center gap-1.5 mt-2 text-gray-400">
+<span class="material-symbols-outlined text-sm" style="">schedule</span>
+<span class="text-xs font-bold italic" style="">há 45m</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
+<div class="flex items-center gap-4">
+<button class="text-gray-400 text-xs font-bold uppercase tracking-widest hover:text-gray-600" style="">Liberar</button>
+<button class="text-[#b60e3d]/60 text-xs font-bold uppercase tracking-widest hover:text-[#b60e3d]" style="">Gerenciar Fila</button>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-9 h-9 flex items-center justify-center rounded-full border border-gray-100 text-green-600 hover:bg-green-50" style="">
+<span class="material-symbols-outlined text-lg" style="">chat</span>
+</button>
+<button class="bg-[#b60e3d] text-white px-6 py-2 rounded-full text-sm font-bold shadow-md shadow-rose-100 active:scale-95 transition-transform" style="">Vender</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Aguardando Entrega -->
+<section class="scroll-mt-36" id="aguardando">
+<div class="flex items-center justify-between mb-4 px-1">
+<h2 class="text-xl font-extrabold text-[#b60e3d]" style="">Aguardando Entrega</h2>
+<span class="text-xs font-semibold bg-rose-100 text-[#b60e3d] px-2 py-1 rounded-full" style="">2 peças</span>
+</div>
+<div class="space-y-4">
+<div class="bg-white rounded-3xl p-4 shadow-sm border border-rose-50">
+<div class="flex gap-4">
+<img class="w-20 h-20 rounded-2xl object-cover" data-alt="stylish colorful knit sweater with abstract patterns against a neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlbOf6dTONVkR5SU9iA7-4KqkZ0HPmxYpijusk7bqq5M6q1LueNLsRydRWq63xzSif50rNTpAq9fBBVG-A3Tz2xk8SxMd52llwNBbUrUmxVzs3xs_RM2Ex4g6h9_rrP7AlaafmhgaeafC8v3IwYV7T0XM-1CzuLAf30ZB4E4ompWmFYoQfj_8MXfsIxQ3sfjZQMXkstJBScDob6_oGOz5ZyEn6BNmWZIenZ5AZuQWIpj3YohoMHBPTQnhiVJwN-Z8bFZqxG6S2Gw" style=""/>
+<div class="flex-1">
+<h3 class="font-bold text-gray-900 leading-tight" style="">Suéter Tricô Color</h3>
+<p class="text-sm text-gray-500 mt-0.5" style="">Cliente: Fernanda Rocha</p>
+<div class="flex items-center gap-1.5 mt-2 text-gray-400">
+<span class="material-symbols-outlined text-sm" style="">calendar_today</span>
+<span class="text-xs font-bold italic" style="">12/05/2024</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
+<span class="text-xl font-extrabold text-[#b60e3d]" style="">R$ 89,90</span>
+<button class="border-2 border-[#b60e3d] text-[#b60e3d] text-xs font-extrabold px-5 py-2 rounded-full hover:bg-rose-50 active:scale-95 transition-transform" style="">Marcar como Entregue</button>
+</div>
+</div>
+<div class="bg-white rounded-3xl p-4 shadow-sm border border-rose-50">
+<div class="flex gap-4">
+<img class="w-20 h-20 rounded-2xl object-cover" data-alt="black leather high heel boots on a wooden floor with soft morning light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS_2yCq9InJ2DOB4e_09zbXUsxMDZGvw5RHvCqYHr-xKVGDt1fSSJGk6Bc52tPvRb92yMa30pc0cz1ncCViOMbV3_Of4vFsD2GfjzNvTlktueMhL7GDehQMaqTvA2ydxry7xzoT9cA9S_qwR4Kwq62kvv2B8i-0k3yifWpwNqTlQaXRXbS9FMpvaX3ikNnboTvKIY1j-W-pf9desVN7L8rA6Zg7t0bKnvFMlHpw4otwhZhkd9q-NOzAjwMHhBbQSv6IJDVtMX7bg" style=""/>
+<div class="flex-1">
+<h3 class="font-bold text-gray-900 leading-tight" style="">Bota Cano Curto</h3>
+<p class="text-sm text-gray-500 mt-0.5" style="">Cliente: Juliana Lima</p>
+<div class="flex items-center gap-1.5 mt-2 text-gray-400">
+<span class="material-symbols-outlined text-sm" style="">calendar_today</span>
+<span class="text-xs font-bold italic" style="">13/05/2024</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
+<span class="text-xl font-extrabold text-[#b60e3d]" style="">R$ 145,00</span>
+<button class="border-2 border-[#b60e3d] text-[#b60e3d] text-xs font-extrabold px-5 py-2 rounded-full hover:bg-rose-50 active:scale-95 transition-transform" style="">Marcar como Entregue</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Entregues -->
+<section class="scroll-mt-36" id="entregues">
+<div class="flex items-center justify-between mb-4 px-1">
+<h2 class="text-xl font-extrabold text-[#b60e3d]" style="">Entregues</h2>
+<span class="text-xs font-semibold bg-rose-100 text-[#b60e3d] px-2 py-1 rounded-full" style="">14 peças</span>
+</div>
+<div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-rose-50">
+<div class="divide-y divide-gray-50">
+<div class="p-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-lg object-cover" data-alt="fashionable patterned skirt on a neutral grey background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVz0Aml5Eg4TvMKxYuK_sSVN7rttwx5Qx55TKvT5H-oMz2Cd3XFbJPZdLF5uLC8al89--r2IB2hEVhkXa3c35Zy8nlUG0SEq4aR6jzD1w32PTOhB9U-m3GoO7-pKxVKvGWDoPBlgAsR4g9cIZaSETGRS_SHd3BOW8oThopp5gMpHYvQk2U__mx-xHoJeqWR-npCyOpV-W4Rad4cWd7K4iwPoFpBt1asLQCxgK0x-oKTDXvlbCcD3D6yRdhQ9HGsyhWdiEluM-5zw" style=""/>
+<div>
+<h3 class="font-bold text-gray-800 text-xs" style="">Saia Midi Floral</h3>
+<p class="text-[10px] text-gray-500" style="">Roberta P.</p>
+</div>
+</div>
+<span class="text-[10px] font-medium text-gray-400" style="">Entregue 10/05</span>
+</div>
+<div class="p-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-lg object-cover" data-alt="designer leather crossbody bag in deep burgundy with gold hardware" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFhsSyv3_py6yVus2sRsg-cUe7TXBVgtpQf7luf4EFyj7tdv4QdTUWtUjb5rbmcSf_r9WXoCGfgBFKtDc7erea8Nxwor1TdXqQO6Gpu9OVXV6wUX-V_Y4QfkQyoAGbrVtIAiagzW1MJvjQPOMNJ0SxIdq4F5ryGdvh9qQih5-yUgRGRTgnJLpH0SmEJn1RJyjXGYtwtHLh3nzJY5zvjCX_grbCcMHUnNnBeWFsmMDHVN41ZaL_Oq8QQ5q7nQISPf7XVFNEA2WJ1g" style=""/>
+<div>
+<h3 class="font-bold text-gray-800 text-xs" style="">Bolsa Tiracolo Couro</h3>
+<p class="text-[10px] text-gray-500" style="">Patricia M.</p>
+</div>
+</div>
+<span class="text-[10px] font-medium text-gray-400" style="">Entregue 09/05</span>
+</div>
+<div class="p-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-lg object-cover" data-alt="distressed black leather jacket on a plain white studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHIbEVjEa7CTAWW43XnZRm9VJcCdGZRcjccEyg4LAnPv133zohTYhp3B-4PqT9TPRwcJ0YYZSnim_c-5zEsa8TZvClBLoB6pnA3AoYx6FMLbGZoBPLSwdEa1Oa5YxJAp1D0omAQoF67Wj2zQoUZFnBpsgrj4KkR4n1djgdN-eQ9sD2zZ8eJQMON3blvVDFzRAQk4UPMh8HEErvVkl_vZ1fKm0XcA5QJ8Xdwkakln1B2iQR-WJl_pREr1Uj8Tw9ciqNeGV0LL97iw" style=""/>
+<div>
+<h3 class="font-bold text-gray-800 text-xs" style="">Jaqueta de Couro Eco</h3>
+<p class="text-[10px] text-gray-500" style="">Sabrina G.</p>
+</div>
+</div>
+<span class="text-[10px] font-medium text-gray-400" style="">Entregue 08/05</span>
+</div>
+</div>
+<button class="w-full py-3 text-[11px] font-bold text-[#b60e3d] bg-rose-50/30 hover:bg-rose-50 uppercase tracking-widest" style="">Enviar histórico por e-maiL</button>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-white border-t border-rose-50 shadow-[0_-4px_20px_0_rgba(182,14,61,0.08)] rounded-t-[32px] flex justify-around items-center px-2 pb-6 pt-2">
+<a class="flex flex-col items-center justify-center text-gray-400 hover:text-[#b60e3d] group" href="#" style="">
+<span class="material-symbols-outlined mb-1" style="">inventory_2</span>
+<span class="text-[11px] font-medium font-manrope" style="">Estoque</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#b60e3d] font-bold" href="#" style="">
+<span class="material-symbols-outlined mb-1" style='font-variation-settings: "FILL" 1;'>payments</span>
+<span class="text-[11px] font-medium font-manrope" style="">Vendas</span>
+</a>
+<button class="bg-[#b60e3d] text-white rounded-full p-4 -mt-10 shadow-lg shadow-rose-200 transition-transform active:scale-90 flex items-center justify-center" style="">
+<span class="material-symbols-outlined text-3xl" style="">add</span>
+</button>
+<a class="flex flex-col items-center justify-center text-gray-400 hover:text-[#b60e3d] group" href="#" style="">
+<span class="material-symbols-outlined mb-1" style="">group</span>
+<span class="text-[11px] font-medium font-manrope" style="">Clientes</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-400 hover:text-[#b60e3d] group" href="#" style="">
+<span class="material-symbols-outlined mb-1" style="">analytics</span>
+<span class="text-[11px] font-medium font-manrope" style="">Relatórios</span>
+</a>
+</nav>
+</body></html>

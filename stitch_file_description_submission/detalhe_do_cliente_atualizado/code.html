@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                primary: "#b60e3d",
+                surface: "#fff8f7",
+              }
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "2xl": "1rem",
+              "3xl": "1.5rem",
+              "full": "9999px"
+            },
+            fontFamily: {
+              headline: ["Plus Jakarta Sans", "sans-serif"],
+              body: ["Manrope", "sans-serif"],
+              label: ["Manrope", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #fff8f7;
+            font-family: 'Manrope', sans-serif;
+        }
+        h1, h2, h3 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+<style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-brand-surface text-gray-900 min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="bg-[#fff8f7] dark:bg-gray-900 border-b border-rose-100 dark:border-rose-900/30 docked full-width top-0 sticky z-40">
+<div class="flex justify-between items-center w-full px-4 h-16 max-w-2xl mx-auto">
+<div class="flex items-center gap-3">
+<button class="hover:opacity-80 transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[#b60e3d]">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold text-[#b60e3d] dark:text-rose-400">Mariana Albuquerque</h1>
+</div>
+</div>
+</header>
+<main class="max-w-2xl mx-auto px-4 mt-6">
+<!-- Profile Section -->
+<section class="bg-white rounded-3xl p-6 shadow-sm border border-rose-50 flex flex-col items-center mb-6">
+<div class="relative">
+<div class="w-24 h-24 bg-rose-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-md">
+<span class="text-4xl font-bold text-[#b60e3d] font-headline">M</span>
+</div>
+<div class="absolute bottom-4 right-0 bg-green-500 w-6 h-6 rounded-full border-4 border-white"></div>
+</div>
+<h2 class="text-2xl font-extrabold text-gray-900 mb-1">Mariana Albuquerque</h2>
+<p class="text-gray-500 text-sm font-medium mb-6">Cliente desde Janeiro, 2023</p>
+<div class="flex gap-4 w-full">
+<a class="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#25D366]/10 text-[#128C7E] rounded-xl font-bold hover:bg-[#25D366]/20 transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">chat</span>
+                WhatsApp
+            </a>
+<a class="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#E1306C]/10 text-[#C13584] rounded-xl font-bold hover:bg-[#E1306C]/20 transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+                Instagram
+            </a>
+</div>
+</section>
+<!-- Stats Bento Grid -->
+<div class="grid grid-cols-2 gap-4 mb-8">
+<div class="bg-white p-4 rounded-3xl border border-rose-50 shadow-sm">
+<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Gasto</p>
+<p class="text-xl font-extrabold text-[#b60e3d]">R$ 1.450,00</p>
+</div>
+<div class="bg-white p-4 rounded-3xl border border-rose-50 shadow-sm">
+<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Peças Compradas</p>
+<p class="text-xl font-extrabold text-gray-900">12 itens</p>
+</div>
+</div>
+<!-- Purchase History Section -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-bold text-gray-800">Histórico de Peças</h3>
+<span class="text-xs font-bold text-[#b60e3d] bg-rose-50 px-3 py-1 rounded-full uppercase">Recentes</span>
+</div>
+<div class="space-y-3">
+<!-- Item 1 -->
+<div class="bg-white p-3 rounded-2xl border border-rose-50 shadow-sm flex items-center gap-4 hover:border-rose-200 transition-colors">
+<img class="w-16 h-16 rounded-xl object-cover bg-gray-100" data-alt="close up of a vintage silk floral dress hanging in a bright boutique with soft morning light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1boTyI3Fa8G-mNCtJ7A6rsHZqKaqdpYs85_GY0WuD4nVZTWNV_vB3nInBfEzSq6vWkNOYmbFn34EyaG3VdE7dXPzBZG9Ge45tTLmZ2ZGCiMfOB36d1DZWndW4uszaIdRUJwnp0XEjxpykQwsskgmTR43JMv5gJt069UvcSRz0DBuxweJIvcFEq5WVhi3SOfx_Oahwo4QCF6Js8ua216sL4gFK4EtvesNkFJnq2zSHjnREDfzrxJrjESB04aG0m3NwEX7_HWOlJQ"/>
+<div class="flex-1">
+<h4 class="font-bold text-gray-900 leading-tight">Vestido Midi Seda Floral</h4>
+<p class="text-xs text-gray-500 font-medium">14 Out, 2023 • 14:30</p>
+</div>
+<div class="text-right">
+<p class="font-extrabold text-[#b60e3d]">R$ 289,00</p>
+<span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md">PAGO</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-white p-3 rounded-2xl border border-rose-50 shadow-sm flex items-center gap-4 hover:border-rose-200 transition-colors">
+<img class="w-16 h-16 rounded-xl object-cover bg-gray-100" data-alt="high quality classic light blue denim jacket with gold buttons on a minimalist white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCn-Gz1OBiXGYWuW_Xak5VFy2jAhn2mCAmMdiDBFG1O8slrFPLPRDMmYSUtNhsfNJFUFxIRjPBJOLlEfN5d8Ua7JMojxXNp2jtcg40fGGLyrA9LEC3yAD1fqdBTsOW9pVBh9ae_N70DGPOCgWDgTKaqG0LljeEgBVl4nu36aewAIWuOiTmHBuu8e3cFKtuQAc3DsGy08DcU0FXC_VxL-PVDMLG05_D_J_cBOUGuo2PXHbd2_C73DuUcaI4KDsikaH5-7eyCo4zAIQ"/>
+<div class="flex-1">
+<h4 class="font-bold text-gray-900 leading-tight">Jaqueta Jeans Vintage</h4>
+<p class="text-xs text-gray-500 font-medium">02 Set, 2023 • 10:15</p>
+</div>
+<div class="text-right">
+<p class="font-extrabold text-[#b60e3d]">R$ 150,00</p>
+<span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md">PAGO</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-white p-3 rounded-2xl border border-rose-50 shadow-sm flex items-center gap-4 hover:border-rose-200 transition-colors">
+<img class="w-16 h-16 rounded-xl object-cover bg-gray-100" data-alt="luxury leather beige handbag with minimalist design and textured finish in warm studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAL141CtgR67C_syWZE_JJ2JR9vzJ3JpCr_LBsq3EWBpRxhibbsrcNDo19s_hrYaYyuVBqc03eLRl_mMtP8xtgXvGlvqpTbn9Y1s8KJ0sIEMo1QP7mU-9kPu1A9y9bGFQ0X6HLhrzPp8HngsxiosyCaQlfbvJv9BMkLek72rfeBR2fNQa_9b0MT1hyVVSVnQWvWcu1I7UnIdO4GUozwuDRx1ixJfFT8J3NV5Kv4wsks-DWT57N4k05wU-k5IcckEvBi8WZ3GtheQw"/>
+<div class="flex-1">
+<h4 class="font-bold text-gray-900 leading-tight">Bolsa Couro Legítimo</h4>
+<p class="text-xs text-gray-500 font-medium">15 Ago, 2023 • 18:45</p>
+</div>
+<div class="text-right">
+<p class="font-extrabold text-[#b60e3d]">R$ 420,00</p>
+<span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md">PAGO</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-6 pt-2 bg-white dark:bg-gray-950 border-t border-rose-50 dark:border-rose-950 rounded-t-[32px] shadow-[0_-4px_20px_0_rgba(182,14,61,0.08)]">
+<!-- Estoque -->
+<a class="flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 hover:text-[#b60e3d] dark:hover:text-rose-300" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-[11px] font-medium font-manrope">Estoque</span>
+</a>
+<!-- Vendas -->
+<a class="flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 hover:text-[#b60e3d] dark:hover:text-rose-300" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-[11px] font-medium font-manrope">Vendas</span>
+</a>
+<!-- FAB Add -->
+<button class="bg-[#b60e3d] text-white rounded-full p-4 -mt-10 shadow-lg shadow-rose-200 dark:shadow-none transition-transform active:scale-90 flex items-center justify-center">
+<span class="material-symbols-outlined">add</span>
+</button>
+<!-- Clientes (Active) -->
+<a class="flex flex-col items-center justify-center text-[#b60e3d] dark:text-rose-400 font-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="text-[11px] font-medium font-manrope">Clientes</span>
+</a>
+<!-- Relatórios -->
+<a class="flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 hover:text-[#b60e3d] dark:hover:text-rose-300" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[11px] font-medium font-manrope">Relatórios</span>
+</a>
+</nav>
+</body></html>

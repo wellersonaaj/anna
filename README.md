@@ -1,0 +1,74 @@
+# Anna
+
+Agente vertical para brechó.
+
+Este repositório inicia o MVP v1 com foco em:
+
+- operação mobile-first para donas de brechó;
+- cadastro rápido de peças com apoio de AI;
+- fluxo de venda e entrega com histórico imutável;
+- modelagem de dados com Prisma + PostgreSQL.
+
+## Estrutura inicial
+
+- `docs/PRD_Anna_MVP_v1.md`: documento base de requisitos do produto.
+- `docs/01_arquitetura_inicial.md`: decisões técnicas iniciais para implementação.
+- `docs/02_modelagem_banco.md`: guia de modelagem e regras de integridade.
+- `prisma/schema.prisma`: primeira versão do schema relacional.
+- `apps/api`: API Fastify + Prisma com fluxos P0.
+- `apps/web`: PWA React com estoque (filtros), detalhe da peça (`/items/:id` — fotos e fila), **upload de fotos** (`/items/:id/fotos/upload` — lote, texto/voz, câmera/galeria), reserva, venda e entrega.
+- `packages/shared`: utilitários compartilhados de domínio (ex.: máquina de status).
+
+## Setup local
+
+1. Instale dependências:
+   ```bash
+   npm install
+   ```
+2. Copie as variáveis:
+   ```bash
+   cp .env.example .env
+   ```
+3. Gere o Prisma Client:
+   ```bash
+   npm run db:generate
+   ```
+4. Crie a migration inicial:
+   ```bash
+   npm run db:migrate -- --name init
+   ```
+5. Rode API e Web em paralelo:
+   ```bash
+   npm run dev:api
+   npm run dev:web
+   ```
+6. (Opcional) Worker stub de e-mail em outro terminal:
+   ```bash
+   npm run worker:email
+   ```
+
+## Endpoints P0 implementados
+
+- `GET /health`
+- `POST /items`
+- `GET /items` (filtros opcionais: `?status=&categoria=&search=`)
+- `GET /items/:id` (detalhe com `fotos`, `fotoLotes`, `filaInteressados`)
+- `POST /items/:id/foto-lotes`, `PATCH .../foto-lotes/:loteId`, `POST .../foto-lotes/:loteId/presign`, `POST .../foto-lotes/:loteId/transcribe`
+- `POST /items/:id/fotos` / `DELETE /items/:id/fotos/:fotoId` (body de foto aceita `loteId` opcional; máx. 5 fotos por peça)
+- `POST /items/:id/fila` / `DELETE /items/:id/fila/:entradaId`
+- `GET /acervos/suggestions`
+- `GET /clients` (busca opcional `?search=`)
+- `POST /clients`
+- `GET /clients/:id`
+- `POST /items/:id/reserve` (body: `cliente` com nome + WhatsApp ou Instagram)
+- `POST /items/:id/sell` (body: `cliente` + `precoVenda` preço da peça + frete; total gravado = peça + frete)
+- `GET /sales/pending-delivery`
+- `POST /sales/:id/deliver`
+
+> Nota: no MVP técnico atual, o `brecho_id` é passado no header `x-brecho-id`.
+
+### Upload de imagens (presigned)
+
+Configure `STORAGE_*` no `.env` da API (ver `.env.example`). O bucket precisa permitir `PUT` via URL assinada e o navegador precisa de **CORS** no bucket permitindo o origin do `apps/web` (método `PUT`, headers `Content-Type`).
+
+Transcrição de voz no lote usa `OPENAI_API_KEY` (opcional).

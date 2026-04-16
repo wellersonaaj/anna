@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agente Brechó - Marcar como Entregue</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#b60e3d",
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        headline: ["Plus Jakarta Sans", "sans-serif"],
+                        body: ["Manrope", "sans-serif"],
+                        label: ["Public Sans", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Manrope', sans-serif; }
+        h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-gray-100 min-h-screen">
+<!-- Screen Content (Sales Screen Context) -->
+<div class="max-w-md mx-auto bg-[#fff8f7] min-h-screen relative overflow-hidden pb-32">
+<!-- TopAppBar (from JSON) -->
+<header class="flex justify-between items-center w-full px-4 h-16 border-b border-rose-100 bg-[#fff8f7] sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a fashion curator smiling warmly in a bright studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBooBWHzQpb9A3hmzQzcvAlL0G2sSa_UvbgRbSUgC8bxRMctWKC-hUohKOzEe9Qs6bSAclTEnwIM1Sjm6FLFxiO9CiM6I2OTbrVL82Y5v3MeNt0x0QlPhSxXOdSMXtuUBLnm7OFDVXGlCwvPy5ow4Br6aN0sha-6su3a4Emh9-cgkQqq65ySqAUHRo5oaQGmiL3T-GUK2WaeESYDqeb5pynvFYf3My3Af_oU0CkJgSmBLPQTxfDlnEVpM_XBndfqgsVaFqn3ota1g"/>
+</div>
+<span class="text-xl font-bold text-[#b60e3d]">Agente Brechó</span>
+</div>
+<span class="material-symbols-outlined text-[#b60e3d] hover:opacity-80 cursor-pointer" data-icon="settings">settings</span>
+</header>
+<!-- Main Content (Sales History Preview) -->
+<main class="p-4 space-y-4">
+<h2 class="text-2xl font-extrabold text-gray-900 tracking-tight">Vendas</h2>
+<!-- Sale Card Sample -->
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-50 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex gap-3">
+<div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-100">
+<img class="w-full h-full object-cover" data-alt="high-quality designer leather handbag in burgundy color with gold details on a neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBC0JeQHPubONYqPWzZed0oFNwjYTRKpNgo3zELD1A5eiKzvPMK0OomlWXXJz9J0kPS1OKIk3XbNypoQ00gYBOpRmJgRjSsibHlYAlSPzl0rb3fx9iRFhuxmndoCSDtxOrEhmm0DblYKIA3pugOo9D608GBEz9okvPqFwmIN-v_M3p1MfXlULjfVrOE-sMVBmtI0dLumOuyERXhrAM-lt-FpzBOq-vjERdY0ueAs1LbWZ3PFxDr2mSLwxMXmzE7pW4DyC9EcJW98w"/>
+</div>
+<div>
+<p class="font-bold text-gray-900">Bolsa Vintage Couro</p>
+<p class="text-sm text-gray-500">Cliente: Mariana Silva</p>
+<p class="text-[#b60e3d] font-bold mt-1">R$ 249,90</p>
+</div>
+</div>
+<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">A caminho</span>
+</div>
+</div>
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-50 opacity-60">
+<div class="flex justify-between items-start">
+<div class="flex gap-3">
+<div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-100">
+<img class="w-full h-full object-cover" data-alt="classic denim jacket hung on a minimalist wooden hanger against a clean white wall" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFMLpooDUEx4kB3fsTErawL8iGC_t9JYIJaKn2lDDGr58_Zi5mNV_F7CeMwykJKJNDxny1bCZsPWBWSwxKXnyryJaZxptneZXHjsX8UKM7BQXawbEtXAUxvc2JRGrwALHeqP7XROcUo2fx1ztkpRl1snNRj0yI7FNRFt9vfPYKtPQrX_7ajxahp5YhtcNgca_ViRnUl1lcfHkO8w7a2esf3bCw6RFE4uyYfC0WnLkp8ivcM_tkDKJ3qaApN1XN_op4dfFkWmoqiw"/>
+</div>
+<div>
+<p class="font-bold text-gray-900">Jaqueta Jeans Classic</p>
+<p class="text-sm text-gray-500">Cliente: João Pedro</p>
+<p class="text-[#b60e3d] font-bold mt-1">R$ 180,00</p>
+</div>
+</div>
+<span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Entregue</span>
+</div>
+</div>
+</main>
+<!-- Bottom Sheet Overlay (The Modal requested) -->
+<div class="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex flex-col justify-end">
+<!-- Modal Body (Bottom Sheet) -->
+<div class="bg-white rounded-t-[32px] w-full max-w-md mx-auto shadow-2xl animate-in slide-in-from-bottom duration-300">
+<!-- Handle -->
+<div class="flex justify-center pt-3 pb-1">
+<div class="w-12 h-1.5 bg-gray-200 rounded-full"></div>
+</div>
+<div class="px-6 pb-10 pt-4">
+<h1 class="text-2xl font-bold text-gray-900 mb-6 font-headline">Confirmar entrega</h1>
+<!-- Piece Summary Card -->
+<div class="bg-gray-50 p-4 rounded-2xl flex items-center gap-4 mb-6">
+<div class="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="detailed close-up of a burgundy leather handbag with premium textures and golden hardware" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_qdxoFmuWcn6bEDLXnq6Vk49Klsfq0lO8fXSAdj3FqiU8DfVlMjXdJxHZnIZgcaSUY99sp4dXM0umjxzq8ohOORm6rTlgdlMkWgOmd8Q7Ql1--0vQuJhfo3gh-G3uYGcmCYaQFTJ2rQ8rrma6YA5cNOO1ca3WFGYwA67hxnVIdc-_Yx7Xix68rwu_6GURjY-4Xmlav2W4ODMD-0IsNk9L-H_NtIiE7R-BMTpQ961BIExSm7HRnFzymhE9Bx5l1s_-I-yOTP95Yw"/>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-gray-900 text-base">Bolsa Vintage Couro</span>
+<span class="text-sm text-gray-500 font-medium">Cliente: Mariana Silva</span>
+</div>
+</div>
+<!-- Tracking Field -->
+<div class="mb-6">
+<label class="block text-sm font-semibold text-gray-700 mb-2" for="tracking">Código de rastreio (Opcional)</label>
+<input class="w-full h-14 px-4 rounded-xl border border-gray-200 focus:border-[#b60e3d] focus:ring-1 focus:ring-[#b60e3d] transition-all outline-none text-gray-900 placeholder:text-gray-300" id="tracking" placeholder="ex: BR123456789BR" type="text"/>
+</div>
+<!-- Warning Text -->
+<div class="flex items-center gap-2 mb-8 text-gray-500 bg-gray-50 p-3 rounded-xl">
+<span class="material-symbols-outlined text-gray-400 text-lg" data-icon="info">info</span>
+<p class="text-xs font-medium">O ciclo desta peça será encerrado.</p>
+</div>
+<!-- Actions -->
+<div class="flex flex-col gap-3">
+<button class="w-full h-14 bg-[#b60e3d] text-white font-bold rounded-2xl active:scale-[0.98] transition-transform shadow-lg shadow-rose-100 flex items-center justify-center">
+                            Marcar como Entregue
+                        </button>
+<button class="w-full h-12 text-gray-500 font-semibold hover:text-gray-700 transition-colors">
+                            Cancelar
+                        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- BottomNavBar (from JSON) -->
+<nav class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-2 pb-6 pt-2 bg-white rounded-t-[32px] shadow-[0_-4px_20px_0_rgba(182,14,61,0.08)] border-t border-rose-50">
+<div class="flex flex-col items-center justify-center text-gray-400 hover:text-[#b60e3d] cursor-pointer">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="text-[11px] font-medium font-manrope">Estoque</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#b60e3d] font-bold cursor-pointer">
+<span class="material-symbols-outlined" data-icon="payments" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span class="text-[11px] font-medium font-manrope">Vendas</span>
+</div>
+<div class="bg-[#b60e3d] text-white rounded-full p-4 -mt-8 shadow-lg shadow-rose-200 transition-transform active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-400 hover:text-[#b60e3d] cursor-pointer">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="text-[11px] font-medium font-manrope">Clientes</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-400 hover:text-[#b60e3d] cursor-pointer">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-[11px] font-medium font-manrope">Relatórios</span>
+</div>
+</nav>
+</div>
+</body></html>

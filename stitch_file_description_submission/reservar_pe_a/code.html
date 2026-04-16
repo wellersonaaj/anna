@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Archive - Nova Reserva</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#271819",
+                    "on-tertiary-container": "#f6fff4",
+                    "surface-dim": "#efd3d5",
+                    "primary-fixed": "#ffdadb",
+                    "on-surface": "#271819",
+                    "on-primary-fixed-variant": "#91002d",
+                    "on-error": "#ffffff",
+                    "secondary-container": "#fd8895",
+                    "background": "#fff8f7",
+                    "primary-container": "#da3054",
+                    "outline-variant": "#e2bec0",
+                    "secondary-fixed-dim": "#ffb2b8",
+                    "primary-fixed-dim": "#ffb2b8",
+                    "surface-container-high": "#fee1e3",
+                    "tertiary-fixed-dim": "#5bde8d",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-container": "#fffbff",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed-variant": "#7f2736",
+                    "inverse-primary": "#ffb2b8",
+                    "error": "#ba1a1a",
+                    "inverse-on-surface": "#ffeced",
+                    "outline": "#8e6f71",
+                    "on-primary": "#ffffff",
+                    "secondary": "#9e3e4c",
+                    "inverse-surface": "#3d2c2d",
+                    "surface-container": "#ffe9e9",
+                    "on-surface-variant": "#5a4042",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#fff0f0",
+                    "tertiary-fixed": "#7afca7",
+                    "on-tertiary-fixed-variant": "#00522a",
+                    "on-secondary-fixed": "#40000f",
+                    "on-secondary-container": "#75202f",
+                    "primary": "#b60e3d",
+                    "surface": "#fff8f7",
+                    "tertiary-container": "#008649",
+                    "surface-variant": "#f8dcdd",
+                    "tertiary": "#006a39",
+                    "secondary-fixed": "#ffdadb",
+                    "error-container": "#ffdad6",
+                    "surface-bright": "#fff8f7",
+                    "on-tertiary-fixed": "#00210e",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-highest": "#f8dcdd",
+                    "surface-tint": "#ba1340",
+                    "on-primary-fixed": "#40000f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .editorial-shadow {
+            box-shadow: 0 12px 40px rgba(186, 19, 64, 0.06);
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-[#fff8f7]/80 dark:bg-stone-950/80 backdrop-blur-md fixed top-0 w-full z-50">
+<div class="flex justify-between items-center px-6 h-16 w-full max-w-7xl mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container overflow-hidden">
+<img alt="Administrador" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCw5ttgdCMvMufK7-mVmZ_T98WoU6v6FPXaHvTZZQwSa9U8nqKJXoJjgtnZVGXqgX71Hfxrog0tucRnroTryVFw_6LyZOoRSq0aO70YWiJKmfASwiS-l5GdQjXANCuZEr4XnB5DTZ8yH2awrLkZU9WS49FPpJDoy1lVS5oiWcemvdj3RaE8QXFDvdvkxOWK0lj-6sjfp4OfsmSmiuWHETJRLwb83x8B8fHaqwUe_igGdmahFIuxEuG30wKfyliZGwt9ESF37-1qiA"/>
+</div>
+<span class="text-xl font-bold text-[#271819] dark:text-[#fff8f7] font-['Plus_Jakarta_Sans'] tracking-tight">Agente</span>
+</div>
+<button class="text-[#271819]/60 hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full">
+<!-- Modal-like Container -->
+<div class="bg-surface-container-lowest rounded-[2rem] editorial-shadow p-8 flex flex-col gap-10">
+<!-- Header Section -->
+<div class="space-y-2">
+<h1 class="font-headline text-3xl font-extrabold text-on-surface leading-tight">Reserva</h1>
+<p class="text-on-surface-variant text-sm leading-relaxed max-w-sm">Busque um cliente ou cadastre um novo</p>
+</div>
+<!-- Customer Search / Quick Action -->
+<div class="space-y-6">
+<div class="relative group">
+<span class="absolute left-0 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline transition-colors group-focus-within:text-primary" data-icon="person_search">person_search</span>
+<input class="w-full bg-transparent border-0 border-b-2 border-outline-variant focus:ring-0 focus:border-primary pl-8 pb-3 font-body text-on-surface placeholder:text-on-surface-variant/40 transition-all" placeholder="Buscar cliente existente..." type="text"/>
+</div>
+<div class="flex items-center gap-4 py-2">
+<div class="h-[1px] flex-grow bg-outline-variant/30"></div>
+<span class="font-label text-[10px] uppercase tracking-widest text-outline-variant font-bold">OU</span>
+<div class="h-[1px] flex-grow bg-outline-variant/30"></div>
+</div>
+<!-- New Customer Form -->
+<div class="bg-surface-container-low rounded-3xl p-6 space-y-8">
+<div class="flex items-center justify-between">
+<h2 class="font-headline text-sm font-bold text-on-surface">Perfil do Cliente</h2>
+<span class="material-symbols-outlined text-primary text-xl" data-icon="person_add">person_add</span>
+</div>
+<div class="grid grid-cols-1 gap-8">
+<!-- Input Name -->
+<div class="relative">
+<label class="block font-label text-[10px] uppercase tracking-wider font-bold text-on-surface-variant mb-1">Nome Completo</label>
+<input class="w-full bg-transparent border-0 border-b-2 border-outline-variant focus:ring-0 focus:border-primary pb-2 font-body text-lg text-on-surface placeholder:text-on-surface-variant/20" placeholder="ex: Elena Rossi" type="text"/>
+</div>
+<!-- Row for WhatsApp & Instagram -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="relative">
+<label class="block font-label text-[10px] uppercase tracking-wider font-bold text-on-surface-variant mb-1">WhatsApp</label>
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant/40 text-lg">+</span>
+<input class="w-full bg-transparent border-0 border-b-2 border-outline-variant focus:ring-0 focus:border-primary pb-2 font-body text-lg text-on-surface placeholder:text-on-surface-variant/20" placeholder="55 11 99999-9999" type="tel"/>
+</div>
+</div>
+<div class="relative">
+<label class="block font-label text-[10px] uppercase tracking-wider font-bold text-on-surface-variant mb-1">Instagram</label>
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant/40 text-lg">@</span>
+<input class="w-full bg-transparent border-0 border-b-2 border-outline-variant focus:ring-0 focus:border-primary pb-2 font-body text-lg text-on-surface placeholder:text-on-surface-variant/20" placeholder="usuario" type="text"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Item Preview (Bento-style card) -->
+<div class="flex items-center gap-6 p-4 bg-surface-container-high rounded-2xl">
+<div class="w-20 h-24 rounded-xl overflow-hidden flex-shrink-0">
+<img alt="Item Reservado" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBaVesqq8W9XvzB7bLSO3vt4Hss3WMyZfvj2zVaNSNcstSZFU8n0pTHzVLpbZGuZVa063K7lbGgO3KC1lo93IHlFjLkJj6CX98usMaMqhkRDHGNrBKUyctYZ-C-JG5u7_UkqhidEaT1NXL5C1jo-l06iPRtN957A7787wR2ehL8zt2MSGHZOA7XBbkaRAZQvNdXpJ4afjTsZKYxgztalhQ8u63UAzYN15FEV_nCB_0Ro6WWbFYj_u7-Pf76Qmv4XqGg4KlI0aROA"/>
+</div>
+<div class="flex-grow">
+<span class="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Reservando Item</span>
+<h3 class="font-headline font-bold text-on-surface">Vestido Midi de Seda</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-xs font-bold text-on-surface">R$ 1.580,00</span>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-4 mt-4">
+<button class="w-full h-16 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-xl font-headline font-bold text-lg flex items-center justify-center gap-3 active:scale-95 transition-transform editorial-shadow">
+                    Confirmar Reserva
+                    <span class="material-symbols-outlined" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</button>
+<button class="w-full h-12 bg-transparent text-on-surface-variant font-label text-[10px] uppercase tracking-[0.2em] font-bold hover:text-primary transition-colors">
+                    Descartar Rascunho
+                </button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="bg-[#fff8f7]/80 dark:bg-stone-950/80 backdrop-blur-md fixed bottom-0 w-full z-50 rounded-t-[2rem] shadow-[0_-12px_40px_rgba(186,19,64,0.06)] md:hidden">
+<div class="flex justify-around items-center h-20 px-4 pb-safe w-full">
+<div class="flex flex-col items-center justify-center text-[#271819]/40 dark:text-[#fff8f7]/40 px-4 py-2 hover:text-[#b60e3d] transition-transform active:scale-90">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-[0.05em] font-bold">Estoque</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#271819]/40 dark:text-[#fff8f7]/40 px-4 py-2 hover:text-[#b60e3d] transition-transform active:scale-90">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-[0.05em] font-bold">Vendas</span>
+</div>
+<!-- Active State: Customers -->
+<div class="flex flex-col items-center justify-center text-[#b60e3d] dark:text-[#da3054] bg-[#b60e3d]/10 rounded-2xl px-4 py-2 transition-transform active:scale-90">
+<span class="material-symbols-outlined" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-[0.05em] font-bold">Clientes</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#271819]/40 dark:text-[#fff8f7]/40 px-4 py-2 hover:text-[#b60e3d] transition-transform active:scale-90">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-[0.05em] font-bold">Relatórios</span>
+</div>
+</div>
+</nav>
+</body></html>

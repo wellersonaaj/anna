@@ -1,0 +1,25 @@
+{
+  "name": "anna",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "dotenv -e .env -- concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "dotenv -e .env -- npm run dev -w @anna/api",
+    "dev:web": "dotenv -e .env -- npm run dev -w @anna/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "worker:email": "dotenv -e .env -- npm run worker:email -w @anna/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "dotenv-cli": "^8.0.0",
+    "prisma": "^6.7.0",
+    "typescript": "^5.8.3"
+  }
+}

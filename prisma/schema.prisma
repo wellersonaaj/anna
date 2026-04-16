@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plano {
+  BASICO
+  MEDIO
+  PRO
+  TRIAL
+}
+
+enum StatusPeca {
+  DISPONIVEL
+  RESERVADO
+  VENDIDO
+  ENTREGUE
+  INDISPONIVEL
+}
+
+enum Categoria {
+  ROUPA_FEMININA
+  ROUPA_MASCULINA
+  CALCADO
+  ACESSORIO
+}
+
+enum Condicao {
+  OTIMO
+  BOM
+  REGULAR
+}
+
+enum AcervoTipo {
+  PROPRIO
+  CONSIGNACAO
+}
+
+enum EmailJobStatus {
+  PENDENTE
+  PROCESSANDO
+  ENVIADO
+  ERRO
+}
+
+model Brecho {
+  id            String   @id @default(cuid())
+  nome          String
+  telefone      String   @unique
+  email         String?
+  plano         Plano
+  trialExpiraEm DateTime?
+  criadoEm      DateTime @default(now())
+
+  pecas     Peca[]
+  clientes  Cliente[]
+  emailJobs EmailJob[]
+}
+
+model Peca {
+  id            String     @id @default(cuid())
+  brechoId      String
+  nome          String
+  categoria     Categoria
+  subcategoria  String
+  cor           String
+  estampa       Boolean    @default(false)
+  condicao      Condicao
+  tamanho       String
+  marca         String?
+  precoVenda    Decimal?   @db.Decimal(10, 2)
+  acervoTipo    AcervoTipo @default(PROPRIO)
+  acervoNome    String?
+  consignanteId String?
+  status        StatusPeca @default(DISPONIVEL)
+  criadoEm      DateTime   @default(now())
+  atualizadoEm  DateTime   @updatedAt
+
+  brecho           Brecho                @relation(fields: [brechoId], references: [id])
+  fotos            PecaFoto[]
+  fotoLotes        PecaFotoLote[]
+  historicoStatus  PecaStatusHistorico[]
+  venda            Venda?
+  filaInteressados FilaInteressado[]
+
+  @@index([brechoId, status, criadoEm])
+  @@index([brechoId, categoria, subcategoria])
+  @@index([brechoId, acervoTipo, acervoNome])
+}
+
+/// Contexto opcional (texto e/ou voz) compartilhado por um batch de fotos no mesmo envio.
+model PecaFotoLote {
+  id                 String   @id @default(cuid())
+  pecaId             String
+  textoNota          String?  @db.Text
+  audioUrl           String?
+  transcricaoAudio   String?  @db.Text
+  criadoEm           DateTime @default(now())
+
+  peca  Peca       @relation(fields: [pecaId], references: [id], onDelete: Cascade)
+  fotos PecaFoto[]
+
+  @@index([pecaId, criadoEm])
+}
+
+model PecaFoto {
+  id             String   @id @default(cuid())
+  pecaId         String
+  loteId         String?
+  url            String
+  ordem          Int
+  aiAmbiente     String?
+  aiQualidade    String?
+  aiConfianca    Float?
+  aiPredicaoJson Json?
+  criadoEm       DateTime @default(now())
+
+  peca       Peca          @relation(fields: [pecaId], references: [id], onDelete: Cascade)
+  lote       PecaFotoLote? @relation(fields: [loteId], references: [id], onDelete: SetNull)
+  aiAnalyses AIAnalysis[]
+
+  @@unique([pecaId, ordem])
+}
+
+model PecaStatusHistorico {
+  id        String     @id @default(cuid())
+  pecaId    String
+  clienteId String?
+  status    StatusPeca
+  criadoEm  DateTime   @default(now())
+
+  peca    Peca     @relation(fields: [pecaId], references: [id], onDelete: Cascade)
+  cliente Cliente? @relation(fields: [clienteId], references: [id])
+
+  @@index([pecaId, criadoEm])
+}
+
+model Cliente {
+  id        String   @id @default(cuid())
+  brechoId  String
+  nome      String
+  whatsapp  String?
+  instagram String?
+  criadoEm  DateTime @default(now())
+
+  brecho Brecho @relation(fields: [brechoId], references: [id])
+  vendas Venda[]
+  filas  FilaInteressado[]
+  historicoStatus PecaStatusHistorico[]
+
+  @@index([brechoId, nome])
+}
+
+model Venda {
+  id          String   @id @default(cuid())
+  pecaId      String   @unique
+  clienteId   String
+  precoVenda  Decimal  @db.Decimal(10, 2)
+  freteTexto  String?
+  freteValor  Decimal? @db.Decimal(10, 2)
+  /// Total da transacao: preco da peca + frete (frete somado).
+  ganhosTotal Decimal  @db.Decimal(10, 2)
+  criadoEm    DateTime @default(now())
+
+  peca    Peca    @relation(fields: [pecaId], references: [id])
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+  entrega Entrega?
+}
+
+model Entrega {
+  id            String   @id @default(cuid())
+  vendaId       String   @unique
+  codigoRastreio String?
+  entregueEm    DateTime
+
+  venda Venda @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+}
+
+model FilaInteressado {
+  id        String   @id @default(cuid())
+  pecaId    String
+  clienteId String
+  posicao   Int
+  criadoEm  DateTime @default(now())
+
+  peca    Peca    @relation(fields: [pecaId], references: [id], onDelete: Cascade)
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@unique([pecaId, clienteId])
+  @@unique([pecaId, posicao])
+  @@index([pecaId, posicao])
+}
+
+model AIAnalysis {
+  id               String   @id @default(cuid())
+  pecaFotoId       String
+  nomeSugerido     String?
+  categoria        String?
+  subcategoria     String?
+  corPrincipal     String?
+  estampado        Boolean  @default(false)
+  descricaoEstampa String?
+  condicao         String?
+  confianca        Float
+  ambienteFoto     String?
+  qualidadeFoto    String?
+  multiplasPecas   Boolean  @default(false)
+  observacoes      String?
+  textoContexto    String?
+  transcricaoAudio String?
+  modeloUsado      String
+  tokensConsumidos Int
+  criadoEm         DateTime @default(now())
+
+  pecaFoto PecaFoto @relation(fields: [pecaFotoId], references: [id], onDelete: Cascade)
+}
+
+model EmailJob {
+  id           String         @id @default(cuid())
+  brechoId     String
+  tipo         String
+  status       EmailJobStatus @default(PENDENTE)
+  tentativas   Int            @default(0)
+  criadoEm     DateTime       @default(now())
+  processadoEm DateTime?
+
+  brecho Brecho @relation(fields: [brechoId], references: [id])
+}

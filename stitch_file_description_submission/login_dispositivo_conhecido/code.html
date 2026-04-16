@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-low": "#fff0f0",
+                      "on-secondary-fixed-variant": "#7f2736",
+                      "on-tertiary-fixed": "#00210e",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-highest": "#f8dcdd",
+                      "on-tertiary": "#ffffff",
+                      "background": "#fff8f7",
+                      "tertiary-container": "#008649",
+                      "secondary-fixed-dim": "#ffb2b8",
+                      "error": "#ba1a1a",
+                      "on-primary": "#ffffff",
+                      "on-secondary-container": "#75202f",
+                      "inverse-primary": "#ffb2b8",
+                      "primary-fixed-dim": "#ffb2b8",
+                      "surface-bright": "#fff8f7",
+                      "primary-fixed": "#ffdadb",
+                      "surface-container-high": "#fee1e3",
+                      "on-primary-fixed-variant": "#91002d",
+                      "tertiary-fixed-dim": "#5bde8d",
+                      "on-surface": "#271819",
+                      "on-secondary-fixed": "#40000f",
+                      "tertiary": "#006a39",
+                      "tertiary-fixed": "#7afca7",
+                      "on-error-container": "#93000a",
+                      "on-secondary": "#ffffff",
+                      "surface-variant": "#f8dcdd",
+                      "on-error": "#ffffff",
+                      "on-tertiary-fixed-variant": "#00522a",
+                      "secondary-container": "#fd8895",
+                      "surface-dim": "#efd3d5",
+                      "on-primary-container": "#fffbff",
+                      "on-primary-fixed": "#40000f",
+                      "on-background": "#271819",
+                      "outline": "#8e6f71",
+                      "inverse-on-surface": "#ffeced",
+                      "error-container": "#ffdad6",
+                      "secondary": "#9e3e4c",
+                      "primary": "#b60e3d",
+                      "primary-container": "#da3054",
+                      "surface-container": "#ffe9e9",
+                      "inverse-surface": "#3d2c2d",
+                      "secondary-fixed": "#ffdadb",
+                      "outline-variant": "#e2bec0",
+                      "on-surface-variant": "#5a4042",
+                      "surface-tint": "#ba1340",
+                      "surface": "#fff8f7",
+                      "on-tertiary-container": "#f6fff4"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Plus Jakarta Sans"],
+                      "body": ["Manrope"],
+                      "label": ["Manrope"]
+              }
+            },
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .editorial-gradient {
+            background: linear-gradient(135deg, #b60e3d 0%, #da3054 100%);
+        }
+        .soft-glass {
+            background: rgba(255, 248, 247, 0.8);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed-variant">
+<!-- Hero Visual Background (Asymmetric Layout) -->
+<div class="fixed inset-0 z-0 flex flex-col md:flex-row overflow-hidden">
+<div class="w-full md:w-3/5 h-1/2 md:h-full relative">
+<img class="w-full h-full object-cover" data-alt="high-end editorial fashion photography of curated vintage clothing on a minimalist rail in a bright white airy boutique gallery" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjisNp4vbbKUZXpYBiIShR9-0fps5lux8XX8CYPgzjq51MtTFAJruLRvC6Vf6G1zWr1sjZZ7h96UXOZaZwjjk9KPmwL9IQCBweVskR319T6wkqPJg0VtPBgeoYc3GOgXWk7oDzZkblKZpmKN4Q_mJ7AySDhwwcQ4oiUweg2hnstvGWgQm4iFtkvtQkJJp_ydIVIOsD2YC04uiVAx4R43wtiYaRJU-g3SfWy4R4dtH5iJutH853gYX6DRnYNrGJ_JfpEdLD6tpkrQ"/>
+<div class="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-background via-background/40 to-transparent"></div>
+</div>
+<div class="hidden md:block w-2/5 h-full bg-surface"></div>
+</div>
+<!-- Login Container -->
+<main class="relative z-10 min-h-screen flex flex-col px-8 pt-16 pb-12 items-center justify-between md:items-start md:justify-center md:pl-24 max-w-7xl mx-auto">
+<!-- Header & Branding -->
+<header class="w-full text-center md:text-left">
+<div class="mb-12">
+<span class="text-3xl font-extrabold tracking-tighter font-headline text-on-surface">Agente</span>
+<p class="text-xs font-label uppercase tracking-[0.15em] text-primary mt-2">Feito para brechó</p>
+</div>
+<div class="space-y-4">
+<h1 class="text-5xl md:text-6xl font-extrabold font-headline tracking-tight text-on-surface leading-[1.1]">
+                    Bora vender?
+                </h1>
+<p class="text-on-surface-variant text-lg max-w-sm mx-auto md:mx-0 leading-relaxed">
+                    Sentimos sua falta. Entre para gerenciar sua curadoria.
+                </p>
+</div>
+</header>
+<!-- Login Card / Interactive Section -->
+<section class="w-full max-w-md mt-16 md:mt-24 space-y-8">
+<!-- User Identity (Known Device State) -->
+<div class="flex items-center gap-4 p-4 bg-surface-container-lowest rounded-3xl shadow-[0_12px_40px_rgba(186,19,64,0.04)] border border-outline-variant/10">
+<div class="w-16 h-16 rounded-2xl overflow-hidden ring-4 ring-primary-fixed">
+<img class="w-full h-full object-cover" data-alt="stylish young woman with a creative professional look smiling gently soft natural studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9oAB87db1XPOp6rBo1rkO0NgsRU3RpCbrShQ95a7Yytrmkoa5UqcSNGlOcqXQpl4SQqIgqca_pui7ZWtg-5jRuW33PC1oHIj4bz-cKivaCJlbqgZMapiHQz0vYJE_CAXtnnu3EcLUcMNTT2S01igapDH5JhjYkYt2tE-xwtyn_iiHZ8ns4up3DlN0VXQXQ4cktlgEpGwN2fO-fQuHBaADe_oWbBr1Q58xI7lOlp9Z9P5-CsnxSVCb9xMBtJc2nwz7XgqAMTrnDA"/>
+</div>
+<div>
+<h2 class="font-headline font-bold text-xl text-on-surface">Maria Clara</h2>
+<p class="text-on-surface-variant font-label text-xs uppercase tracking-wider">Curadora Chefe</p>
+</div>
+</div>
+<!-- Primary Action -->
+<div class="space-y-4">
+<button class="editorial-gradient w-full min-h-[72px] rounded-3xl flex items-center justify-center gap-3 text-on-primary font-headline font-bold text-lg active:scale-[0.98] transition-transform shadow-[0_20px_50px_rgba(186,13,64,0.25)]">
+<span class="material-symbols-outlined text-3xl">fingerprint</span>
+                    Entrar com biometria
+                </button>
+<div class="text-center">
+<button class="text-on-surface-variant font-label text-sm font-semibold hover:text-primary transition-colors py-2">
+                        Usar outro número
+                    </button>
+</div>
+</div>
+</section>
+<!-- Discrete Footer -->
+<footer class="w-full mt-auto pt-12 md:pt-24 text-center md:text-left">
+<button class="text-on-surface-variant/60 font-label text-[10px] uppercase tracking-[0.2em] hover:text-primary transition-colors py-4">
+                Solicitar Acesso
+            </button>
+</footer>
+</main>
+<!-- Aesthetic Layer: Soft Blur Spot -->
+<div class="fixed -bottom-32 -left-32 w-96 h-96 bg-primary-fixed/30 rounded-full blur-[120px] pointer-events-none z-0"></div>
+</body></html>

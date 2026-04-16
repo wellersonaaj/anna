@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agente Brechó - Relatórios</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#b60e3d",
+                        background: "#fff8f7",
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        headline: ["Plus Jakarta Sans", "sans-serif"],
+                        body: ["Manrope", "sans-serif"],
+                        label: ["Manrope", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #fff8f7; }
+        h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#fff8f7] text-gray-900 pb-32">
+<!-- TopAppBar -->
+<header class="bg-[#fff8f7] border-b border-rose-100 flex justify-between items-center w-full px-4 h-16 sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center overflow-hidden">
+<img alt="Logo do Brechó" class="w-full h-full object-cover" data-alt="portrait of a professional woman in a bright stylish studio setting with soft natural lighting and warm tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuASUtWKblhvho7nb7f6W7Okqcp2_RyOtl58t_ZYMKXuHcbVznTL91Bj_tzjrkZd3RI8PQR0SHTh-3x733xjvt1G5gMhW2_aC0CScggOvLlLnjkc7TGwEtBIWFWrhqGjixsZ0m4Yh73kk66wYCgcUS4K-wfvCUACmAuFO6lvxNmQ5iphwIz_Z6dAA56EdgWQBftO5KySRMoeSluJ7ePPMFZkERoaSz2LNVf8UAxhwlSTWkWi3uLWFTZAMb9u173DNfRfslnrP5Fjyw"/>
+</div>
+<span class="text-xl font-bold text-[#b60e3d]">Agente Brechó</span>
+</div>
+<button class="hover:opacity-80 active:scale-95 transition-transform text-[#b60e3d]">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</header>
+<main class="px-4 pt-6 max-w-2xl mx-auto">
+<div class="mb-8">
+<h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Relatórios</h1>
+<p class="text-sm text-gray-500 font-medium">Visão geral do seu desempenho este mês</p>
+</div>
+<!-- Metric Cards Bento Grid Style -->
+<div class="grid grid-cols-1 gap-4">
+<!-- Card 1: Peças em estoque -->
+<div class="bg-white p-6 rounded-3xl border border-rose-50 flex justify-between items-center group">
+<div>
+<span class="text-4xl font-extrabold text-gray-900 block">142</span>
+<span class="text-sm font-semibold text-gray-500">Peças em estoque</span>
+<p class="text-[11px] text-gray-400 mt-1 uppercase tracking-wider">disponíveis agora</p>
+</div>
+<div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-[#b60e3d]">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+</div>
+</div>
+<!-- Card 2: Vendidas este mês -->
+<div class="bg-white p-6 rounded-3xl border border-rose-50 flex justify-between items-center">
+<div>
+<span class="text-4xl font-extrabold text-gray-900 block">58</span>
+<span class="text-sm font-semibold text-gray-500">Vendidas este mês</span>
+<p class="text-[11px] text-gray-400 mt-1 uppercase tracking-wider">peças vendidas em Outubro</p>
+</div>
+<div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
+<span class="material-symbols-outlined" data-icon="shopping_bag">shopping_bag</span>
+</div>
+</div>
+<!-- Card 3: Faturamento -->
+<div class="bg-white p-6 rounded-3xl border border-rose-50 flex justify-between items-center shadow-sm">
+<div>
+<span class="text-4xl font-extrabold text-[#b60e3d] block">R$ 4.820</span>
+<span class="text-sm font-semibold text-gray-500">Faturamento do mês</span>
+<p class="text-[11px] text-gray-400 mt-1 uppercase tracking-wider">receita bruta</p>
+</div>
+<div class="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-[#b60e3d]">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+</div>
+</div>
+<!-- Card 4: Paradas -->
+<div class="bg-white p-6 rounded-3xl border border-rose-50 flex justify-between items-center">
+<div>
+<span class="text-4xl font-extrabold text-amber-500 block">24</span>
+<span class="text-sm font-semibold text-gray-500">Paradas há +30 dias</span>
+<p class="text-[11px] text-gray-400 mt-1 uppercase tracking-wider">peças sem movimento</p>
+</div>
+<div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
+<span class="material-symbols-outlined" data-icon="timer">timer</span>
+</div>
+</div>
+</div>
+<!-- List Section -->
+<div class="mt-10">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-lg font-bold text-gray-900">Peças sem movimento</h2>
+<span class="text-xs font-bold text-[#b60e3d] bg-rose-50 px-2 py-1 rounded-full">+30 dias</span>
+</div>
+<div class="space-y-3">
+<!-- Item 1 -->
+<div class="bg-white p-3 rounded-2xl border border-rose-50 flex items-center gap-4">
+<div class="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+<img alt="Peça" class="w-full h-full object-cover" data-alt="vintage beige denim jacket flat lay on white background with soft shadows and clean aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWN2TZCaEOb5KBu0rBrtgjw_NhouZ0voI-vIhb6d7ZQlXCEaUXXQUbZxKO04FCxfCYDKHcdY9u9nWW-Q347vrBh8AFLuPvyu21ZhalQuXUETB-6gZpcqfS7SNgNVywPAfCRUMPoLnN-0pZRqLLqwp-POuhJXpHZ6e9DCJlab0v72IxE3ylnAZp4TmCgjCumq_Hi-YKo8oZ_kUn9ikgNt75ngtZqoujMjFBmabTfq8nyw_-nb_Kr3LNGMJHUywBv47pkPMRtCjMVQ"/>
+</div>
+<div class="flex-grow">
+<h3 class="font-bold text-gray-800 text-sm">Jaqueta Vintage Bege</h3>
+<p class="text-xs text-gray-500">Tamanho M • Feminino</p>
+</div>
+<div class="text-right">
+<span class="text-amber-600 font-bold text-sm block">42 dias</span>
+<span class="text-[10px] text-gray-400 uppercase font-bold">parada</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-white p-3 rounded-2xl border border-rose-50 flex items-center gap-4">
+<div class="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+<img alt="Peça" class="w-full h-full object-cover" data-alt="high quality black leather boots on minimal background with sharp studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAayFDRsyHbcKJDHj9Omyv-uWGcWYMKWZjKiEssUxVxOjQFX8ei1_W2g4TC4qB8Sa3k-zMgUtq-YW_7sgXl9ura-7WP1fNZKF-Ukuc6XsDJzK08J4Kz7mcu5N7ZtfzYHHKGG_BArbfQSTHPDVTsotFMqMUM31ZOz7Hg7FpVMtVKL5RdMKD1deS-HD0k5qWjUgmkkqSuLLtxruxZBKjIeaYEFKnxFJ27cX7XDZLtUZPjr8J8WHfdRngWM6zHFza0TNhJhoQLXwpLaA"/>
+</div>
+<div class="flex-grow">
+<h3 class="font-bold text-gray-800 text-sm">Bota de Couro Preta</h3>
+<p class="text-xs text-gray-500">Tamanho 37 • Calçados</p>
+</div>
+<div class="text-right">
+<span class="text-amber-600 font-bold text-sm block">38 dias</span>
+<span class="text-[10px] text-gray-400 uppercase font-bold">parada</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-white p-3 rounded-2xl border border-rose-50 flex items-center gap-4">
+<div class="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+<img alt="Peça" class="w-full h-full object-cover" data-alt="classic black t-shirt folded neatly on neutral background with soft diffuse light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7P0rM6dFEKc8A5qrfMgQLwEDRSx7WlHrAcr0RP5vvmZk-2Vc_jrye-BqdxpYChk2PEVfOaRtMqE80dG7fPBoiOpGbNNP4DBri5LSWdy9Ep6xhK5Xubs4d2Y4HhmSBmIu26AdEzy14b6EBMPIrnCQt9Eg6o2AgCrjft-R8mIyJ0LBakitc3Y9wO2T1hNnZG2cT22lIEof84O4f-BeqeAzyo99sbr3z4bdczZNZvOljLxsdZNLGTi-PhilMuSePSicH5iyQw-0DOA"/>
+</div>
+<div class="flex-grow">
+<h3 class="font-bold text-gray-800 text-sm">T-Shirt Básica Algodão</h3>
+<p class="text-xs text-gray-500">Tamanho P • Unissex</p>
+</div>
+<div class="text-right">
+<span class="text-amber-600 font-bold text-sm block">35 dias</span>
+<span class="text-[10px] text-gray-400 uppercase font-bold">parada</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-6 pt-2 bg-white rounded-t-[32px] border-t border-rose-50 shadow-[0_-4px_20px_0_rgba(182,14,61,0.08)]">
+<!-- Estoque -->
+<button class="flex flex-col items-center justify-center text-gray-400 hover:text-[#b60e3d] transition-transform">
+<span class="material-symbols-outlined mb-1" data-icon="inventory_2">inventory_2</span>
+<span class="text-[11px] font-medium font-manrope">Estoque</span>
+</button>
+<!-- Vendas -->
+<button class="flex flex-col items-center justify-center text-gray-400 hover:text-[#b60e3d] transition-transform">
+<span class="material-symbols-outlined mb-1" data-icon="payments">payments</span>
+<span class="text-[11px] font-medium font-manrope">Vendas</span>
+</button>
+<!-- Add Central Button -->
+<button class="bg-[#b60e3d] text-white rounded-full p-4 -mt-10 shadow-lg shadow-rose-200 transition-transform active:scale-90 flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+<!-- Clientes -->
+<button class="flex flex-col items-center justify-center text-gray-400 hover:text-[#b60e3d] transition-transform">
+<span class="material-symbols-outlined mb-1" data-icon="group">group</span>
+<span class="text-[11px] font-medium font-manrope">Clientes</span>
+</button>
+<!-- Relatórios (Active) -->
+<button class="flex flex-col items-center justify-center text-[#b60e3d] font-bold">
+<span class="material-symbols-outlined mb-1" data-icon="analytics" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="text-[11px] font-medium font-manrope">Relatórios</span>
+</button>
+</nav>
+</body></html>

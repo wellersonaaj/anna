@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#ffffff",
+                    "surface-dim": "#1c1b1b",
+                    "on-surface": "#ffffff",
+                    "on-error": "#ffffff",
+                    "background": "#000000",
+                    "primary-container": "#da3054",
+                    "outline-variant": "#444746",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-container": "#ffffff",
+                    "inverse-primary": "#ffb2b8",
+                    "error": "#ba1a1a",
+                    "outline": "#8e6f71",
+                    "on-primary": "#ffffff",
+                    "secondary": "#9e3e4c",
+                    "inverse-surface": "#ffffff",
+                    "on-surface-variant": "#c4c7c5",
+                    "on-secondary": "#ffffff",
+                    "primary": "#b60e3d",
+                    "surface": "#000000",
+                    "tertiary": "#006a39",
+                    "surface-bright": "#1c1b1b",
+                    "surface-container-lowest": "#000000",
+                    "surface-tint": "#ba1340"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .capture-ring {
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+        }
+        body {
+            min-height: max(884px, 100dvh);
+            background-color: black;
+        }
+    </style>
+</head>
+<body class="bg-black font-body text-white overflow-hidden h-screen w-screen">
+<!-- Top Navigation -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-20 bg-gradient-to-b from-black/60 to-transparent">
+<button class="flex items-center justify-center w-10 h-10 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined text-white">close</span>
+</button>
+<h1 class="font-headline tracking-tight text-lg font-semibold text-white">Nova peça</h1>
+<button class="flex items-center justify-center w-10 h-10 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined text-white">flash_on</span>
+</button>
+</header>
+<!-- Full-Screen Camera Preview -->
+<main class="relative h-screen w-full bg-black overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover opacity-90" data-alt="Fotografia de produto moderna e sofisticada de um relógio de pulso minimalista sobre um fundo de seda macia com iluminação editorial dramática" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIXMtOgpiZrwTOl8VmuiljgzN_XF-RNrDA3jS2ZtTv_fiGVJDu1io68_y1BO2Ji_-cNtteMq1Vat2Xi03K24RIY-TWF2NDiNayYLbc3b4LSXPHftNYOqLhBV8ViZyDgEd4azQCTKtzmbhINEuxQxv3nWKKkUuLPTrG2OUjU4lsFvdm1oQKlmLA82PSRDMI2N-v46cTfL7XVXCz-saJsPLTwGMb7ZraiG_M4gbo3GoHY5Vf2W-vuh6UEnWOhXpNRX4dgvwD1AWUbw"/>
+<!-- Framing Overlay -->
+<div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+<div class="w-80 h-80 border border-white/20 rounded-[3rem] relative">
+<!-- Guide corners -->
+<div class="absolute -top-[1px] -left-[1px] w-12 h-12 border-t-2 border-l-2 border-white rounded-tl-[3rem]"></div>
+<div class="absolute -top-[1px] -right-[1px] w-12 h-12 border-t-2 border-r-2 border-white rounded-tr-[3rem]"></div>
+<div class="absolute -bottom-[1px] -left-[1px] w-12 h-12 border-b-2 border-l-2 border-white rounded-bl-[3rem]"></div>
+<div class="absolute -bottom-[1px] -right-[1px] w-12 h-12 border-b-2 border-r-2 border-white rounded-br-[3rem]"></div>
+</div>
+</div>
+<!-- Controls Area (Footer) -->
+<div class="absolute bottom-0 w-full px-8 pb-14 pt-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-between z-30">
+<!-- Gallery Option -->
+<button class="flex flex-col items-center justify-center gap-2 group active:scale-95 transition-transform">
+<div class="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+<span class="material-symbols-outlined text-2xl">photo_library</span>
+</div>
+<span class="font-label text-[10px] uppercase tracking-widest text-white/90 font-bold">Galeria</span>
+</button>
+<!-- Capture Button -->
+<button class="relative flex items-center justify-center active:scale-90 transition-transform">
+<div class="w-20 h-20 rounded-full border-[3px] border-white flex items-center justify-center">
+<div class="w-16 h-16 rounded-full bg-primary shadow-[0_0_20px_rgba(182,14,61,0.4)]"></div>
+</div>
+</button>
+<!-- Mode Switch / Manual -->
+<button class="flex flex-col items-center justify-center gap-2 group active:scale-95 transition-transform">
+<div class="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+<span class="material-symbols-outlined text-2xl">settings_motion_mode</span>
+</div>
+<span class="font-label text-[10px] uppercase tracking-widest text-white/90 font-bold">Manual</span>
+</button>
+</div>
+</main>
+</body></html>
