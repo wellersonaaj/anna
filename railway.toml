@@ -6,6 +6,9 @@
 # e use só este arquivo, ou defina Root Directory na raiz do repo.
 [build]
 dockerfilePath = "Dockerfile"
+# Sobrepõe watch paths do dashboard: sem isto, commits só em .github/ ficam
+# "watched paths not modified" e a Railway não faz deploy.
+watchPatterns = ["**"]
 
 [deploy]
 preDeployCommand = ["npx prisma migrate deploy"]
