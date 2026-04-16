@@ -9,6 +9,7 @@ ENV NODE_ENV=development
 RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json ./
 COPY prisma ./prisma
 COPY apps ./apps
 COPY packages ./packages
