@@ -1,6 +1,8 @@
-# CI em cada push/PR para main — necessário se o Railway (ou outro) tiver
-# "Wait for CI" / deploy condicionado a checks do GitHub.
+# CI em cada push/PR para main — útil para Vercel "Wait for CI" ou PRs.
 # workflow_dispatch: Actions → CI → "Run workflow" sem novo commit.
+#
+# Deploy da API fica só na integração nativa GitHub → Railway (não usamos
+# railway up aqui: sem secrets parecia deploy e não era).
 name: CI
 
 on:
@@ -39,37 +41,3 @@ jobs:
 
       - name: Lint
         run: npm run lint --workspaces --if-present
-
-  # Dispara deploy na Railway a partir do código do checkout (não depende do
-  # webhook GitHub → Railway). Útil quando o autodeploy da Railway não corre.
-  # Secrets: RAILWAY_TOKEN, RAILWAY_PROJECT_ID, RAILWAY_SERVICE_ID (obrigatórios).
-  # Opcional: RAILWAY_ENVIRONMENT (default: production).
-  # Token: https://railway.com/account/tokens — IDs: Cmd+K no dashboard.
-  # Se também tiveres autodeploy GitHub ligado no mesmo serviço, podes ter
-  # dois deploys por push; desliga um dos lados.
-  deploy-railway:
-    name: Deploy API (Railway CLI)
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: railway up
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
-          RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT }}
-        run: |
-          set -euo pipefail
-          if [ -z "${RAILWAY_TOKEN:-}" ] || [ -z "${RAILWAY_PROJECT_ID:-}" ] || [ -z "${RAILWAY_SERVICE_ID:-}" ]; then
-            echo "::notice::Deploy Railway ignorado: define os secrets RAILWAY_TOKEN, RAILWAY_PROJECT_ID e RAILWAY_SERVICE_ID em GitHub → Settings → Secrets and variables → Actions."
-            exit 0
-          fi
-          ENV_NAME="${RAILWAY_ENVIRONMENT:-production}"
-          npx --yes @railway/cli@latest up --ci \
-            -p "$RAILWAY_PROJECT_ID" \
-            -e "$ENV_NAME" \
-            -s "$RAILWAY_SERVICE_ID" \
-            -m "github:${GITHUB_SHA}"

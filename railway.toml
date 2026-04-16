@@ -4,11 +4,24 @@
 #
 # Se o serviço ainda usar Railpack, apague o Build Command manual no painel
 # e use só este arquivo, ou defina Root Directory na raiz do repo.
+#
+# Watch paths: lista explícita + **/* (gitignore-style). Se ainda vires
+# "watched paths not modified" no check do GitHub, no Railway abre o serviço
+# → Settings → Build → apaga os "Watch Paths" guardados no UI e volta a guardar.
 [build]
 dockerfilePath = "Dockerfile"
-# Sobrepõe watch paths do dashboard: sem isto, commits só em .github/ ficam
-# "watched paths not modified" e a Railway não faz deploy.
-watchPatterns = ["**"]
+watchPatterns = [
+  "**/*",
+  "apps/**",
+  "packages/**",
+  "prisma/**",
+  "Dockerfile",
+  ".dockerignore",
+  "railway.toml",
+  "package.json",
+  "package-lock.json",
+  ".github/**",
+]
 
 [deploy]
 preDeployCommand = ["npx prisma migrate deploy"]
