@@ -2,6 +2,8 @@ import { z } from "zod";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
+  /** Railway, Render, Fly, etc. expõem a porta via PORT. */
+  PORT: z.coerce.number().optional(),
   API_PORT: z.coerce.number().default(3333),
   API_HOST: z.string().default("0.0.0.0"),
   /** S3-compatible (MinIO, AWS, etc.). Opcional: presign falha com mensagem clara se incompleto. */

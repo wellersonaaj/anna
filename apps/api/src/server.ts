@@ -57,6 +57,6 @@ export const startServer = async () => {
   const app = buildServer();
   await app.listen({
     host: env.API_HOST,
-    port: env.API_PORT
+    port: env.PORT ?? env.API_PORT
   });
 };
