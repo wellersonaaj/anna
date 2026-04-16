@@ -1,8 +1,10 @@
 # CI em cada push/PR para main — necessário se o Railway (ou outro) tiver
 # "Wait for CI" / deploy condicionado a checks do GitHub.
+# workflow_dispatch: Actions → CI → "Run workflow" sem novo commit.
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
