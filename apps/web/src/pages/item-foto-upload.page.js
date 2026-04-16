@@ -2,8 +2,9 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { addItemFoto, createFotoLote, getItem, patchFotoLote, presignFotoLoteUpload, putToPresignedUrl, transcribeFotoLote } from "../api/items";
+import { addItemFoto, analisarItemFoto, createFotoLote, getItem, patchFotoLote, presignFotoLoteUpload, putToPresignedUrl, transcribeFotoLote } from "../api/items";
 import { ApiError } from "../api/client";
+import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { resizeImageToJpeg } from "../lib/imageResize";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Section } from "../components/ui";
@@ -69,6 +70,16 @@ export const ItemFotoUploadPage = () => {
         },
         onError: (e) => {
             setActionError(e instanceof ApiError ? e.message : "Transcrição indisponível.");
+        }
+    });
+    const analyzeMutation = useMutation({
+        mutationFn: (fotoId) => analisarItemFoto(brechoId, itemId, fotoId),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
+            setActionError(null);
+        },
+        onError: (e) => {
+            setActionError(e instanceof ApiError ? e.message : "Análise de foto indisponível.");
         }
     });
     const stopStream = useCallback(() => {
@@ -283,7 +294,19 @@ export const ItemFotoUploadPage = () => {
                                                 borderRadius: 10,
                                                 padding: 12,
                                                 fontFamily: "inherit"
-                                            } }) }), _jsx(Button, { type: "button", onClick: () => saveTextoMutation.mutate(), disabled: saveTextoMutation.isPending, children: saveTextoMutation.isPending ? "Salvando..." : "Salvar texto" }), _jsxs("div", { className: "stack", style: { marginTop: 16, gap: 8 }, children: [_jsx("span", { style: { fontSize: 12, fontWeight: 600 }, children: "Nota em voz (opcional)" }), !recording ? (_jsx(Button, { type: "button", onClick: startRecording, children: "Gravar \u00E1udio" })) : (_jsx(Button, { type: "button", onClick: () => void stopRecordingAndUpload(), children: "Parar e enviar \u00E1udio" })), recordError && _jsx("small", { style: { color: "#b60e3d" }, children: recordError }), currentLote?.audioUrl && (_jsxs("div", { className: "stack", style: { gap: 8 }, children: [_jsx("audio", { controls: true, src: currentLote.audioUrl, style: { width: "100%" } }), _jsx(Button, { type: "button", onClick: () => transcribeMutation.mutate(), disabled: transcribeMutation.isPending, children: transcribeMutation.isPending ? "Transcrevendo..." : "Transcrever áudio (OpenAI)" }), currentLote.transcricaoAudio && (_jsxs("p", { style: { fontSize: 14, background: "#f8f0f1", padding: 12, borderRadius: 10 }, children: [_jsx("strong", { children: "Transcri\u00E7\u00E3o:" }), " ", currentLote.transcricaoAudio] }))] }))] })] }), _jsxs(Section, { title: "3. Fotos", children: [_jsx("p", { style: { fontSize: 14 }, children: "Voc\u00EA pode usar a galeria ou a c\u00E2mera (com flash, se o aparelho permitir)." }), _jsxs("div", { className: "stack", style: { gap: 12, flexDirection: "row", flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", onClick: () => galleryInputRef.current?.click(), disabled: remaining === 0, children: "Galeria" }), _jsx("input", { ref: galleryInputRef, type: "file", accept: "image/jpeg,image/png,image/webp", multiple: true, hidden: true, onChange: (e) => void onGalleryChange(e) }), _jsx(Button, { type: "button", onClick: () => void startCamera(), disabled: remaining === 0, children: "Abrir c\u00E2mera" })] })] }), _jsx(Button, { type: "button", onClick: () => navigate(`/items/${itemId}`), children: "Concluir" })] }))] })), cameraOpen && (_jsxs("div", { style: {
+                                            } }) }), _jsx(Button, { type: "button", onClick: () => saveTextoMutation.mutate(), disabled: saveTextoMutation.isPending, children: saveTextoMutation.isPending ? "Salvando..." : "Salvar texto" }), _jsxs("div", { className: "stack", style: { marginTop: 16, gap: 8 }, children: [_jsx("span", { style: { fontSize: 12, fontWeight: 600 }, children: "Nota em voz (opcional)" }), !recording ? (_jsx(Button, { type: "button", onClick: startRecording, children: "Gravar \u00E1udio" })) : (_jsx(Button, { type: "button", onClick: () => void stopRecordingAndUpload(), children: "Parar e enviar \u00E1udio" })), recordError && _jsx("small", { style: { color: "#b60e3d" }, children: recordError }), currentLote?.audioUrl && (_jsxs("div", { className: "stack", style: { gap: 8 }, children: [_jsx("audio", { controls: true, src: currentLote.audioUrl, style: { width: "100%" } }), _jsx(Button, { type: "button", onClick: () => transcribeMutation.mutate(), disabled: transcribeMutation.isPending, children: transcribeMutation.isPending ? "Transcrevendo..." : "Transcrever áudio (OpenAI)" }), currentLote.transcricaoAudio && (_jsxs("p", { style: { fontSize: 14, background: "#f8f0f1", padding: 12, borderRadius: 10 }, children: [_jsx("strong", { children: "Transcri\u00E7\u00E3o:" }), " ", currentLote.transcricaoAudio] }))] }))] })] }), _jsxs(Section, { title: "3. Fotos", children: [_jsx("p", { style: { fontSize: 14 }, children: "Voc\u00EA pode usar a galeria ou a c\u00E2mera (com flash, se o aparelho permitir)." }), _jsxs("div", { className: "stack", style: { gap: 12, flexDirection: "row", flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", onClick: () => galleryInputRef.current?.click(), disabled: remaining === 0, children: "Galeria" }), _jsx("input", { ref: galleryInputRef, type: "file", accept: "image/jpeg,image/png,image/webp", multiple: true, hidden: true, onChange: (e) => void onGalleryChange(e) }), _jsx(Button, { type: "button", onClick: () => void startCamera(), disabled: remaining === 0, children: "Abrir c\u00E2mera" })] }), _jsxs("div", { className: "stack", style: { marginTop: 20, gap: 16 }, children: [_jsx("p", { style: { fontSize: 14, fontWeight: 600, margin: 0 }, children: "Fotos j\u00E1 enviadas neste lote" }), (item.fotos ?? []).filter((f) => f.loteId === loteId).length === 0 ? (_jsx("p", { style: { opacity: 0.8, margin: 0 }, children: "Nenhuma foto neste lote ainda." })) : ((item.fotos ?? [])
+                                                .filter((f) => f.loteId === loteId)
+                                                .map((foto) => {
+                                                const latest = foto.aiAnalyses?.[0];
+                                                return (_jsxs("div", { className: "card", style: {
+                                                        display: "flex",
+                                                        flexWrap: "wrap",
+                                                        gap: 12,
+                                                        alignItems: "flex-start"
+                                                    }, children: [_jsx("img", { src: foto.url, alt: "", style: { width: 88, height: 88, objectFit: "cover", borderRadius: 8 } }), _jsxs("div", { className: "stack", style: { flex: 1, minWidth: 0, gap: 8 }, children: [_jsxs("small", { style: { opacity: 0.75 }, children: ["Ordem ", foto.ordem] }), _jsx(Button, { type: "button", onClick: () => analyzeMutation.mutate(foto.id), disabled: analyzeMutation.isPending, children: analyzeMutation.isPending && analyzeMutation.variables === foto.id
+                                                                        ? "Analisando..."
+                                                                        : "Sugerir com IA" }), latest && _jsx(FotoAiSuggestionsCard, { analysis: latest })] })] }, foto.id));
+                                            }))] })] }), _jsx(Button, { type: "button", onClick: () => navigate(`/items/${itemId}`), children: "Concluir" })] }))] })), cameraOpen && (_jsxs("div", { style: {
                     position: "fixed",
                     inset: 0,
                     zIndex: 50,

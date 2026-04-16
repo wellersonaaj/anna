@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   addItemFoto,
+  analisarItemFoto,
   createFotoLote,
   getItem,
   patchFotoLote,
@@ -11,6 +12,7 @@ import {
   transcribeFotoLote
 } from "../api/items";
 import { ApiError } from "../api/client";
+import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { resizeImageToJpeg } from "../lib/imageResize";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
@@ -85,6 +87,17 @@ export const ItemFotoUploadPage = () => {
     },
     onError: (e) => {
       setActionError(e instanceof ApiError ? e.message : "Transcrição indisponível.");
+    }
+  });
+
+  const analyzeMutation = useMutation({
+    mutationFn: (fotoId: string) => analisarItemFoto(brechoId, itemId!, fotoId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
+      setActionError(null);
+    },
+    onError: (e) => {
+      setActionError(e instanceof ApiError ? e.message : "Análise de foto indisponível.");
     }
   });
 
@@ -430,6 +443,49 @@ export const ItemFotoUploadPage = () => {
                   <Button type="button" onClick={() => void startCamera()} disabled={remaining === 0}>
                     Abrir câmera
                   </Button>
+                </div>
+                <div className="stack" style={{ marginTop: 20, gap: 16 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Fotos já enviadas neste lote</p>
+                  {(item.fotos ?? []).filter((f) => f.loteId === loteId).length === 0 ? (
+                    <p style={{ opacity: 0.8, margin: 0 }}>Nenhuma foto neste lote ainda.</p>
+                  ) : (
+                    (item.fotos ?? [])
+                      .filter((f) => f.loteId === loteId)
+                      .map((foto) => {
+                        const latest = foto.aiAnalyses?.[0];
+                        return (
+                          <div
+                            key={foto.id}
+                            className="card"
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 12,
+                              alignItems: "flex-start"
+                            }}
+                          >
+                            <img
+                              src={foto.url}
+                              alt=""
+                              style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 8 }}
+                            />
+                            <div className="stack" style={{ flex: 1, minWidth: 0, gap: 8 }}>
+                              <small style={{ opacity: 0.75 }}>Ordem {foto.ordem}</small>
+                              <Button
+                                type="button"
+                                onClick={() => analyzeMutation.mutate(foto.id)}
+                                disabled={analyzeMutation.isPending}
+                              >
+                                {analyzeMutation.isPending && analyzeMutation.variables === foto.id
+                                  ? "Analisando..."
+                                  : "Sugerir com IA"}
+                              </Button>
+                              {latest && <FotoAiSuggestionsCard analysis={latest} />}
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
                 </div>
               </Section>
 

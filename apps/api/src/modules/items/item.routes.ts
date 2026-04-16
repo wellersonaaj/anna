@@ -68,6 +68,15 @@ const handleError = (error: unknown, app: FastifyInstance) => {
     return { statusCode: 502, body: { message } };
   }
 
+  if (
+    message === "Failed to download image for analysis." ||
+    message === "Empty S3 object body." ||
+    message.startsWith("Image analysis failed:") ||
+    message.startsWith("Invalid AI response:")
+  ) {
+    return { statusCode: 502, body: { message } };
+  }
+
   return { statusCode: 400, body: { message } };
 };
 
@@ -192,6 +201,22 @@ export const itemRoutes = async (app: FastifyInstance): Promise<void> => {
       const payload = addPecaFotoSchema.parse(request.body);
       const foto = await itemService.addFoto(app.prisma, request.brechoId, params.id, payload);
       return reply.code(201).send(foto);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.post("/items/:id/fotos/:fotoId/analisar", async (request, reply) => {
+    try {
+      const params = request.params as { id: string; fotoId: string };
+      const result = await itemService.analisarFoto(
+        app.prisma,
+        request.brechoId,
+        params.id,
+        params.fotoId
+      );
+      return reply.send(result);
     } catch (error) {
       const normalized = handleError(error, app);
       return reply.code(normalized.statusCode).send(normalized.body);

@@ -45,6 +45,27 @@ export type ItemFotoLote = {
   criadoEm: string;
 };
 
+export type ItemAiAnalysis = {
+  id: string;
+  pecaFotoId: string;
+  nomeSugerido: string | null;
+  categoria: string | null;
+  subcategoria: string | null;
+  corPrincipal: string | null;
+  estampado: boolean;
+  descricaoEstampa: string | null;
+  condicao: string | null;
+  confianca: number;
+  ambienteFoto: string | null;
+  qualidadeFoto: string | null;
+  multiplasPecas: boolean;
+  textoContexto: string | null;
+  transcricaoAudio: string | null;
+  modeloUsado: string;
+  tokensConsumidos: number;
+  criadoEm: string;
+};
+
 export type ItemFoto = {
   id: string;
   pecaId: string;
@@ -53,6 +74,33 @@ export type ItemFoto = {
   ordem: number;
   criadoEm: string;
   lote?: ItemFotoLote | null;
+  aiAmbiente?: string | null;
+  aiQualidade?: string | null;
+  aiConfianca?: number | null;
+  aiPredicaoJson?: unknown;
+  aiAnalyses?: ItemAiAnalysis[];
+};
+
+export type FotoAnaliseResponse = {
+  analysisId: string;
+  suggestions: {
+    nomeSugerido: string | null;
+    categoria: ItemCategoria | null;
+    subcategoria: string | null;
+    corPrincipal: string | null;
+    estampado: boolean;
+    descricaoEstampa: string | null;
+    condicao: "OTIMO" | "BOM" | "REGULAR" | null;
+  };
+  meta: {
+    confianca: number;
+    ambienteFoto: string | null;
+    qualidadeFoto: string | null;
+  };
+  warnings: {
+    lowConfidence: boolean;
+    multiplasPecas: boolean;
+  };
 };
 
 export type FilaInteressadoEntry = {
@@ -122,6 +170,17 @@ export const addItemFoto = async (
     method: "POST",
     brechoId,
     body: payload
+  });
+};
+
+export const analisarItemFoto = async (
+  brechoId: string,
+  itemId: string,
+  fotoId: string
+): Promise<FotoAnaliseResponse> => {
+  return request<FotoAnaliseResponse>(`/items/${itemId}/fotos/${fotoId}/analisar`, {
+    method: "POST",
+    brechoId
   });
 };
 

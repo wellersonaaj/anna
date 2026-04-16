@@ -5,11 +5,13 @@ import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
 import {
   addItemFoto,
+  analisarItemFoto,
   deleteItemFoto,
   getItem,
   joinItemFila,
   leaveItemFila
 } from "../api/items";
+import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
@@ -70,6 +72,13 @@ export const ItemDetailPage = () => {
 
   const deleteFotoMutation = useMutation({
     mutationFn: (fotoId: string) => deleteItemFoto(brechoId, itemId!, fotoId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
+    }
+  });
+
+  const analyzeFotoMutation = useMutation({
+    mutationFn: (fotoId: string) => analisarItemFoto(brechoId, itemId!, fotoId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
     }
@@ -156,30 +165,54 @@ export const ItemDetailPage = () => {
               {(item.fotos ?? []).length === 0 ? (
                 <p style={{ opacity: 0.8 }}>Nenhuma foto ainda.</p>
               ) : (
-                (item.fotos ?? []).map((foto) => (
-                  <div
-                    key={foto.id}
-                    className="card"
-                    style={{ display: "flex", gap: 12, alignItems: "center" }}
-                  >
-                    <img
-                      src={foto.url}
-                      alt=""
-                      style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8 }}
-                    />
-                    <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-                      <small style={{ wordBreak: "break-all" }}>{foto.url}</small>
-                      <small>Ordem {foto.ordem}</small>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => deleteFotoMutation.mutate(foto.id)}
-                      disabled={deleteFotoMutation.isPending}
+                (item.fotos ?? []).map((foto) => {
+                  const latestAi = foto.aiAnalyses?.[0];
+                  return (
+                    <div
+                      key={foto.id}
+                      className="card"
+                      style={{ display: "flex", flexDirection: "column", gap: 12 }}
                     >
-                      Remover
-                    </Button>
-                  </div>
-                ))
+                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                        <img
+                          src={foto.url}
+                          alt=""
+                          style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8 }}
+                        />
+                        <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+                          <small style={{ wordBreak: "break-all" }}>{foto.url}</small>
+                          <small>Ordem {foto.ordem}</small>
+                        </div>
+                        <div className="stack" style={{ gap: 8 }}>
+                          <Button
+                            type="button"
+                            onClick={() => analyzeFotoMutation.mutate(foto.id)}
+                            disabled={analyzeFotoMutation.isPending}
+                          >
+                            {analyzeFotoMutation.isPending && analyzeFotoMutation.variables === foto.id
+                              ? "Analisando..."
+                              : "Sugerir com IA"}
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => deleteFotoMutation.mutate(foto.id)}
+                            disabled={deleteFotoMutation.isPending}
+                          >
+                            Remover
+                          </Button>
+                        </div>
+                      </div>
+                      {analyzeFotoMutation.isError && analyzeFotoMutation.variables === foto.id && (
+                        <small style={{ color: "#b60e3d" }}>
+                          {analyzeFotoMutation.error instanceof ApiError
+                            ? analyzeFotoMutation.error.message
+                            : "Não foi possível analisar a foto."}
+                        </small>
+                      )}
+                      {latestAi && <FotoAiSuggestionsCard analysis={latestAi} />}
+                    </div>
+                  );
+                })
               )}
             </div>
           </Section>

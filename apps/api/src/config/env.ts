@@ -12,7 +12,9 @@ const envSchema = z.object({
   STORAGE_REGION: z.string().optional(),
   /** URL base publica para leitura das imagens (ex. CDN ou bucket publico). Se vazio, usa path-style endpoint/bucket/key. */
   STORAGE_PUBLIC_BASE_URL: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional()
+  OPENAI_API_KEY: z.string().optional(),
+  /** Modelo com visão para análise de fotos de peça (ex.: gpt-4o-mini). */
+  OPENAI_VISION_MODEL: z.string().optional()
 });
 
 export const env = envSchema.parse(process.env);

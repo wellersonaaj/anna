@@ -23,7 +23,7 @@
 - Cadastro de peca (camera + revisao AI).
   - incluir acervo por `tipo + nome`, com sugestao de nomes ja cadastrados.
 - Estoque com filtros. **Feito:** `GET /items` + UI (status, categoria, busca).
-- Fotos: URL manual em `/items/:id` ou fluxo `/items/:id/fotos/upload` (lote texto/voz, presign S3, galeria, câmera com flash quando suportado). **Feito (upload + lote).** Falta revisão AI pós-captura.
+- Fotos: URL manual em `/items/:id` ou fluxo `/items/:id/fotos/upload` (lote texto/voz, presign S3, galeria, câmera com flash quando suportado). **Feito (upload + lote + revisão IA).** `POST /items/:id/fotos/:fotoId/analisar` (OpenAI visão + `AIAnalysis`); botão **Sugerir com IA** no detalhe e no upload por lote. A API lê a imagem via URL pública ou `GetObject` S3 quando a URL bate com `STORAGE_*` (bucket privado). Requer `OPENAI_API_KEY`; opcional `OPENAI_VISION_MODEL`.
 - Fila de interessados na API + tela `/items/:id`. **Feito** (entrada so com peca `DISPONIVEL`).
 - Confirmar venda e mover para aguardando entrega.
 

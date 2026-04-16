@@ -1,7 +1,8 @@
 import { canTransitionStatus, itemStatus } from "@anna/shared";
-import type { PrismaClient, StatusPeca } from "@prisma/client";
+import type { Prisma, PrismaClient, StatusPeca } from "@prisma/client";
 import { env } from "../../config/env.js";
-import { buildUploadKey, createPresignedPut, isStorageConfigured } from "../../lib/storage.js";
+import { analyzePecaImageWithOpenAI } from "../../lib/openaiVision.js";
+import { buildUploadKey, createPresignedPut, downloadImageForAnalysis, isStorageConfigured } from "../../lib/storage.js";
 import { clientService } from "../clients/client.service.js";
 
 const ensureTransition = (from: StatusPeca, to: StatusPeca): void => {
@@ -117,7 +118,11 @@ export const itemService = {
         fotos: {
           orderBy: { ordem: "asc" },
           include: {
-            lote: true
+            lote: true,
+            aiAnalyses: {
+              orderBy: { criadoEm: "desc" },
+              take: 1
+            }
           }
         },
         filaInteressados: {
@@ -351,6 +356,145 @@ export const itemService = {
     return prisma.pecaFotoLote.update({
       where: { id: loteId },
       data: { transcricaoAudio: text || null }
+    });
+  },
+
+  async analisarFoto(prisma: PrismaClient, brechoId: string, itemId: string, fotoId: string) {
+    const apiKey = env.OPENAI_API_KEY?.trim();
+    if (!apiKey) {
+      throw new Error("OpenAI is not configured.");
+    }
+
+    const foto = await prisma.pecaFoto.findFirst({
+      where: { id: fotoId, pecaId: itemId, peca: { brechoId } },
+      include: {
+        lote: true,
+        peca: { select: { nome: true, categoria: true } }
+      }
+    });
+
+    if (!foto) {
+      throw new Error("Photo not found.");
+    }
+
+    const { bytes, mime } = await downloadImageForAnalysis(env, foto.url);
+    const imageBase64 = Buffer.from(bytes).toString("base64");
+
+    const textoNota = foto.lote?.textoNota ?? null;
+    const transcricaoAudio = foto.lote?.transcricaoAudio ?? null;
+
+    const model = env.OPENAI_VISION_MODEL?.trim() || "gpt-4o-mini";
+
+    const { parsed, totalTokens, model: modelUsed } = await analyzePecaImageWithOpenAI({
+      apiKey,
+      model,
+      imageBase64,
+      imageMime: mime,
+      textoNota,
+      transcricaoAudio,
+      pecaNome: foto.peca.nome,
+      pecaCategoria: foto.peca.categoria
+    });
+
+    const mapCategoria = (
+      c: string | null | undefined
+    ): "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO" | null => {
+      if (!c) {
+        return null;
+      }
+      const m: Record<string, "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO"> = {
+        roupa_feminina: "ROUPA_FEMININA",
+        roupa_masculina: "ROUPA_MASCULINA",
+        calcado: "CALCADO",
+        acessorio: "ACESSORIO"
+      };
+      return m[c] ?? null;
+    };
+
+    const mapCondicao = (c: string | null | undefined): "OTIMO" | "BOM" | "REGULAR" | null => {
+      if (!c) {
+        return null;
+      }
+      const m: Record<string, "OTIMO" | "BOM" | "REGULAR"> = {
+        otimo: "OTIMO",
+        bom: "BOM",
+        regular: "REGULAR"
+      };
+      return m[c] ?? null;
+    };
+
+    const categoriaDb = mapCategoria(parsed.categoria ?? undefined);
+    const condicaoDb = mapCondicao(parsed.condicao ?? undefined);
+
+    const textoContexto =
+      [textoNota ? `Texto: ${textoNota}` : null, transcricaoAudio ? `Transcricao: ${transcricaoAudio}` : null]
+        .filter(Boolean)
+        .join("\n") || null;
+
+    const predicaoJson = JSON.parse(JSON.stringify(parsed)) as Prisma.InputJsonValue;
+
+    const lowConfidence = parsed.confianca < 0.6;
+    const multiplasPecas = parsed.multiplas_pecas === true;
+
+    return prisma.$transaction(async (tx) => {
+      const analysis = await tx.aIAnalysis.create({
+        data: {
+          pecaFotoId: fotoId,
+          nomeSugerido: parsed.nome_sugerido?.trim() || null,
+          categoria: categoriaDb,
+          subcategoria: parsed.subcategoria?.trim() || null,
+          corPrincipal: parsed.cor_principal?.trim() || null,
+          estampado: parsed.estampado ?? false,
+          descricaoEstampa: parsed.descricao_estampa?.trim() || null,
+          condicao: condicaoDb,
+          confianca: parsed.confianca,
+          ambienteFoto: parsed.ambiente_foto ?? null,
+          qualidadeFoto: parsed.qualidade_foto ?? null,
+          multiplasPecas: parsed.multiplas_pecas ?? false,
+          observacoes: parsed.observacoes?.trim() || null,
+          textoContexto,
+          transcricaoAudio,
+          modeloUsado: modelUsed,
+          tokensConsumidos: totalTokens
+        }
+      });
+
+      await tx.pecaFoto.update({
+        where: { id: fotoId },
+        data: {
+          aiAmbiente: parsed.ambiente_foto ?? null,
+          aiQualidade: parsed.qualidade_foto ?? null,
+          aiConfianca: parsed.confianca,
+          aiPredicaoJson: predicaoJson
+        }
+      });
+
+      return {
+        analysisId: analysis.id,
+        suggestions: {
+          nomeSugerido: analysis.nomeSugerido,
+          categoria: analysis.categoria as
+            | "ROUPA_FEMININA"
+            | "ROUPA_MASCULINA"
+            | "CALCADO"
+            | "ACESSORIO"
+            | null,
+          subcategoria: analysis.subcategoria,
+          corPrincipal: analysis.corPrincipal,
+          estampado: analysis.estampado,
+          descricaoEstampa: analysis.descricaoEstampa,
+          condicao: analysis.condicao as "OTIMO" | "BOM" | "REGULAR" | null
+        },
+        meta: {
+          confianca: parsed.confianca,
+          ambienteFoto: parsed.ambiente_foto ?? null,
+          qualidadeFoto: parsed.qualidade_foto ?? null
+        },
+        warnings: {
+          lowConfidence,
+          multiplasPecas
+        }
+      };
     });
   },
 
