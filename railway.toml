@@ -1,14 +1,14 @@
-# Use a raiz do monorepo como diretório raiz do serviço no Railway (não apps/api),
-# senão workspaces e Prisma não resolvem.
+# Dockerfile na raiz: Railway deixa de usar Railpack para instalar deps.
+# O Railpack monta cache em paths como apps/web/node_modules/.vite; o npm ci
+# não consegue apagar (EBUSY). Ver https://railpack.com/config/file/ (Caches).
 #
-# Limpa node_modules antes de npm ci: o cache apps/web/node_modules/.vite do Vite
-# costuma dar EBUSY (rmdir) quando o Railpack reaproveita layers e o npm ci tenta apagar.
+# Se o serviço ainda usar Railpack, apague o Build Command manual no painel
+# e use só este arquivo, ou defina Root Directory na raiz do repo.
 [build]
-builder = "railpack"
-buildCommand = "rm -rf node_modules apps/*/node_modules packages/*/node_modules && npm ci && npm run build:api"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 preDeployCommand = ["npx prisma migrate deploy"]
-startCommand = "npm run start:api"
+startCommand = "node apps/api/dist/index.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 60
