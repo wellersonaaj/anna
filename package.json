@@ -15,7 +15,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
-    "build:api": "prisma generate && npm run build -w @anna/api",
+    "build:api": "prisma generate && npm run build -w @anna/shared && npm run build -w @anna/api",
     "start:api": "node apps/api/dist/index.js",
     "worker:email": "dotenv -e .env -- npm run worker:email -w @anna/api"
   },
