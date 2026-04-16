@@ -27,6 +27,10 @@ const pickAudioMime = (): string => {
   return "audio/mp4";
 };
 
+/** Presign/S3 aceitam MIME sem parametros (ex. audio/webm para gravacao opus). */
+const canonicalAudioContentType = (blobType: string): "audio/webm" | "audio/mp4" =>
+  blobType.includes("mp4") ? "audio/mp4" : "audio/webm";
+
 export const ItemFotoUploadPage = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const brechoId = useSessionStore((s) => s.brechoId);
@@ -41,6 +45,7 @@ export const ItemFotoUploadPage = () => {
   const [recording, setRecording] = useState(false);
   const [recordError, setRecordError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [textoSalvoHint, setTextoSalvoHint] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -73,6 +78,8 @@ export const ItemFotoUploadPage = () => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
       setActionError(null);
+      setTextoSalvoHint(true);
+      window.setTimeout(() => setTextoSalvoHint(false), 4000);
     },
     onError: (e) => {
       setActionError(e instanceof ApiError ? e.message : "Não foi possível salvar o texto.");
@@ -284,7 +291,7 @@ export const ItemFotoUploadPage = () => {
       return;
     }
     const ext = blob.type.includes("mp4") ? "mp4" : "webm";
-    const contentType = blob.type || (ext === "mp4" ? "audio/mp4" : "audio/webm");
+    const contentType = canonicalAudioContentType(blob.type || mr.mimeType || "");
     try {
       const signed = await presignFotoLoteUpload(brechoId, itemId, loteId, {
         tipo: "audio",
@@ -390,6 +397,11 @@ export const ItemFotoUploadPage = () => {
                 >
                   {saveTextoMutation.isPending ? "Salvando..." : "Salvar texto"}
                 </Button>
+                {textoSalvoHint && (
+                  <p style={{ margin: "8px 0 0", fontSize: 14, color: "#0d6b2e", fontWeight: 600 }}>
+                    Texto salvo.
+                  </p>
+                )}
                 <div className="stack" style={{ marginTop: 16, gap: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 600 }}>Nota em voz (opcional)</span>
                   {!recording ? (

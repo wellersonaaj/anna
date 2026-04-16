@@ -66,30 +66,43 @@ export const patchFotoLoteSchema = z
 const imageContentTypes = ["image/jpeg", "image/png"] as const;
 const audioContentTypes = ["audio/webm", "audio/mp4"] as const;
 
-export const presignFotoLoteSchema = z.object({
-  tipo: z.enum(["imagem", "audio"]),
-  contentType: z.string().min(1),
-  extensao: z.enum(["jpg", "jpeg", "png", "webm", "mp4"]),
-  tamanhoBytes: z.coerce.number().int().positive().optional()
-}).superRefine((data, ctx) => {
-  const allowed =
-    data.tipo === "imagem"
-      ? imageContentTypes
-      : audioContentTypes;
-  if (!(allowed as readonly string[]).includes(data.contentType)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `Content-Type invalido para ${data.tipo}.`,
-      path: ["contentType"]
-    });
-  }
-  const max =
-    data.tipo === "imagem" ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
-  if (data.tamanhoBytes != null && data.tamanhoBytes > max) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `Arquivo acima do limite (${max} bytes).`,
-      path: ["tamanhoBytes"]
-    });
-  }
-});
+/** MIME principal sem parametros (ex.: audio/webm;codecs=opus -> audio/webm). */
+const primaryMime = (raw: string): string =>
+  raw
+    .split(";")[0]
+    ?.trim()
+    .toLowerCase() ?? raw.trim().toLowerCase();
+
+export const presignFotoLoteSchema = z
+  .object({
+    tipo: z.enum(["imagem", "audio"]),
+    contentType: z.string().min(1),
+    extensao: z.enum(["jpg", "jpeg", "png", "webm", "mp4"]),
+    tamanhoBytes: z.coerce.number().int().positive().optional()
+  })
+  .transform((data) => ({
+    ...data,
+    contentType: primaryMime(data.contentType)
+  }))
+  .superRefine((data, ctx) => {
+    const allowed =
+      data.tipo === "imagem"
+        ? imageContentTypes
+        : audioContentTypes;
+    if (!(allowed as readonly string[]).includes(data.contentType)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Content-Type invalido para ${data.tipo}.`,
+        path: ["contentType"]
+      });
+    }
+    const max =
+      data.tipo === "imagem" ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+    if (data.tamanhoBytes != null && data.tamanhoBytes > max) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Arquivo acima do limite (${max} bytes).`,
+        path: ["tamanhoBytes"]
+      });
+    }
+  });

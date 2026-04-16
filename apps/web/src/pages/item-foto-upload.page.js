@@ -17,6 +17,8 @@ const pickAudioMime = () => {
     }
     return "audio/mp4";
 };
+/** Presign/S3 aceitam MIME sem parametros (ex. audio/webm para gravacao opus). */
+const canonicalAudioContentType = (blobType) => blobType.includes("mp4") ? "audio/mp4" : "audio/webm";
 export const ItemFotoUploadPage = () => {
     const { itemId } = useParams();
     const brechoId = useSessionStore((s) => s.brechoId);
@@ -30,6 +32,7 @@ export const ItemFotoUploadPage = () => {
     const [recording, setRecording] = useState(false);
     const [recordError, setRecordError] = useState(null);
     const [actionError, setActionError] = useState(null);
+    const [textoSalvoHint, setTextoSalvoHint] = useState(false);
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const recorderRef = useRef(null);
@@ -57,6 +60,8 @@ export const ItemFotoUploadPage = () => {
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
             setActionError(null);
+            setTextoSalvoHint(true);
+            window.setTimeout(() => setTextoSalvoHint(false), 4000);
         },
         onError: (e) => {
             setActionError(e instanceof ApiError ? e.message : "Não foi possível salvar o texto.");
@@ -259,7 +264,7 @@ export const ItemFotoUploadPage = () => {
             return;
         }
         const ext = blob.type.includes("mp4") ? "mp4" : "webm";
-        const contentType = blob.type || (ext === "mp4" ? "audio/mp4" : "audio/webm");
+        const contentType = canonicalAudioContentType(blob.type || mr.mimeType || "");
         try {
             const signed = await presignFotoLoteUpload(brechoId, itemId, loteId, {
                 tipo: "audio",
@@ -294,7 +299,7 @@ export const ItemFotoUploadPage = () => {
                                                 borderRadius: 10,
                                                 padding: 12,
                                                 fontFamily: "inherit"
-                                            } }) }), _jsx(Button, { type: "button", onClick: () => saveTextoMutation.mutate(), disabled: saveTextoMutation.isPending, children: saveTextoMutation.isPending ? "Salvando..." : "Salvar texto" }), _jsxs("div", { className: "stack", style: { marginTop: 16, gap: 8 }, children: [_jsx("span", { style: { fontSize: 12, fontWeight: 600 }, children: "Nota em voz (opcional)" }), !recording ? (_jsx(Button, { type: "button", onClick: startRecording, children: "Gravar \u00E1udio" })) : (_jsx(Button, { type: "button", onClick: () => void stopRecordingAndUpload(), children: "Parar e enviar \u00E1udio" })), recordError && _jsx("small", { style: { color: "#b60e3d" }, children: recordError }), currentLote?.audioUrl && (_jsxs("div", { className: "stack", style: { gap: 8 }, children: [_jsx("audio", { controls: true, src: currentLote.audioUrl, style: { width: "100%" } }), _jsx(Button, { type: "button", onClick: () => transcribeMutation.mutate(), disabled: transcribeMutation.isPending, children: transcribeMutation.isPending ? "Transcrevendo..." : "Transcrever áudio (OpenAI)" }), currentLote.transcricaoAudio && (_jsxs("p", { style: { fontSize: 14, background: "#f8f0f1", padding: 12, borderRadius: 10 }, children: [_jsx("strong", { children: "Transcri\u00E7\u00E3o:" }), " ", currentLote.transcricaoAudio] }))] }))] })] }), _jsxs(Section, { title: "3. Fotos", children: [_jsx("p", { style: { fontSize: 14 }, children: "Voc\u00EA pode usar a galeria ou a c\u00E2mera (com flash, se o aparelho permitir)." }), _jsxs("div", { className: "stack", style: { gap: 12, flexDirection: "row", flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", onClick: () => galleryInputRef.current?.click(), disabled: remaining === 0, children: "Galeria" }), _jsx("input", { ref: galleryInputRef, type: "file", accept: "image/jpeg,image/png,image/webp", multiple: true, hidden: true, onChange: (e) => void onGalleryChange(e) }), _jsx(Button, { type: "button", onClick: () => void startCamera(), disabled: remaining === 0, children: "Abrir c\u00E2mera" })] }), _jsxs("div", { className: "stack", style: { marginTop: 20, gap: 16 }, children: [_jsx("p", { style: { fontSize: 14, fontWeight: 600, margin: 0 }, children: "Fotos j\u00E1 enviadas neste lote" }), (item.fotos ?? []).filter((f) => f.loteId === loteId).length === 0 ? (_jsx("p", { style: { opacity: 0.8, margin: 0 }, children: "Nenhuma foto neste lote ainda." })) : ((item.fotos ?? [])
+                                            } }) }), _jsx(Button, { type: "button", onClick: () => saveTextoMutation.mutate(), disabled: saveTextoMutation.isPending, children: saveTextoMutation.isPending ? "Salvando..." : "Salvar texto" }), textoSalvoHint && (_jsx("p", { style: { margin: "8px 0 0", fontSize: 14, color: "#0d6b2e", fontWeight: 600 }, children: "Texto salvo." })), _jsxs("div", { className: "stack", style: { marginTop: 16, gap: 8 }, children: [_jsx("span", { style: { fontSize: 12, fontWeight: 600 }, children: "Nota em voz (opcional)" }), !recording ? (_jsx(Button, { type: "button", onClick: startRecording, children: "Gravar \u00E1udio" })) : (_jsx(Button, { type: "button", onClick: () => void stopRecordingAndUpload(), children: "Parar e enviar \u00E1udio" })), recordError && _jsx("small", { style: { color: "#b60e3d" }, children: recordError }), currentLote?.audioUrl && (_jsxs("div", { className: "stack", style: { gap: 8 }, children: [_jsx("audio", { controls: true, src: currentLote.audioUrl, style: { width: "100%" } }), _jsx(Button, { type: "button", onClick: () => transcribeMutation.mutate(), disabled: transcribeMutation.isPending, children: transcribeMutation.isPending ? "Transcrevendo..." : "Transcrever áudio (OpenAI)" }), currentLote.transcricaoAudio && (_jsxs("p", { style: { fontSize: 14, background: "#f8f0f1", padding: 12, borderRadius: 10 }, children: [_jsx("strong", { children: "Transcri\u00E7\u00E3o:" }), " ", currentLote.transcricaoAudio] }))] }))] })] }), _jsxs(Section, { title: "3. Fotos", children: [_jsx("p", { style: { fontSize: 14 }, children: "Voc\u00EA pode usar a galeria ou a c\u00E2mera (com flash, se o aparelho permitir)." }), _jsxs("div", { className: "stack", style: { gap: 12, flexDirection: "row", flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", onClick: () => galleryInputRef.current?.click(), disabled: remaining === 0, children: "Galeria" }), _jsx("input", { ref: galleryInputRef, type: "file", accept: "image/jpeg,image/png,image/webp", multiple: true, hidden: true, onChange: (e) => void onGalleryChange(e) }), _jsx(Button, { type: "button", onClick: () => void startCamera(), disabled: remaining === 0, children: "Abrir c\u00E2mera" })] }), _jsxs("div", { className: "stack", style: { marginTop: 20, gap: 16 }, children: [_jsx("p", { style: { fontSize: 14, fontWeight: 600, margin: 0 }, children: "Fotos j\u00E1 enviadas neste lote" }), (item.fotos ?? []).filter((f) => f.loteId === loteId).length === 0 ? (_jsx("p", { style: { opacity: 0.8, margin: 0 }, children: "Nenhuma foto neste lote ainda." })) : ((item.fotos ?? [])
                                                 .filter((f) => f.loteId === loteId)
                                                 .map((foto) => {
                                                 const latest = foto.aiAnalyses?.[0];

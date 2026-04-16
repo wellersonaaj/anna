@@ -24,8 +24,16 @@ export const request = async <T>(path: string, options: RequestOptions): Promise
   });
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { message?: string };
-    throw new ApiError(payload.message ?? "Erro inesperado na API.", response.status);
+    const payload = (await response.json().catch(() => ({}))) as {
+      message?: string;
+      issues?: Array<{ message?: string }>;
+    };
+    const issueLine = payload.issues
+      ?.map((i) => i.message)
+      .filter(Boolean)
+      .join(" ");
+    const message = [payload.message, issueLine].filter(Boolean).join(" ").trim();
+    throw new ApiError(message || "Erro inesperado na API.", response.status);
   }
 
   if (response.status === 204) {

@@ -1,6 +1,6 @@
 import { canTransitionStatus, itemStatus } from "@anna/shared";
 import type { Prisma, PrismaClient, StatusPeca } from "@prisma/client";
-import { env } from "../../config/env.js";
+import { env, storageEnv } from "../../config/env.js";
 import { analyzePecaImageWithOpenAI } from "../../lib/openaiVision.js";
 import { buildUploadKey, createPresignedPut, downloadImageForAnalysis, isStorageConfigured } from "../../lib/storage.js";
 import { clientService } from "../clients/client.service.js";
@@ -267,7 +267,7 @@ export const itemService = {
       extensao: string;
     }
   ) {
-    if (!isStorageConfigured(env)) {
+    if (!isStorageConfigured(storageEnv)) {
       throw new Error("Storage is not configured.");
     }
 
@@ -290,7 +290,7 @@ export const itemService = {
       extensao: input.extensao
     });
 
-    return createPresignedPut(env, {
+    return createPresignedPut(storageEnv, {
       key,
       contentType: input.contentType
     });
@@ -377,7 +377,7 @@ export const itemService = {
       throw new Error("Photo not found.");
     }
 
-    const { bytes, mime } = await downloadImageForAnalysis(env, foto.url);
+    const { bytes, mime } = await downloadImageForAnalysis(storageEnv, foto.url);
     const imageBase64 = Buffer.from(bytes).toString("base64");
 
     const textoNota = foto.lote?.textoNota ?? null;
