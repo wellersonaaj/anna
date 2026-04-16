@@ -14,12 +14,17 @@
     "lint": "npm run lint --workspaces --if-present",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "build:api": "prisma generate && npm run build -w @anna/api",
+    "start:api": "node apps/api/dist/index.js",
     "worker:email": "dotenv -e .env -- npm run worker:email -w @anna/api"
+  },
+  "dependencies": {
+    "prisma": "^6.7.0"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
     "dotenv-cli": "^8.0.0",
-    "prisma": "^6.7.0",
     "typescript": "^5.8.3"
   }
 }

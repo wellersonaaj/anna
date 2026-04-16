@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
     "worker:email": "tsx src/workers/runEmailJobWorker.ts"

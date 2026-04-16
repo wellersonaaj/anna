@@ -7,6 +7,11 @@ export const brechoContextPlugin = fp(async (app) => {
       return;
     }
 
+    const path = request.url.split("?")[0];
+    if (path === "/health") {
+      return;
+    }
+
     const brechoHeader = request.headers["x-brecho-id"];
     const brechoId = Array.isArray(brechoHeader) ? brechoHeader[0] : brechoHeader;
 
