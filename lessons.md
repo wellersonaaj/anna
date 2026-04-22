@@ -10,6 +10,7 @@ Este arquivo registra regras operacionais para evitar retrabalho e manter o dese
 
 ## Regra 2: Docs sao fonte de verdade
 
+- Para retomar contexto: `docs/00_indice_e_status.md` (indice, status, env, rotas, mapa de arquivos).
 - Validar sempre `docs/PRD_Anna_MVP_v1.md`, `docs/01_arquitetura_inicial.md`, `docs/02_modelagem_banco.md` e `docs/03_proximos_passos.md` antes de codar.
 - Se houver divergencia entre implementacao e docs, corrigir implementacao ou atualizar docs no mesmo ciclo.
 - Nenhuma regra de dominio deve nascer apenas "na hora"; precisa estar refletida em documentacao.

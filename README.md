@@ -2,6 +2,8 @@
 
 Agente vertical para brechó.
 
+**Documentação e status (comece aqui em nova sessão):** [`docs/00_indice_e_status.md`](docs/00_indice_e_status.md)
+
 Este repositório inicia o MVP v1 com foco em:
 
 - operação mobile-first para donas de brechó;
@@ -11,9 +13,11 @@ Este repositório inicia o MVP v1 com foco em:
 
 ## Estrutura inicial
 
+- `docs/00_indice_e_status.md`: **índice**, onde paramos, rotas web/API, env (`STORAGE_*` vs `AWS_*`), mapa de arquivos.
 - `docs/PRD_Anna_MVP_v1.md`: documento base de requisitos do produto.
 - `docs/01_arquitetura_inicial.md`: decisões técnicas iniciais para implementação.
 - `docs/02_modelagem_banco.md`: guia de modelagem e regras de integridade.
+- `docs/03_proximos_passos.md`: checklist Sprint 0 e pendências.
 - `prisma/schema.prisma`: primeira versão do schema relacional.
 - `apps/api`: API Fastify + Prisma com fluxos P0.
 - `apps/web`: PWA React com estoque (filtros), detalhe da peça (`/items/:id` — fotos e fila), **upload de fotos** (`/items/:id/fotos/upload` — lote, texto/voz, câmera/galeria), reserva, venda e entrega.
@@ -55,6 +59,7 @@ Este repositório inicia o MVP v1 com foco em:
 - `GET /items/:id` (detalhe com `fotos`, `fotoLotes`, `filaInteressados`)
 - `POST /items/:id/foto-lotes`, `PATCH .../foto-lotes/:loteId`, `POST .../foto-lotes/:loteId/presign`, `POST .../foto-lotes/:loteId/transcribe`
 - `POST /items/:id/fotos` / `DELETE /items/:id/fotos/:fotoId` (body de foto aceita `loteId` opcional; máx. 5 fotos por peça)
+- `POST /items/:id/fotos/:fotoId/analisar` (IA visão; persiste `AIAnalysis` + snapshot em `PecaFoto`)
 - `POST /items/:id/fila` / `DELETE /items/:id/fila/:entradaId`
 - `GET /acervos/suggestions`
 - `GET /clients` (busca opcional `?search=`)
@@ -69,6 +74,8 @@ Este repositório inicia o MVP v1 com foco em:
 
 ### Upload de imagens (presigned)
 
-Configure `STORAGE_*` no `.env` da API (ver `.env.example`). O bucket precisa permitir `PUT` via URL assinada e o navegador precisa de **CORS** no bucket permitindo o origin do `apps/web` (método `PUT`, headers `Content-Type`).
+Configure storage no `.env` da API (ver `.env.example`). A API aceita **`STORAGE_*`** ou **aliases `AWS_*`** (`AWS_ENDPOINT_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET_NAME`, região via `AWS_DEFAULT_REGION` / `AWS_REGION`; URL pública opcional via `STORAGE_PUBLIC_BASE_URL` ou `AWS_S3_PUBLIC_BASE_URL`). Detalhes: [`docs/00_indice_e_status.md`](docs/00_indice_e_status.md).
 
-Transcrição de voz no lote usa `OPENAI_API_KEY` (opcional).
+O bucket precisa permitir `PUT` via URL assinada e o navegador precisa de **CORS** no bucket permitindo o origin do `apps/web` (método `PUT`, headers `Content-Type`).
+
+Transcrição de voz no lote e análise de foto usam `OPENAI_API_KEY` (opcional para transcrição; necessária para IA de foto). Opcional: `OPENAI_VISION_MODEL`.
