@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { DeliveriesPage } from "./pages/deliveries.page";
 import { InventoryPage } from "./pages/inventory.page";
+import { ItemAIDraftPage } from "./pages/item-ai-draft.page";
 import { ItemDetailPage } from "./pages/item-detail.page";
 import { ItemFotoUploadPage } from "./pages/item-foto-upload.page";
 import { ReservePage } from "./pages/reserve.page";
@@ -15,6 +16,7 @@ export const App = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<InventoryPage />} />
+          <Route path="/items/new/ai" element={<ItemAIDraftPage />} />
           <Route path="/items/:itemId" element={<ItemDetailPage />} />
           <Route path="/items/:itemId/fotos/upload" element={<ItemFotoUploadPage />} />
           <Route path="/reserve/:itemId" element={<ReservePage />} />

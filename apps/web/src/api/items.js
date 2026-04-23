@@ -29,6 +29,13 @@ export const analisarItemFoto = async (brechoId, itemId, fotoId) => {
         brechoId
     });
 };
+export const analisarFotoRascunho = async (brechoId, payload) => {
+    return request("/items/analisar-rascunho", {
+        method: "POST",
+        brechoId,
+        body: payload
+    });
+};
 export const createFotoLote = async (brechoId, itemId, payload) => {
     return request(`/items/${itemId}/foto-lotes`, {
         method: "POST",

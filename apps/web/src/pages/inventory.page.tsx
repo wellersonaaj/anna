@@ -88,6 +88,23 @@ export const InventoryPage = () => {
       <header>
         <h1 style={{ marginBottom: 4 }}>Estoque</h1>
         <p style={{ marginTop: 0, opacity: 0.8 }}>Fluxos P0 com foco em cadastro e baixa rápida.</p>
+        <Link
+          to="/items/new/ai"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: 44,
+            padding: "0 16px",
+            borderRadius: 10,
+            background: "#b60e3d",
+            color: "#fff",
+            textDecoration: "none",
+            fontWeight: 700
+          }}
+        >
+          Cadastrar com IA
+        </Link>
       </header>
 
       <Section title="Cadastro rápido de peça">

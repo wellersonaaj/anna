@@ -11,6 +11,37 @@ const ensureTransition = (from: StatusPeca, to: StatusPeca): void => {
   }
 };
 
+const mapCategoriaFromAi = (
+  categoria: string | null | undefined
+): "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO" | null => {
+  if (!categoria) {
+    return null;
+  }
+
+  const mapping: Record<string, "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO"> = {
+    roupa_feminina: "ROUPA_FEMININA",
+    roupa_masculina: "ROUPA_MASCULINA",
+    calcado: "CALCADO",
+    acessorio: "ACESSORIO"
+  };
+
+  return mapping[categoria] ?? null;
+};
+
+const mapCondicaoFromAi = (condicao: string | null | undefined): "OTIMO" | "BOM" | "REGULAR" | null => {
+  if (!condicao) {
+    return null;
+  }
+
+  const mapping: Record<string, "OTIMO" | "BOM" | "REGULAR"> = {
+    otimo: "OTIMO",
+    bom: "BOM",
+    regular: "REGULAR"
+  };
+
+  return mapping[condicao] ?? null;
+};
+
 export const itemService = {
   async create(prisma: PrismaClient, brechoId: string, data: {
     nome: string;
@@ -359,6 +390,44 @@ export const itemService = {
     });
   },
 
+  async analisarFotoRascunho(input: { imageBase64: string; imageMime: "image/jpeg" | "image/png"; textoNota?: string }) {
+    const apiKey = env.OPENAI_API_KEY?.trim();
+    if (!apiKey) {
+      throw new Error("OpenAI is not configured.");
+    }
+
+    const model = env.OPENAI_VISION_MODEL?.trim() || "gpt-4o-mini";
+    const { parsed } = await analyzePecaImageWithOpenAI({
+      apiKey,
+      model,
+      imageBase64: input.imageBase64,
+      imageMime: input.imageMime,
+      textoNota: input.textoNota?.trim() || null,
+      transcricaoAudio: null
+    });
+
+    return {
+      suggestions: {
+        nomeSugerido: parsed.nome_sugerido?.trim() || null,
+        categoria: mapCategoriaFromAi(parsed.categoria ?? undefined),
+        subcategoria: parsed.subcategoria?.trim() || null,
+        corPrincipal: parsed.cor_principal?.trim() || null,
+        estampado: parsed.estampado ?? false,
+        descricaoEstampa: parsed.descricao_estampa?.trim() || null,
+        condicao: mapCondicaoFromAi(parsed.condicao ?? undefined)
+      },
+      meta: {
+        confianca: parsed.confianca,
+        ambienteFoto: parsed.ambiente_foto ?? null,
+        qualidadeFoto: parsed.qualidade_foto ?? null
+      },
+      warnings: {
+        lowConfidence: parsed.confianca < 0.6,
+        multiplasPecas: parsed.multiplas_pecas === true
+      }
+    };
+  },
+
   async analisarFoto(prisma: PrismaClient, brechoId: string, itemId: string, fotoId: string) {
     const apiKey = env.OPENAI_API_KEY?.trim();
     if (!apiKey) {
@@ -396,35 +465,8 @@ export const itemService = {
       pecaCategoria: foto.peca.categoria
     });
 
-    const mapCategoria = (
-      c: string | null | undefined
-    ): "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO" | null => {
-      if (!c) {
-        return null;
-      }
-      const m: Record<string, "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO"> = {
-        roupa_feminina: "ROUPA_FEMININA",
-        roupa_masculina: "ROUPA_MASCULINA",
-        calcado: "CALCADO",
-        acessorio: "ACESSORIO"
-      };
-      return m[c] ?? null;
-    };
-
-    const mapCondicao = (c: string | null | undefined): "OTIMO" | "BOM" | "REGULAR" | null => {
-      if (!c) {
-        return null;
-      }
-      const m: Record<string, "OTIMO" | "BOM" | "REGULAR"> = {
-        otimo: "OTIMO",
-        bom: "BOM",
-        regular: "REGULAR"
-      };
-      return m[c] ?? null;
-    };
-
-    const categoriaDb = mapCategoria(parsed.categoria ?? undefined);
-    const condicaoDb = mapCondicao(parsed.condicao ?? undefined);
+    const categoriaDb = mapCategoriaFromAi(parsed.categoria ?? undefined);
+    const condicaoDb = mapCondicaoFromAi(parsed.condicao ?? undefined);
 
     const textoContexto =
       [textoNota ? `Texto: ${textoNota}` : null, transcricaoAudio ? `Transcricao: ${transcricaoAudio}` : null]

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 import {
   acervoSuggestionsQuerySchema,
+  analyzeItemDraftSchema,
   addPecaFotoSchema,
   createFotoLoteSchema,
   createItemSchema,
@@ -97,6 +98,17 @@ export const itemRoutes = async (app: FastifyInstance): Promise<void> => {
       const payload = createItemSchema.parse(request.body);
       const item = await itemService.create(app.prisma, request.brechoId, payload);
       return reply.code(201).send(item);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.post("/items/analisar-rascunho", async (request, reply) => {
+    try {
+      const payload = analyzeItemDraftSchema.parse(request.body);
+      const result = await itemService.analisarFotoRascunho(payload);
+      return reply.send(result);
     } catch (error) {
       const normalized = handleError(error, app);
       return reply.code(normalized.statusCode).send(normalized.body);

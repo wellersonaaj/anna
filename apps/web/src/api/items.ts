@@ -103,6 +103,27 @@ export type FotoAnaliseResponse = {
   };
 };
 
+export type DraftFotoAnaliseResponse = {
+  suggestions: {
+    nomeSugerido: string | null;
+    categoria: ItemCategoria | null;
+    subcategoria: string | null;
+    corPrincipal: string | null;
+    estampado: boolean;
+    descricaoEstampa: string | null;
+    condicao: "OTIMO" | "BOM" | "REGULAR" | null;
+  };
+  meta: {
+    confianca: number;
+    ambienteFoto: string | null;
+    qualidadeFoto: string | null;
+  };
+  warnings: {
+    lowConfidence: boolean;
+    multiplasPecas: boolean;
+  };
+};
+
 export type FilaInteressadoEntry = {
   id: string;
   pecaId: string;
@@ -181,6 +202,17 @@ export const analisarItemFoto = async (
   return request<FotoAnaliseResponse>(`/items/${itemId}/fotos/${fotoId}/analisar`, {
     method: "POST",
     brechoId
+  });
+};
+
+export const analisarFotoRascunho = async (
+  brechoId: string,
+  payload: { imageBase64: string; imageMime: "image/jpeg" | "image/png"; textoNota?: string }
+): Promise<DraftFotoAnaliseResponse> => {
+  return request<DraftFotoAnaliseResponse>("/items/analisar-rascunho", {
+    method: "POST",
+    brechoId,
+    body: payload
   });
 };
 

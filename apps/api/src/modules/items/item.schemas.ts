@@ -48,6 +48,12 @@ export const createFotoLoteSchema = z.object({
   textoNota: z.string().trim().max(8000).optional()
 });
 
+export const analyzeItemDraftSchema = z.object({
+  imageBase64: z.string().trim().min(1).max(12_000_000),
+  imageMime: z.enum(["image/jpeg", "image/png"]),
+  textoNota: z.string().trim().max(8000).optional()
+});
+
 export const patchFotoLoteSchema = z
   .object({
     textoNota: z.string().trim().max(8000).optional(),
