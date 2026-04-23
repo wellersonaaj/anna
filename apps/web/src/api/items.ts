@@ -91,6 +91,8 @@ export type FotoAnaliseResponse = {
     estampado: boolean;
     descricaoEstampa: string | null;
     condicao: "OTIMO" | "BOM" | "REGULAR" | null;
+    tamanho: string | null;
+    marca: string | null;
   };
   meta: {
     confianca: number;
@@ -113,6 +115,8 @@ export type DraftFotoAnaliseResponse = {
     estampado: boolean;
     descricaoEstampa: string | null;
     condicao: "OTIMO" | "BOM" | "REGULAR" | null;
+    tamanho: string | null;
+    marca: string | null;
   };
   meta: {
     confianca: number;

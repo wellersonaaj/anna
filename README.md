@@ -20,7 +20,7 @@ Este repositório inicia o MVP v1 com foco em:
 - `docs/03_proximos_passos.md`: checklist Sprint 0 e pendências.
 - `prisma/schema.prisma`: primeira versão do schema relacional.
 - `apps/api`: API Fastify + Prisma com fluxos P0.
-- `apps/web`: PWA React com estoque (filtros), detalhe da peça (`/items/:id` — fotos e fila), **upload de fotos** (`/items/:id/fotos/upload` — lote, texto/voz, câmera/galeria), reserva, venda e entrega.
+- `apps/web`: PWA React com estoque (filtros), detalhe da peça (`/items/:id` — fotos e fila), **upload de fotos** (`/items/:id/fotos/upload` — lote, texto/voz, câmera/galeria), cadastro IA (`/items/new/ai` com até 5 fotos), reserva, venda e entrega.
 - `packages/shared`: utilitários compartilhados de domínio (ex.: máquina de status).
 
 ## Setup local
@@ -37,9 +37,9 @@ Este repositório inicia o MVP v1 com foco em:
    ```bash
    npm run db:generate
    ```
-4. Crie a migration inicial:
+4. Aplique as migrations já existentes:
    ```bash
-   npm run db:migrate -- --name init
+   npm run db:migrate
    ```
 5. Rode API e Web em paralelo:
    ```bash
@@ -60,6 +60,9 @@ Este repositório inicia o MVP v1 com foco em:
 - `POST /items/:id/foto-lotes`, `PATCH .../foto-lotes/:loteId`, `POST .../foto-lotes/:loteId/presign`, `POST .../foto-lotes/:loteId/transcribe`
 - `POST /items/:id/fotos` / `DELETE /items/:id/fotos/:fotoId` (body de foto aceita `loteId` opcional; máx. 5 fotos por peça)
 - `POST /items/:id/fotos/:fotoId/analisar` (IA visão; persiste `AIAnalysis` + snapshot em `PecaFoto`)
+- `POST /items/analisar-rascunho` (IA de rascunho com 1..5 fotos, pipeline em 2 estágios: extractor + reviewer)
+- `POST /items/analisar-rascunho/:analysisId/feedback` (feedback in-app com helpfulness + motivos opcionais + diff passivo)
+- `GET /ai/quality-metrics?days=30` (métricas de qualidade por campo: null rate, aceitação, helpfulness, motivos)
 - `POST /items/:id/fila` / `DELETE /items/:id/fila/:entradaId`
 - `GET /acervos/suggestions`
 - `GET /clients` (busca opcional `?search=`)
@@ -79,3 +82,10 @@ Configure storage no `.env` da API (ver `.env.example`). A API aceita **`STORAGE
 O bucket precisa permitir `PUT` via URL assinada e o navegador precisa de **CORS** no bucket permitindo o origin do `apps/web` (método `PUT`, headers `Content-Type`).
 
 Transcrição de voz no lote e análise de foto usam `OPENAI_API_KEY` (opcional para transcrição; necessária para IA de foto). Opcional: `OPENAI_VISION_MODEL`.
+
+No cadastro IA (`/items/new/ai`), a análise usa até 5 fotos + contexto em texto e aplica:
+
+- inferência em 2 estágios (extractor e reviewer);
+- `field_confidence` por campo crítico;
+- fallback determinístico para reduzir `null` em `nome`, `subcategoria` e `cor`;
+- coleta de feedback in-app para ciclo contínuo de melhoria.

@@ -11,6 +11,7 @@ Documento de entrada para **onboarding** e para **retomar contexto** em nova ses
 - **Fotos e storage:** upload via presign S3-compatible. A API aceita **`STORAGE_*`** ou **aliases `AWS_*`** (comum no Railway): ver secção [Variáveis de ambiente](#variáveis-de-ambiente) e [`apps/api/src/config/env.ts`](../apps/api/src/config/env.ts) (`storageEnv`).
 - **IA em foto:** `POST /items/:id/fotos/:fotoId/analisar` — OpenAI visão, grava `AIAnalysis` + snapshot em `PecaFoto`. Requer `OPENAI_API_KEY`; opcional `OPENAI_VISION_MODEL` (default `gpt-4o-mini`).
 - **Cadastro com IA (rascunho local):** rota web `/items/new/ai` com **até 5 fotos** + texto opcional, análise em **2 estágios** (extractor + reviewer), `detail: high`, autofill com fallback, criação do item ao concluir e feedback in-app com motivos.
+- **Etiqueta no rascunho IA:** quando legível, a IA agora sugere `tamanho` e `marca` automaticamente no fluxo `/items/new/ai`. `material` segue sem campo estruturado nesta fase, influenciando apenas o `nome_sugerido` via contexto.
 - **Correções recentes (Sprint fotos/IA):** normalização de `Content-Type` no presign (ex.: `audio/webm;codecs=opus` → `audio/webm`); feedback “Texto salvo.” no lote; mensagens de validação Zod no cliente; leitura de imagem para IA via `fetch` ou `GetObject` quando a URL bate com o storage configurado.
 
 Pendências e próximos passos detalhados: [`03_proximos_passos.md`](03_proximos_passos.md).
@@ -25,6 +26,7 @@ Pendências e próximos passos detalhados: [`03_proximos_passos.md`](03_proximos
 | [01_arquitetura_inicial.md](01_arquitetura_inicial.md) | Decisões técnicas iniciais. |
 | [02_modelagem_banco.md](02_modelagem_banco.md) | Modelo relacional e integridade. |
 | [03_proximos_passos.md](03_proximos_passos.md) | Checklist Sprint 0, o que está feito / parcial / falta. |
+| [04_backlog_material.md](04_backlog_material.md) | Backlog para evoluir `material` para campo estruturado. |
 | [lessons.md](../lessons.md) (raiz) | Lições e convenções do time. |
 
 Este arquivo (**00**) é o **hub**: índice + status + ponteiros para código e env.

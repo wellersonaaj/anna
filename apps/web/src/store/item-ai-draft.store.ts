@@ -116,7 +116,9 @@ export const useItemAIDraftStore = create<ItemAIDraftState>()(
             subcategoria: analysis.suggestions.subcategoria ?? state.formValues.subcategoria,
             cor: analysis.suggestions.corPrincipal ?? state.formValues.cor,
             estampa: analysis.suggestions.estampado,
-            condicao: analysis.suggestions.condicao ?? state.formValues.condicao
+            condicao: analysis.suggestions.condicao ?? state.formValues.condicao,
+            tamanho: analysis.suggestions.tamanho ?? state.formValues.tamanho,
+            marca: analysis.suggestions.marca ?? state.formValues.marca
           },
           lastUpdatedAt: touch()
         })),

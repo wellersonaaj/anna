@@ -50,6 +50,8 @@ type DraftSuggestionSnapshot = {
   estampado: boolean;
   descricaoEstampa: string | null;
   condicao: "OTIMO" | "BOM" | "REGULAR" | null;
+  tamanho: string | null;
+  marca: string | null;
 };
 
 type DraftFieldConfidence = {
@@ -74,6 +76,8 @@ const buildDraftSuggestions = (parsed: {
   estampado?: boolean;
   descricao_estampa?: string | null;
   condicao?: string | null;
+  tamanho?: string | null;
+  marca?: string | null;
 }): DraftSuggestionSnapshot => ({
   nomeSugerido: parsed.nome_sugerido?.trim() || null,
   categoria: mapCategoriaFromAi(parsed.categoria ?? undefined),
@@ -81,7 +85,9 @@ const buildDraftSuggestions = (parsed: {
   corPrincipal: parsed.cor_principal?.trim() || null,
   estampado: parsed.estampado ?? false,
   descricaoEstampa: parsed.descricao_estampa?.trim() || null,
-  condicao: mapCondicaoFromAi(parsed.condicao ?? undefined)
+  condicao: mapCondicaoFromAi(parsed.condicao ?? undefined),
+  tamanho: parsed.tamanho?.trim() || null,
+  marca: parsed.marca?.trim() || null
 });
 
 const normalizeText = (value: string | null | undefined) => value?.trim().toLowerCase() ?? "";

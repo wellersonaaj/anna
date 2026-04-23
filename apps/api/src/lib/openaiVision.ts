@@ -17,7 +17,9 @@ const fieldConfidenceSchema = z.object({
   categoria: z.coerce.number().min(0).max(1).optional().default(0.5),
   subcategoria: z.coerce.number().min(0).max(1).optional().default(0.5),
   cor_principal: z.coerce.number().min(0).max(1).optional().default(0.5),
-  condicao: z.coerce.number().min(0).max(1).optional().default(0.5)
+  condicao: z.coerce.number().min(0).max(1).optional().default(0.5),
+  tamanho: z.coerce.number().min(0).max(1).optional().default(0.5),
+  marca: z.coerce.number().min(0).max(1).optional().default(0.5)
 });
 
 export const pecaAiJsonSchema = z.object({
@@ -28,6 +30,8 @@ export const pecaAiJsonSchema = z.object({
   estampado: z.boolean().optional().default(false),
   descricao_estampa: z.string().nullable().optional(),
   condicao: condicaoPrd.nullable().optional(),
+  tamanho: z.string().nullable().optional(),
+  marca: z.string().nullable().optional(),
   confianca: z.coerce.number().min(0).max(1).optional().default(0.5),
   ambiente_foto: ambientePrd.nullable().optional(),
   qualidade_foto: qualidadePrd.nullable().optional(),
@@ -38,7 +42,9 @@ export const pecaAiJsonSchema = z.object({
     categoria: 0.5,
     subcategoria: 0.5,
     cor_principal: 0.5,
-    condicao: 0.5
+    condicao: 0.5,
+    tamanho: 0.5,
+    marca: 0.5
   })
 });
 
@@ -52,7 +58,10 @@ Regras:
 - use exatamente os enums permitidos.
 - priorize a peca principal (mais central/visivel) caso haja ruido.
 - use o contexto textual da dona como evidencia forte para nome/subcategoria/cor.
-- evite null para nome_sugerido, subcategoria e cor_principal quando houver qualquer evidencia visual/contextual razoavel.
+- se houver etiqueta legivel, extraia tamanho e marca da peca principal.
+- use informacao de composicao/material para enriquecer nome_sugerido quando fizer sentido comercial.
+- NAO crie campo "material" no JSON.
+- evite null para nome_sugerido, subcategoria, cor_principal, tamanho e marca quando houver qualquer evidencia visual/contextual razoavel.
 - use null somente quando realmente impossivel inferir.
 
 Obrigatorio:
@@ -60,7 +69,7 @@ Obrigatorio:
 - estampado (boolean)
 - multiplas_pecas (boolean)
 - field_confidence com valores 0..1 para:
-  nome_sugerido, categoria, subcategoria, cor_principal, condicao.
+  nome_sugerido, categoria, subcategoria, cor_principal, condicao, tamanho, marca.
 
 Enums:
 categoria: roupa_feminina | roupa_masculina | calcado | acessorio
@@ -75,7 +84,7 @@ Recebera:
 
 Sua tarefa:
 - corrigir inconsistencias e normalizar saida final.
-- reduzir null desnecessario em nome_sugerido, subcategoria e cor_principal.
+- reduzir null desnecessario em nome_sugerido, subcategoria, cor_principal, tamanho e marca.
 - manter conformidade com enums e schema.
 - ajustar field_confidence por campo com realismo.
 - retornar APENAS JSON final valido, sem markdown.
@@ -104,6 +113,9 @@ const buildUserPrompt = (ctx: {
   parts.push("- subcategoria: especifica e util para busca.");
   parts.push("- cor_principal: cor de catalogo pratica.");
   parts.push("- se houver estampa, detalhe em descricao_estampa.");
+  parts.push("- use etiqueta/composicao para inferir tamanho e marca quando legivel.");
+  parts.push("- use material/composicao para enriquecer nome_sugerido quando util.");
+  parts.push('- nao retorne campo "material"; mantenha apenas os campos do schema.');
   parts.push("", "Retorne o JSON com a analise completa.");
   return parts.join("\n");
 };

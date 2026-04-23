@@ -54,6 +54,7 @@ export const ItemAIDraftPage = () => {
     const cameraInputRef = useRef(null);
     const galleryInputRef = useRef(null);
     const [actionError, setActionError] = useState(null);
+    const [completedItemId, setCompletedItemId] = useState(null);
     const [feedbackChoice, setFeedbackChoice] = useState(null);
     const [feedbackReasons, setFeedbackReasons] = useState([]);
     const [pendingFeedback, setPendingFeedback] = useState(null);
@@ -170,8 +171,12 @@ export const ItemAIDraftPage = () => {
                 });
                 return;
             }
+            setPendingFeedback(null);
+            setFeedbackChoice(null);
+            setFeedbackReasons([]);
             resetDraft();
-            navigate(`/items/${itemId}`);
+            void queryClient.removeQueries({ queryKey: ["item", brechoId, itemId] });
+            setCompletedItemId(itemId);
         },
         onError: (error) => {
             setActionError(error instanceof ApiError ? error.message : String(error));
@@ -198,7 +203,8 @@ export const ItemAIDraftPage = () => {
             setFeedbackChoice(null);
             setFeedbackReasons([]);
             resetDraft();
-            navigate(`/items/${itemId}`);
+            void queryClient.removeQueries({ queryKey: ["item", brechoId, itemId] });
+            setCompletedItemId(itemId);
         },
         onError: (error) => {
             setActionError(error instanceof ApiError ? error.message : "Não foi possível salvar o feedback.");
@@ -222,6 +228,23 @@ export const ItemAIDraftPage = () => {
             reasonCodes: feedbackReasons
         });
     };
+    const goToItemDetail = () => {
+        if (!completedItemId) {
+            return;
+        }
+        navigate(`/items/${completedItemId}`);
+    };
+    const startAnother = () => {
+        setCompletedItemId(null);
+        setActionError(null);
+        setFeedbackChoice(null);
+        setFeedbackReasons([]);
+        setPendingFeedback(null);
+        resetDraft();
+    };
+    if (completedItemId) {
+        return (_jsxs(AppShell, { children: [_jsx(Link, { to: "/", children: "\u2190 Voltar ao estoque" }), _jsxs(Section, { title: "Cadastro conclu\u00EDdo", children: [_jsx("p", { style: { margin: 0, opacity: 0.9 }, children: "Pe\u00E7a cadastrada com sucesso. O rascunho foi limpo para o pr\u00F3ximo cadastro." }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", onClick: startAnother, children: "Cadastrar outra" }), _jsx(Button, { type: "button", onClick: goToItemDetail, children: "Ver pe\u00E7a" })] })] })] }));
+    }
     return (_jsxs(AppShell, { children: [_jsx(Link, { to: "/", children: "\u2190 Voltar ao estoque" }), _jsxs("header", { children: [_jsx("h1", { style: { marginBottom: 4 }, children: "Cadastrar com IA" }), _jsx("p", { style: { marginTop: 0, opacity: 0.85 }, children: "Envie uma foto, opcionalmente descreva o contexto, revise os campos e conclua." })] }), actionError && (_jsx("p", { style: { color: "#b60e3d", fontSize: 14 }, role: "alert", children: actionError })), pendingFeedback && (_jsxs(Section, { title: "3. A sugest\u00E3o da IA ajudou?", children: [_jsx("p", { style: { margin: 0, opacity: 0.9 }, children: "Seu toque ajuda o app a aprender com as corre\u00E7\u00F5es reais do cadastro." }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => feedbackMutation.mutate({ helpfulness: "SIM" }), children: "Sim" }), _jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => setFeedbackChoice("PARCIAL"), children: "Parcial" }), _jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => setFeedbackChoice("NAO"), children: "N\u00E3o" })] }), (feedbackChoice === "PARCIAL" || feedbackChoice === "NAO") && (_jsxs("div", { className: "stack", style: { gap: 8 }, children: [_jsx("p", { style: { margin: "4px 0 0", fontSize: 14, opacity: 0.9 }, children: "O que ficou ruim? (opcional)" }), _jsx("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: reasonCodeOptions.map((option) => (_jsx("button", { type: "button", onClick: () => toggleReason(option.code), style: {
                                         border: `1px solid ${feedbackReasons.includes(option.code) ? "#b60e3d" : "#d9b9bc"}`,
                                         background: feedbackReasons.includes(option.code) ? "#fdf1f4" : "#fff",
