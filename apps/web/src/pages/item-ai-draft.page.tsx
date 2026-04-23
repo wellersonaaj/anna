@@ -73,6 +73,7 @@ export const ItemAIDraftPage = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [completedItemId, setCompletedItemId] = useState<string | null>(null);
   const [feedbackChoice, setFeedbackChoice] = useState<"SIM" | "PARCIAL" | "NAO" | null>(null);
   const [feedbackReasons, setFeedbackReasons] = useState<ReasonCode[]>([]);
   const [pendingFeedback, setPendingFeedback] = useState<{
@@ -229,8 +230,12 @@ export const ItemAIDraftPage = () => {
         });
         return;
       }
+      setPendingFeedback(null);
+      setFeedbackChoice(null);
+      setFeedbackReasons([]);
       resetDraft();
-      navigate(`/items/${itemId}`);
+      void queryClient.removeQueries({ queryKey: ["item", brechoId, itemId] });
+      setCompletedItemId(itemId);
     },
     onError: (error) => {
       setActionError(error instanceof ApiError ? error.message : String(error));
@@ -258,7 +263,8 @@ export const ItemAIDraftPage = () => {
       setFeedbackChoice(null);
       setFeedbackReasons([]);
       resetDraft();
-      navigate(`/items/${itemId}`);
+      void queryClient.removeQueries({ queryKey: ["item", brechoId, itemId] });
+      setCompletedItemId(itemId);
     },
     onError: (error) => {
       setActionError(error instanceof ApiError ? error.message : "Não foi possível salvar o feedback.");
@@ -287,6 +293,43 @@ export const ItemAIDraftPage = () => {
       reasonCodes: feedbackReasons
     });
   };
+
+  const goToItemDetail = () => {
+    if (!completedItemId) {
+      return;
+    }
+    navigate(`/items/${completedItemId}`);
+  };
+
+  const startAnother = () => {
+    setCompletedItemId(null);
+    setActionError(null);
+    setFeedbackChoice(null);
+    setFeedbackReasons([]);
+    setPendingFeedback(null);
+    resetDraft();
+  };
+
+  if (completedItemId) {
+    return (
+      <AppShell>
+        <Link to="/">← Voltar ao estoque</Link>
+        <Section title="Cadastro concluído">
+          <p style={{ margin: 0, opacity: 0.9 }}>
+            Peça cadastrada com sucesso. O rascunho foi limpo para o próximo cadastro.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button type="button" onClick={startAnother}>
+              Cadastrar outra
+            </Button>
+            <Button type="button" onClick={goToItemDetail}>
+              Ver peça
+            </Button>
+          </div>
+        </Section>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
