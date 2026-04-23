@@ -61,6 +61,20 @@ export const analyzeItemDraftSchema = z.object({
 export const submitDraftFeedbackSchema = z.object({
   helpfulness: z.enum(["SIM", "PARCIAL", "NAO"]),
   itemId: z.string().cuid().optional(),
+  reasonCodes: z
+    .array(
+      z.enum([
+        "COR_ERRADA",
+        "SUBCATEGORIA_ERRADA",
+        "NOME_RUIM",
+        "CATEGORIA_ERRADA",
+        "CONDICAO_ERRADA",
+        "ESTAMPA_ERRADA",
+        "OUTRO"
+      ])
+    )
+    .max(5)
+    .optional(),
   finalValues: z.object({
     nome: z.string().trim().min(2),
     categoria: z.enum(["ROUPA_FEMININA", "ROUPA_MASCULINA", "CALCADO", "ACESSORIO"]),
@@ -74,6 +88,10 @@ export const submitDraftFeedbackSchema = z.object({
     acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
     acervoNome: z.string().trim().max(80).optional()
   })
+});
+
+export const aiQualityMetricsQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(180).default(30)
 });
 
 export const patchFotoLoteSchema = z

@@ -43,6 +43,15 @@ export const enviarFeedbackRascunho = async (brechoId, analysisId, payload) => {
         body: payload
     });
 };
+export const getAiQualityMetrics = async (brechoId, query) => {
+    const params = new URLSearchParams();
+    if (query?.days != null) {
+        params.set("days", String(query.days));
+    }
+    return request(`/ai/quality-metrics${params.toString() ? `?${params.toString()}` : ""}`, {
+        brechoId
+    });
+};
 export const createFotoLote = async (brechoId, itemId, payload) => {
     return request(`/items/${itemId}/foto-lotes`, {
         method: "POST",

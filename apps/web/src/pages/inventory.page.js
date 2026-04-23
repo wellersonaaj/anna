@@ -94,5 +94,5 @@ export const InventoryPage = () => {
                                                 color: "#fff",
                                                 textDecoration: "none",
                                                 fontWeight: 600
-                                            }, children: "Reservar" })), (item.status === "DISPONIVEL" || item.status === "RESERVADO") && (_jsx(Link, { to: `/sell/${item.id}`, children: "Vender" }))] })] }, item.id))) }))] }), _jsx(Link, { to: "/deliveries", children: "Ir para entregas pendentes" })] }));
+                                            }, children: "Reservar" })), (item.status === "DISPONIVEL" || item.status === "RESERVADO") && (_jsx(Link, { to: `/sell/${item.id}`, children: "Vender" }))] })] }, item.id))) }))] }), _jsxs("div", { style: { display: "flex", gap: 12, flexWrap: "wrap" }, children: [_jsx(Link, { to: "/deliveries", children: "Ir para entregas pendentes" }), _jsx(Link, { to: "/ai/quality", children: "Ver qualidade da IA" })] })] }));
 };

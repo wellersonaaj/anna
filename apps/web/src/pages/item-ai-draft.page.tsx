@@ -17,6 +17,18 @@ import { resizeImageToJpeg } from "../lib/imageResize";
 import { useSessionStore } from "../store/session.store";
 import { useItemAIDraftStore } from "../store/item-ai-draft.store";
 
+const reasonCodeOptions = [
+  { code: "COR_ERRADA", label: "Cor errada" },
+  { code: "SUBCATEGORIA_ERRADA", label: "Subcategoria errada" },
+  { code: "NOME_RUIM", label: "Nome ruim" },
+  { code: "CATEGORIA_ERRADA", label: "Categoria errada" },
+  { code: "CONDICAO_ERRADA", label: "Condição errada" },
+  { code: "ESTAMPA_ERRADA", label: "Estampa errada" },
+  { code: "OUTRO", label: "Outro" }
+] as const;
+
+type ReasonCode = (typeof reasonCodeOptions)[number]["code"];
+
 const toDataUrl = async (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -61,6 +73,8 @@ export const ItemAIDraftPage = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [feedbackChoice, setFeedbackChoice] = useState<"SIM" | "PARCIAL" | "NAO" | null>(null);
+  const [feedbackReasons, setFeedbackReasons] = useState<ReasonCode[]>([]);
   const [pendingFeedback, setPendingFeedback] = useState<{
     analysisId: string;
     itemId: string;
@@ -224,12 +238,13 @@ export const ItemAIDraftPage = () => {
   });
 
   const feedbackMutation = useMutation({
-    mutationFn: (helpfulness: "SIM" | "PARCIAL" | "NAO") => {
+    mutationFn: (input: { helpfulness: "SIM" | "PARCIAL" | "NAO"; reasonCodes?: ReasonCode[] }) => {
       if (!pendingFeedback) {
         throw new Error("Feedback indisponível.");
       }
       return enviarFeedbackRascunho(brechoId, pendingFeedback.analysisId, {
-        helpfulness,
+        helpfulness: input.helpfulness,
+        reasonCodes: input.reasonCodes,
         itemId: pendingFeedback.itemId,
         finalValues: pendingFeedback.finalValues
       });
@@ -240,6 +255,8 @@ export const ItemAIDraftPage = () => {
       }
       const itemId = pendingFeedback.itemId;
       setPendingFeedback(null);
+      setFeedbackChoice(null);
+      setFeedbackReasons([]);
       resetDraft();
       navigate(`/items/${itemId}`);
     },
@@ -247,6 +264,29 @@ export const ItemAIDraftPage = () => {
       setActionError(error instanceof ApiError ? error.message : "Não foi possível salvar o feedback.");
     }
   });
+
+  const confidenceLabel = (value: number) => {
+    if (value >= 0.8) {
+      return "alta";
+    }
+    if (value >= 0.6) {
+      return "média";
+    }
+    return "baixa";
+  };
+
+  const toggleReason = (reason: ReasonCode) => {
+    setFeedbackReasons((current) =>
+      current.includes(reason) ? current.filter((code) => code !== reason) : [...current, reason]
+    );
+  };
+
+  const submitStructuredFeedback = (helpfulness: "PARCIAL" | "NAO") => {
+    feedbackMutation.mutate({
+      helpfulness,
+      reasonCodes: feedbackReasons
+    });
+  };
 
   return (
     <AppShell>
@@ -271,20 +311,69 @@ export const ItemAIDraftPage = () => {
             Seu toque ajuda o app a aprender com as correções reais do cadastro.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Button type="button" disabled={feedbackMutation.isPending} onClick={() => feedbackMutation.mutate("SIM")}>
+            <Button
+              type="button"
+              disabled={feedbackMutation.isPending}
+              onClick={() => feedbackMutation.mutate({ helpfulness: "SIM" })}
+            >
               Sim
             </Button>
             <Button
               type="button"
               disabled={feedbackMutation.isPending}
-              onClick={() => feedbackMutation.mutate("PARCIAL")}
+              onClick={() => setFeedbackChoice("PARCIAL")}
             >
               Parcial
             </Button>
-            <Button type="button" disabled={feedbackMutation.isPending} onClick={() => feedbackMutation.mutate("NAO")}>
+            <Button type="button" disabled={feedbackMutation.isPending} onClick={() => setFeedbackChoice("NAO")}>
               Não
             </Button>
           </div>
+          {(feedbackChoice === "PARCIAL" || feedbackChoice === "NAO") && (
+            <div className="stack" style={{ gap: 8 }}>
+              <p style={{ margin: "4px 0 0", fontSize: 14, opacity: 0.9 }}>
+                O que ficou ruim? (opcional)
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {reasonCodeOptions.map((option) => (
+                  <button
+                    key={option.code}
+                    type="button"
+                    onClick={() => toggleReason(option.code)}
+                    style={{
+                      border: `1px solid ${feedbackReasons.includes(option.code) ? "#b60e3d" : "#d9b9bc"}`,
+                      background: feedbackReasons.includes(option.code) ? "#fdf1f4" : "#fff",
+                      color: "#3d2228",
+                      borderRadius: 999,
+                      padding: "6px 12px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Button
+                  type="button"
+                  disabled={feedbackMutation.isPending}
+                  onClick={() => submitStructuredFeedback(feedbackChoice)}
+                >
+                  Enviar feedback
+                </Button>
+                <Button
+                  type="button"
+                  disabled={feedbackMutation.isPending}
+                  onClick={() => {
+                    setFeedbackChoice(null);
+                    setFeedbackReasons([]);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
         </Section>
       )}
 
@@ -401,6 +490,13 @@ export const ItemAIDraftPage = () => {
               Confiança: {Math.round(analysis.meta.confianca * 100)}% · Ambiente: {analysis.meta.ambienteFoto ?? "—"} ·
               Qualidade: {analysis.meta.qualidadeFoto ?? "—"}
             </p>
+            <p style={{ margin: "6px 0 0", fontSize: 12, opacity: 0.85 }}>
+              Campos (confiança): nome {confidenceLabel(analysis.fieldConfidence.nome)} · categoria{" "}
+              {confidenceLabel(analysis.fieldConfidence.categoria)} · subcategoria{" "}
+              {confidenceLabel(analysis.fieldConfidence.subcategoria)} · cor{" "}
+              {confidenceLabel(analysis.fieldConfidence.cor)} · condição{" "}
+              {confidenceLabel(analysis.fieldConfidence.condicao)}
+            </p>
             {analysis.warnings.lowConfidence && (
               <p style={{ color: "#7a5a00", margin: "8px 0 0", fontWeight: 600 }}>
                 Confiança baixa — revise os campos manualmente.
@@ -417,6 +513,12 @@ export const ItemAIDraftPage = () => {
         <div className="grid cols-2">
           <Field label="Nome">
             <Input value={formValues.nome} onChange={(event) => setFormField("nome", event.target.value)} />
+            {analysis && (
+              <small style={{ opacity: 0.75 }}>
+                Origem: {analysis.fallbacksApplied.nome === "fallback" ? "fallback" : "modelo"} · confiança{" "}
+                {Math.round(analysis.fieldConfidence.nome * 100)}%
+              </small>
+            )}
           </Field>
           <Field label="Categoria">
             <Select
@@ -435,9 +537,21 @@ export const ItemAIDraftPage = () => {
               onChange={(event) => setFormField("subcategoria", event.target.value)}
               placeholder="Ex.: vestido, saia, tênis..."
             />
+            {analysis && (
+              <small style={{ opacity: 0.75 }}>
+                Origem: {analysis.fallbacksApplied.subcategoria === "fallback" ? "fallback" : "modelo"} · confiança{" "}
+                {Math.round(analysis.fieldConfidence.subcategoria * 100)}%
+              </small>
+            )}
           </Field>
           <Field label="Cor">
             <Input value={formValues.cor} onChange={(event) => setFormField("cor", event.target.value)} />
+            {analysis && (
+              <small style={{ opacity: 0.75 }}>
+                Origem: {analysis.fallbacksApplied.cor === "fallback" ? "fallback" : "modelo"} · confiança{" "}
+                {Math.round(analysis.fieldConfidence.cor * 100)}%
+              </small>
+            )}
           </Field>
           <Field label="Condição">
             <Select

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 import {
   acervoSuggestionsQuerySchema,
+  aiQualityMetricsQuerySchema,
   analyzeItemDraftSchema,
   addPecaFotoSchema,
   createFotoLoteSchema,
@@ -126,6 +127,17 @@ export const itemRoutes = async (app: FastifyInstance): Promise<void> => {
       const payload = submitDraftFeedbackSchema.parse(request.body);
       const result = await itemService.submitDraftFeedback(app.prisma, request.brechoId, params.analysisId, payload);
       return reply.code(201).send(result);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.get("/ai/quality-metrics", async (request, reply) => {
+    try {
+      const query = aiQualityMetricsQuerySchema.parse(request.query);
+      const result = await itemService.getAiQualityMetrics(app.prisma, request.brechoId, query);
+      return reply.send(result);
     } catch (error) {
       const normalized = handleError(error, app);
       return reply.code(normalized.statusCode).send(normalized.body);

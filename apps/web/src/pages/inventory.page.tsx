@@ -270,7 +270,10 @@ export const InventoryPage = () => {
         )}
       </Section>
 
-      <Link to="/deliveries">Ir para entregas pendentes</Link>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <Link to="/deliveries">Ir para entregas pendentes</Link>
+        <Link to="/ai/quality">Ver qualidade da IA</Link>
+      </div>
     </AppShell>
   );
 };

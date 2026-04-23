@@ -12,6 +12,13 @@ const ambientePrd = z.enum([
   "escuro"
 ]);
 const qualidadePrd = z.enum(["alta", "media", "baixa"]);
+const fieldConfidenceSchema = z.object({
+  nome_sugerido: z.coerce.number().min(0).max(1).optional().default(0.5),
+  categoria: z.coerce.number().min(0).max(1).optional().default(0.5),
+  subcategoria: z.coerce.number().min(0).max(1).optional().default(0.5),
+  cor_principal: z.coerce.number().min(0).max(1).optional().default(0.5),
+  condicao: z.coerce.number().min(0).max(1).optional().default(0.5)
+});
 
 export const pecaAiJsonSchema = z.object({
   nome_sugerido: z.string().nullable().optional(),
@@ -25,20 +32,54 @@ export const pecaAiJsonSchema = z.object({
   ambiente_foto: ambientePrd.nullable().optional(),
   qualidade_foto: qualidadePrd.nullable().optional(),
   multiplas_pecas: z.boolean().optional().default(false),
-  observacoes: z.string().nullable().optional()
+  observacoes: z.string().nullable().optional(),
+  field_confidence: fieldConfidenceSchema.optional().default({
+    nome_sugerido: 0.5,
+    categoria: 0.5,
+    subcategoria: 0.5,
+    cor_principal: 0.5,
+    condicao: 0.5
+  })
 });
 
 export type PecaAiJson = z.infer<typeof pecaAiJsonSchema>;
 
-const SYSTEM_PROMPT = `Voce e um assistente especializado em analise de roupas e acessorios de brecho.
-Analise a imagem fornecida e retorne APENAS um objeto JSON valido, sem markdown, sem explicacoes.
-Use exatamente os valores permitidos para cada campo enum.
-Se nao conseguir identificar um campo com confianca, use null.
-Enums: categoria: roupa_feminina | roupa_masculina | calcado | acessorio
+const SYSTEM_PROMPT_EXTRACTOR = `Voce e um assistente especialista em catalogacao de roupas/acessorios para brecho no Brasil.
+Analise 1..5 fotos da mesma peca principal e retorne APENAS JSON valido.
+
+Regras:
+- sem markdown, sem comentarios.
+- use exatamente os enums permitidos.
+- priorize a peca principal (mais central/visivel) caso haja ruido.
+- use o contexto textual da dona como evidencia forte para nome/subcategoria/cor.
+- evite null para nome_sugerido, subcategoria e cor_principal quando houver qualquer evidencia visual/contextual razoavel.
+- use null somente quando realmente impossivel inferir.
+
+Obrigatorio:
+- confianca (0..1)
+- estampado (boolean)
+- multiplas_pecas (boolean)
+- field_confidence com valores 0..1 para:
+  nome_sugerido, categoria, subcategoria, cor_principal, condicao.
+
+Enums:
+categoria: roupa_feminina | roupa_masculina | calcado | acessorio
 condicao: otimo | bom | regular
 ambiente_foto: manequim | cama | chao | cabide | corpo | outro | escuro
-qualidade_foto: alta | media | baixa
-Campos obrigatorios no JSON: confianca (0 a 1), estampado (boolean), multiplas_pecas (boolean).`;
+qualidade_foto: alta | media | baixa`;
+
+const SYSTEM_PROMPT_REVIEWER = `Voce e um revisor de qualidade de catalogo para brecho.
+Recebera:
+1) mesmas imagens e contexto
+2) um JSON preliminar de outro modelo
+
+Sua tarefa:
+- corrigir inconsistencias e normalizar saida final.
+- reduzir null desnecessario em nome_sugerido, subcategoria e cor_principal.
+- manter conformidade com enums e schema.
+- ajustar field_confidence por campo com realismo.
+- retornar APENAS JSON final valido, sem markdown.
+`;
 
 const buildUserPrompt = (ctx: {
   textoNota: string | null;
@@ -46,7 +87,11 @@ const buildUserPrompt = (ctx: {
   pecaNome?: string;
   pecaCategoria?: string;
 }): string => {
-  const parts = ["Analise esta peca de roupa/acessorio.", "", "[CONTEXTO ADICIONAL DA DONA — se fornecido]:"];
+  const parts = [
+    "Analise esta peca de roupa/acessorio para cadastro de brecho.",
+    "",
+    "[CONTEXTO ADICIONAL DA DONA — use como evidencia forte]:"
+  ];
   parts.push(`Texto: "${ctx.textoNota?.trim() || ""}"`);
   parts.push(`Transcricao de audio: "${ctx.transcricaoAudio?.trim() || ""}"`);
   if (ctx.pecaNome || ctx.pecaCategoria) {
@@ -54,37 +99,40 @@ const buildUserPrompt = (ctx: {
     parts.push(`Nome cadastrado: "${ctx.pecaNome ?? ""}"`);
     parts.push(`Categoria cadastrada: "${ctx.pecaCategoria ?? ""}"`);
   }
+  parts.push("", "[INSTRUCOES DE CATALOGO]:");
+  parts.push("- nome_sugerido: curto e vendavel (2 a 6 palavras).");
+  parts.push("- subcategoria: especifica e util para busca.");
+  parts.push("- cor_principal: cor de catalogo pratica.");
+  parts.push("- se houver estampa, detalhe em descricao_estampa.");
   parts.push("", "Retorne o JSON com a analise completa.");
   return parts.join("\n");
 };
 
 export type VisionAnalyzeResult = {
+  stage1: PecaAiJson;
   parsed: PecaAiJson;
+  stage1Tokens: number;
+  stage2Tokens: number;
+  stage1LatencyMs: number;
+  stage2LatencyMs: number;
   totalTokens: number;
   model: string;
 };
 
-export const analyzePecaImageWithOpenAI = async (input: {
+const callVisionModel = async (input: {
   apiKey: string;
   model: string;
   images: Array<{ imageBase64: string; imageMime: string }>;
-  textoNota: string | null;
-  transcricaoAudio: string | null;
-  pecaNome?: string;
-  pecaCategoria?: string;
-}): Promise<VisionAnalyzeResult> => {
-  const userText = buildUserPrompt({
-    textoNota: input.textoNota,
-    transcricaoAudio: input.transcricaoAudio,
-    pecaNome: input.pecaNome,
-    pecaCategoria: input.pecaCategoria
-  });
+  systemPrompt: string;
+  userText: string;
+}): Promise<{ parsed: PecaAiJson; totalTokens: number; model: string; latencyMs: number }> => {
+  const startedAt = Date.now();
 
   const imageBlocks = input.images.map((image) => ({
     type: "image_url" as const,
     image_url: {
       url: `data:${image.imageMime};base64,${image.imageBase64}`,
-      detail: "low" as const
+      detail: "high" as const
     }
   }));
 
@@ -98,11 +146,11 @@ export const analyzePecaImageWithOpenAI = async (input: {
       model: input.model,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: input.systemPrompt },
         {
           role: "user",
           content: [
-            { type: "text", text: userText },
+            { type: "text", text: input.userText },
             ...imageBlocks
           ]
         }
@@ -146,6 +194,60 @@ export const analyzePecaImageWithOpenAI = async (input: {
 
   const totalTokens = completion.usage?.total_tokens ?? 0;
   const model = completion.model ?? input.model;
+  const latencyMs = Date.now() - startedAt;
 
-  return { parsed: parsed.data, totalTokens, model };
+  return { parsed: parsed.data, totalTokens, model, latencyMs };
+};
+
+export const analyzePecaImageWithOpenAI = async (input: {
+  apiKey: string;
+  model: string;
+  images: Array<{ imageBase64: string; imageMime: string }>;
+  textoNota: string | null;
+  transcricaoAudio: string | null;
+  pecaNome?: string;
+  pecaCategoria?: string;
+}): Promise<VisionAnalyzeResult> => {
+  const userText = buildUserPrompt({
+    textoNota: input.textoNota,
+    transcricaoAudio: input.transcricaoAudio,
+    pecaNome: input.pecaNome,
+    pecaCategoria: input.pecaCategoria
+  });
+
+  const stage1 = await callVisionModel({
+    apiKey: input.apiKey,
+    model: input.model,
+    images: input.images,
+    systemPrompt: SYSTEM_PROMPT_EXTRACTOR,
+    userText
+  });
+
+  const reviewerText = [
+    userText,
+    "",
+    "[JSON PRELIMINAR DO EXTRACTOR]",
+    JSON.stringify(stage1.parsed),
+    "",
+    "Revise e retorne o JSON FINAL mais assertivo."
+  ].join("\n");
+
+  const stage2 = await callVisionModel({
+    apiKey: input.apiKey,
+    model: input.model,
+    images: input.images,
+    systemPrompt: SYSTEM_PROMPT_REVIEWER,
+    userText: reviewerText
+  });
+
+  return {
+    stage1: stage1.parsed,
+    parsed: stage2.parsed,
+    stage1Tokens: stage1.totalTokens,
+    stage2Tokens: stage2.totalTokens,
+    stage1LatencyMs: stage1.latencyMs,
+    stage2LatencyMs: stage2.latencyMs,
+    totalTokens: stage1.totalTokens + stage2.totalTokens,
+    model: stage2.model
+  };
 };

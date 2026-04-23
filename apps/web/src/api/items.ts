@@ -123,11 +123,32 @@ export type DraftFotoAnaliseResponse = {
     lowConfidence: boolean;
     multiplasPecas: boolean;
   };
+  fieldConfidence: {
+    nome: number;
+    categoria: number;
+    subcategoria: number;
+    cor: number;
+    condicao: number;
+  };
+  fallbacksApplied: {
+    nome: "model" | "fallback";
+    subcategoria: "model" | "fallback";
+    cor: "model" | "fallback";
+  };
 };
 
 export type DraftFeedbackPayload = {
   helpfulness: "SIM" | "PARCIAL" | "NAO";
   itemId?: string;
+  reasonCodes?: Array<
+    | "COR_ERRADA"
+    | "SUBCATEGORIA_ERRADA"
+    | "NOME_RUIM"
+    | "CATEGORIA_ERRADA"
+    | "CONDICAO_ERRADA"
+    | "ESTAMPA_ERRADA"
+    | "OUTRO"
+  >;
   finalValues: {
     nome: string;
     categoria: ItemCategoria;
@@ -251,6 +272,33 @@ export const enviarFeedbackRascunho = async (
       body: payload
     }
   );
+};
+
+export type AiQualityMetricsResponse = {
+  periodDays: number;
+  since: string;
+  analysesCount: number;
+  feedbackCount: number;
+  nullRateByField: Record<string, { nullCount: number; total: number; nullRate: number }>;
+  editAndAcceptanceByField: Record<
+    string,
+    { editedCount: number; total: number; editRate: number; acceptanceRate: number }
+  >;
+  helpfulnessDistribution: Record<string, number>;
+  topReasonCodes: Array<{ code: string; count: number }>;
+};
+
+export const getAiQualityMetrics = async (
+  brechoId: string,
+  query?: { days?: number }
+): Promise<AiQualityMetricsResponse> => {
+  const params = new URLSearchParams();
+  if (query?.days != null) {
+    params.set("days", String(query.days));
+  }
+  return request<AiQualityMetricsResponse>(`/ai/quality-metrics${params.toString() ? `?${params.toString()}` : ""}`, {
+    brechoId
+  });
 };
 
 export const createFotoLote = async (

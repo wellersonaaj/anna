@@ -229,16 +229,24 @@ model AIAnalysis {
 }
 
 model AIDraftAnalysis {
-  id             String   @id @default(cuid())
-  brechoId       String
-  textoContexto  String?  @db.Text
-  imagensJson    Json
-  sugestoesJson  Json
-  metaJson       Json
-  warningsJson   Json
-  modeloUsado    String
-  tokensConsumidos Int
-  criadoEm       DateTime @default(now())
+  id                  String   @id @default(cuid())
+  brechoId            String
+  textoContexto       String?  @db.Text
+  imagensJson         Json
+  sugestoesJson       Json
+  metaJson            Json
+  warningsJson        Json
+  stage1Json          Json?
+  stage2Json          Json?
+  fieldConfidenceJson Json?
+  fallbacksAppliedJson Json?
+  modeloUsado         String
+  tokensConsumidos    Int
+  stage1Tokens        Int?
+  stage2Tokens        Int?
+  stage1LatencyMs     Int?
+  stage2LatencyMs     Int?
+  criadoEm            DateTime @default(now())
 
   brecho    Brecho            @relation(fields: [brechoId], references: [id], onDelete: Cascade)
   feedbacks AIDraftFeedback[]
@@ -254,6 +262,7 @@ model AIDraftFeedback {
   helpfulness     AIDraftHelpfulness
   finalValuesJson Json
   changedFields   String[]
+  reasonCodes     String[]
   criadoEm        DateTime          @default(now())
 
   brecho   Brecho          @relation(fields: [brechoId], references: [id], onDelete: Cascade)

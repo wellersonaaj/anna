@@ -52,6 +52,20 @@ type DraftSuggestionSnapshot = {
   condicao: "OTIMO" | "BOM" | "REGULAR" | null;
 };
 
+type DraftFieldConfidence = {
+  nome: number;
+  categoria: number;
+  subcategoria: number;
+  cor: number;
+  condicao: number;
+};
+
+type DraftFallbacksApplied = {
+  nome: "model" | "fallback";
+  subcategoria: "model" | "fallback";
+  cor: "model" | "fallback";
+};
+
 const buildDraftSuggestions = (parsed: {
   nome_sugerido?: string | null;
   categoria?: string | null;
@@ -71,6 +85,77 @@ const buildDraftSuggestions = (parsed: {
 });
 
 const normalizeText = (value: string | null | undefined) => value?.trim().toLowerCase() ?? "";
+
+const normalizeFieldConfidence = (parsed: { field_confidence?: Record<string, number> }): DraftFieldConfidence => ({
+  nome: parsed.field_confidence?.nome_sugerido ?? 0.5,
+  categoria: parsed.field_confidence?.categoria ?? 0.5,
+  subcategoria: parsed.field_confidence?.subcategoria ?? 0.5,
+  cor: parsed.field_confidence?.cor_principal ?? 0.5,
+  condicao: parsed.field_confidence?.condicao ?? 0.5
+});
+
+const inferColorFromText = (text: string): string | null => {
+  const lower = text.toLowerCase();
+  const colorMap: Record<string, string> = {
+    preto: "preto",
+    branca: "branco",
+    branco: "branco",
+    azul: "azul",
+    rosa: "rosa",
+    vermelho: "vermelho",
+    vermelha: "vermelho",
+    verde: "verde",
+    amarelo: "amarelo",
+    laranja: "laranja",
+    roxo: "roxo",
+    lilas: "roxo",
+    lilás: "roxo",
+    marrom: "marrom",
+    bege: "bege",
+    cinza: "cinza"
+  };
+  for (const [token, color] of Object.entries(colorMap)) {
+    if (lower.includes(token)) {
+      return color;
+    }
+  }
+  return null;
+};
+
+const fallbackSubcategoriaByCategoria = (
+  categoria: DraftSuggestionSnapshot["categoria"]
+): string | null => {
+  if (categoria === "ROUPA_FEMININA" || categoria === "ROUPA_MASCULINA") {
+    return "roupa";
+  }
+  if (categoria === "CALCADO") {
+    return "calcado";
+  }
+  if (categoria === "ACESSORIO") {
+    return "acessorio";
+  }
+  return null;
+};
+
+const fallbackNome = (input: {
+  categoria: DraftSuggestionSnapshot["categoria"];
+  subcategoria: string | null;
+  cor: string | null;
+  estampado: boolean;
+}): string => {
+  const categoriaLabel: Record<NonNullable<DraftSuggestionSnapshot["categoria"]>, string> = {
+    ROUPA_FEMININA: "Peça feminina",
+    ROUPA_MASCULINA: "Peça masculina",
+    CALCADO: "Calçado",
+    ACESSORIO: "Acessório"
+  };
+  const base =
+    input.subcategoria?.trim() ||
+    (input.categoria ? categoriaLabel[input.categoria] : "Peça");
+  const corPart = input.cor?.trim() ? ` ${input.cor.trim()}` : "";
+  const estampadoPart = input.estampado ? " estampado" : "";
+  return `${base}${corPart}${estampadoPart}`.trim();
+};
 
 export const itemService = {
   async create(prisma: PrismaClient, brechoId: string, data: {
@@ -434,7 +519,16 @@ export const itemService = {
     }
 
     const model = env.OPENAI_VISION_MODEL?.trim() || "gpt-4o-mini";
-    const { parsed, totalTokens, model: modelUsed } = await analyzePecaImageWithOpenAI({
+    const {
+      stage1,
+      parsed,
+      totalTokens,
+      stage1Tokens,
+      stage2Tokens,
+      stage1LatencyMs,
+      stage2LatencyMs,
+      model: modelUsed
+    } = await analyzePecaImageWithOpenAI({
       apiKey,
       model,
       images: input.images,
@@ -442,7 +536,32 @@ export const itemService = {
       transcricaoAudio: null
     });
 
-    const suggestions = buildDraftSuggestions(parsed);
+    const fieldConfidence = normalizeFieldConfidence(parsed);
+    const rawSuggestions = buildDraftSuggestions(parsed);
+    const combinedContext = input.textoNota?.trim() || "";
+    const fallbackColor = inferColorFromText(combinedContext);
+    const suggestions: DraftSuggestionSnapshot = {
+      ...rawSuggestions,
+      corPrincipal: rawSuggestions.corPrincipal ?? fallbackColor,
+      subcategoria:
+        rawSuggestions.subcategoria ??
+        fallbackSubcategoriaByCategoria(rawSuggestions.categoria),
+      nomeSugerido:
+        rawSuggestions.nomeSugerido ??
+        fallbackNome({
+          categoria: rawSuggestions.categoria,
+          subcategoria:
+            rawSuggestions.subcategoria ??
+            fallbackSubcategoriaByCategoria(rawSuggestions.categoria),
+          cor: rawSuggestions.corPrincipal ?? fallbackColor,
+          estampado: rawSuggestions.estampado
+        })
+    };
+    const fallbacksApplied: DraftFallbacksApplied = {
+      nome: rawSuggestions.nomeSugerido ? "model" : "fallback",
+      subcategoria: rawSuggestions.subcategoria ? "model" : "fallback",
+      cor: rawSuggestions.corPrincipal ? "model" : "fallback"
+    };
     const meta = {
       confianca: parsed.confianca,
       ambienteFoto: parsed.ambiente_foto ?? null,
@@ -462,7 +581,15 @@ export const itemService = {
         metaJson: meta as Prisma.InputJsonValue,
         warningsJson: warnings as Prisma.InputJsonValue,
         modeloUsado: modelUsed,
-        tokensConsumidos: totalTokens
+        tokensConsumidos: totalTokens,
+        stage1Json: stage1 as Prisma.InputJsonValue,
+        stage2Json: parsed as Prisma.InputJsonValue,
+        fieldConfidenceJson: fieldConfidence as Prisma.InputJsonValue,
+        fallbacksAppliedJson: fallbacksApplied as Prisma.InputJsonValue,
+        stage1Tokens,
+        stage2Tokens,
+        stage1LatencyMs,
+        stage2LatencyMs
       }
     });
 
@@ -470,7 +597,9 @@ export const itemService = {
       draftAnalysisId: analysis.id,
       suggestions,
       meta,
-      warnings
+      warnings,
+      fieldConfidence,
+      fallbacksApplied
     };
   },
 
@@ -481,6 +610,7 @@ export const itemService = {
     payload: {
       helpfulness: "SIM" | "PARCIAL" | "NAO";
       itemId?: string;
+      reasonCodes?: string[];
       finalValues: {
         nome: string;
         categoria: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
@@ -549,13 +679,114 @@ export const itemService = {
         itemId: payload.itemId ?? null,
         helpfulness: payload.helpfulness,
         finalValuesJson: payload.finalValues as Prisma.InputJsonValue,
-        changedFields
+        changedFields,
+        reasonCodes: payload.reasonCodes ?? []
       }
     });
 
     return {
       feedbackId: feedback.id,
       changedFields
+    };
+  },
+
+  async getAiQualityMetrics(
+    prisma: PrismaClient,
+    brechoId: string,
+    query?: { days?: number }
+  ) {
+    const days = Math.min(180, Math.max(1, query?.days ?? 30));
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const [analyses, feedbacks] = await Promise.all([
+      prisma.aIDraftAnalysis.findMany({
+        where: { brechoId, criadoEm: { gte: since } },
+        select: { sugestoesJson: true }
+      }),
+      prisma.aIDraftFeedback.findMany({
+        where: { brechoId, criadoEm: { gte: since } },
+        select: { changedFields: true, helpfulness: true, reasonCodes: true }
+      })
+    ]);
+
+    const suggestionKeys = [
+      { metric: "nome", key: "nomeSugerido" },
+      { metric: "categoria", key: "categoria" },
+      { metric: "subcategoria", key: "subcategoria" },
+      { metric: "cor", key: "corPrincipal" },
+      { metric: "condicao", key: "condicao" }
+    ] as const;
+
+    const nullRateByField = Object.fromEntries(
+      suggestionKeys.map(({ metric, key }) => {
+        const nullCount = analyses.filter((analysis) => {
+          const suggestions = analysis.sugestoesJson as Record<string, unknown>;
+          const value = suggestions[key];
+          return value == null || (typeof value === "string" && value.trim() === "");
+        }).length;
+        const denominator = analyses.length || 1;
+        return [
+          metric,
+          {
+            nullCount,
+            total: analyses.length,
+            nullRate: nullCount / denominator
+          }
+        ];
+      })
+    );
+
+    const changedCountByField = Object.fromEntries(
+      suggestionKeys.map(({ metric }) => [
+        metric,
+        feedbacks.filter((feedback) => feedback.changedFields.includes(metric)).length
+      ])
+    ) as Record<string, number>;
+
+    const editAndAcceptanceByField = Object.fromEntries(
+      suggestionKeys.map(({ metric }) => {
+        const edits = changedCountByField[metric] ?? 0;
+        const denominator = feedbacks.length || 1;
+        return [
+          metric,
+          {
+            editedCount: edits,
+            total: feedbacks.length,
+            editRate: edits / denominator,
+            acceptanceRate: 1 - edits / denominator
+          }
+        ];
+      })
+    );
+
+    const helpfulnessDistribution = feedbacks.reduce<Record<string, number>>(
+      (acc, feedback) => {
+        acc[feedback.helpfulness] = (acc[feedback.helpfulness] ?? 0) + 1;
+        return acc;
+      },
+      { SIM: 0, PARCIAL: 0, NAO: 0 }
+    );
+
+    const reasonCodeMap = new Map<string, number>();
+    for (const feedback of feedbacks) {
+      for (const code of feedback.reasonCodes) {
+        reasonCodeMap.set(code, (reasonCodeMap.get(code) ?? 0) + 1);
+      }
+    }
+    const topReasonCodes = Array.from(reasonCodeMap.entries())
+      .map(([code, count]) => ({ code, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    return {
+      periodDays: days,
+      since: since.toISOString(),
+      analysesCount: analyses.length,
+      feedbackCount: feedbacks.length,
+      nullRateByField,
+      editAndAcceptanceByField,
+      helpfulnessDistribution,
+      topReasonCodes
     };
   },
 

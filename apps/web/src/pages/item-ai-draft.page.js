@@ -8,6 +8,15 @@ import { AppShell, Button, Field, Input, Section, Select } from "../components/u
 import { resizeImageToJpeg } from "../lib/imageResize";
 import { useSessionStore } from "../store/session.store";
 import { useItemAIDraftStore } from "../store/item-ai-draft.store";
+const reasonCodeOptions = [
+    { code: "COR_ERRADA", label: "Cor errada" },
+    { code: "SUBCATEGORIA_ERRADA", label: "Subcategoria errada" },
+    { code: "NOME_RUIM", label: "Nome ruim" },
+    { code: "CATEGORIA_ERRADA", label: "Categoria errada" },
+    { code: "CONDICAO_ERRADA", label: "Condição errada" },
+    { code: "ESTAMPA_ERRADA", label: "Estampa errada" },
+    { code: "OUTRO", label: "Outro" }
+];
 const toDataUrl = async (blob) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -45,6 +54,8 @@ export const ItemAIDraftPage = () => {
     const cameraInputRef = useRef(null);
     const galleryInputRef = useRef(null);
     const [actionError, setActionError] = useState(null);
+    const [feedbackChoice, setFeedbackChoice] = useState(null);
+    const [feedbackReasons, setFeedbackReasons] = useState([]);
     const [pendingFeedback, setPendingFeedback] = useState(null);
     const { images, textoContexto, analysis, draftAnalysisId, formValues, addImageDataUrl, removeImageAt, clearImages, setTextoContexto, setFormField, applyAnalysis, resetDraft } = useItemAIDraftStore();
     const acervoSuggestionsQuery = useQuery({
@@ -167,12 +178,13 @@ export const ItemAIDraftPage = () => {
         }
     });
     const feedbackMutation = useMutation({
-        mutationFn: (helpfulness) => {
+        mutationFn: (input) => {
             if (!pendingFeedback) {
                 throw new Error("Feedback indisponível.");
             }
             return enviarFeedbackRascunho(brechoId, pendingFeedback.analysisId, {
-                helpfulness,
+                helpfulness: input.helpfulness,
+                reasonCodes: input.reasonCodes,
                 itemId: pendingFeedback.itemId,
                 finalValues: pendingFeedback.finalValues
             });
@@ -183,6 +195,8 @@ export const ItemAIDraftPage = () => {
             }
             const itemId = pendingFeedback.itemId;
             setPendingFeedback(null);
+            setFeedbackChoice(null);
+            setFeedbackReasons([]);
             resetDraft();
             navigate(`/items/${itemId}`);
         },
@@ -190,7 +204,35 @@ export const ItemAIDraftPage = () => {
             setActionError(error instanceof ApiError ? error.message : "Não foi possível salvar o feedback.");
         }
     });
-    return (_jsxs(AppShell, { children: [_jsx(Link, { to: "/", children: "\u2190 Voltar ao estoque" }), _jsxs("header", { children: [_jsx("h1", { style: { marginBottom: 4 }, children: "Cadastrar com IA" }), _jsx("p", { style: { marginTop: 0, opacity: 0.85 }, children: "Envie uma foto, opcionalmente descreva o contexto, revise os campos e conclua." })] }), actionError && (_jsx("p", { style: { color: "#b60e3d", fontSize: 14 }, role: "alert", children: actionError })), pendingFeedback && (_jsxs(Section, { title: "3. A sugest\u00E3o da IA ajudou?", children: [_jsx("p", { style: { margin: 0, opacity: 0.9 }, children: "Seu toque ajuda o app a aprender com as corre\u00E7\u00F5es reais do cadastro." }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => feedbackMutation.mutate("SIM"), children: "Sim" }), _jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => feedbackMutation.mutate("PARCIAL"), children: "Parcial" }), _jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => feedbackMutation.mutate("NAO"), children: "N\u00E3o" })] })] })), _jsx(Section, { title: "1. Foto e contexto", children: _jsxs("div", { className: "stack", style: { gap: 10 }, children: [_jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", onClick: () => cameraInputRef.current?.click(), disabled: images.length >= 5, children: "Tirar foto" }), _jsx(Button, { type: "button", onClick: () => galleryInputRef.current?.click(), disabled: images.length >= 5, children: "Escolher da galeria" }), images.length > 0 && (_jsx(Button, { type: "button", onClick: clearImages, disabled: analyzeMutation.isPending || submitMutation.isPending, children: "Limpar fotos" }))] }), _jsx("input", { ref: cameraInputRef, type: "file", accept: "image/*", capture: "environment", hidden: true, onChange: (event) => {
+    const confidenceLabel = (value) => {
+        if (value >= 0.8) {
+            return "alta";
+        }
+        if (value >= 0.6) {
+            return "média";
+        }
+        return "baixa";
+    };
+    const toggleReason = (reason) => {
+        setFeedbackReasons((current) => current.includes(reason) ? current.filter((code) => code !== reason) : [...current, reason]);
+    };
+    const submitStructuredFeedback = (helpfulness) => {
+        feedbackMutation.mutate({
+            helpfulness,
+            reasonCodes: feedbackReasons
+        });
+    };
+    return (_jsxs(AppShell, { children: [_jsx(Link, { to: "/", children: "\u2190 Voltar ao estoque" }), _jsxs("header", { children: [_jsx("h1", { style: { marginBottom: 4 }, children: "Cadastrar com IA" }), _jsx("p", { style: { marginTop: 0, opacity: 0.85 }, children: "Envie uma foto, opcionalmente descreva o contexto, revise os campos e conclua." })] }), actionError && (_jsx("p", { style: { color: "#b60e3d", fontSize: 14 }, role: "alert", children: actionError })), pendingFeedback && (_jsxs(Section, { title: "3. A sugest\u00E3o da IA ajudou?", children: [_jsx("p", { style: { margin: 0, opacity: 0.9 }, children: "Seu toque ajuda o app a aprender com as corre\u00E7\u00F5es reais do cadastro." }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => feedbackMutation.mutate({ helpfulness: "SIM" }), children: "Sim" }), _jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => setFeedbackChoice("PARCIAL"), children: "Parcial" }), _jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => setFeedbackChoice("NAO"), children: "N\u00E3o" })] }), (feedbackChoice === "PARCIAL" || feedbackChoice === "NAO") && (_jsxs("div", { className: "stack", style: { gap: 8 }, children: [_jsx("p", { style: { margin: "4px 0 0", fontSize: 14, opacity: 0.9 }, children: "O que ficou ruim? (opcional)" }), _jsx("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: reasonCodeOptions.map((option) => (_jsx("button", { type: "button", onClick: () => toggleReason(option.code), style: {
+                                        border: `1px solid ${feedbackReasons.includes(option.code) ? "#b60e3d" : "#d9b9bc"}`,
+                                        background: feedbackReasons.includes(option.code) ? "#fdf1f4" : "#fff",
+                                        color: "#3d2228",
+                                        borderRadius: 999,
+                                        padding: "6px 12px",
+                                        cursor: "pointer"
+                                    }, children: option.label }, option.code))) }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => submitStructuredFeedback(feedbackChoice), children: "Enviar feedback" }), _jsx(Button, { type: "button", disabled: feedbackMutation.isPending, onClick: () => {
+                                            setFeedbackChoice(null);
+                                            setFeedbackReasons([]);
+                                        }, children: "Cancelar" })] })] }))] })), _jsx(Section, { title: "1. Foto e contexto", children: _jsxs("div", { className: "stack", style: { gap: 10 }, children: [_jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx(Button, { type: "button", onClick: () => cameraInputRef.current?.click(), disabled: images.length >= 5, children: "Tirar foto" }), _jsx(Button, { type: "button", onClick: () => galleryInputRef.current?.click(), disabled: images.length >= 5, children: "Escolher da galeria" }), images.length > 0 && (_jsx(Button, { type: "button", onClick: clearImages, disabled: analyzeMutation.isPending || submitMutation.isPending, children: "Limpar fotos" }))] }), _jsx("input", { ref: cameraInputRef, type: "file", accept: "image/*", capture: "environment", hidden: true, onChange: (event) => {
                                 void handleImagePicked(event.target.files);
                                 event.target.value = "";
                             } }), _jsx("input", { ref: galleryInputRef, type: "file", accept: "image/*", multiple: true, hidden: true, onChange: (event) => {
@@ -221,5 +263,5 @@ export const ItemAIDraftPage = () => {
                             borderRadius: 10,
                             border: "1px solid #c5e0cc",
                             marginBottom: 10
-                        }, children: [_jsx("strong", { style: { display: "block", marginBottom: 6 }, children: "Sugest\u00F5es da IA aplicadas automaticamente" }), _jsxs("p", { style: { margin: 0 }, children: ["Confian\u00E7a: ", Math.round(analysis.meta.confianca * 100), "% \u00B7 Ambiente: ", analysis.meta.ambienteFoto ?? "—", " \u00B7 Qualidade: ", analysis.meta.qualidadeFoto ?? "—"] }), analysis.warnings.lowConfidence && (_jsx("p", { style: { color: "#7a5a00", margin: "8px 0 0", fontWeight: 600 }, children: "Confian\u00E7a baixa \u2014 revise os campos manualmente." })), analysis.warnings.multiplasPecas && (_jsx("p", { style: { color: "#7a5a00", margin: "8px 0 0", fontWeight: 600 }, children: "V\u00E1rios itens detectados \u2014 resultado pode ser impreciso." }))] })), _jsxs("div", { className: "grid cols-2", children: [_jsx(Field, { label: "Nome", children: _jsx(Input, { value: formValues.nome, onChange: (event) => setFormField("nome", event.target.value) }) }), _jsx(Field, { label: "Categoria", children: _jsxs(Select, { value: formValues.categoria, onChange: (event) => setFormField("categoria", event.target.value), children: [_jsx("option", { value: "ROUPA_FEMININA", children: "Roupa feminina" }), _jsx("option", { value: "ROUPA_MASCULINA", children: "Roupa masculina" }), _jsx("option", { value: "CALCADO", children: "Cal\u00E7ado" }), _jsx("option", { value: "ACESSORIO", children: "Acess\u00F3rio" })] }) }), _jsx(Field, { label: "Subcategoria", children: _jsx(Input, { value: formValues.subcategoria, onChange: (event) => setFormField("subcategoria", event.target.value), placeholder: "Ex.: vestido, saia, t\u00EAnis..." }) }), _jsx(Field, { label: "Cor", children: _jsx(Input, { value: formValues.cor, onChange: (event) => setFormField("cor", event.target.value) }) }), _jsx(Field, { label: "Condi\u00E7\u00E3o", children: _jsxs(Select, { value: formValues.condicao, onChange: (event) => setFormField("condicao", event.target.value), children: [_jsx("option", { value: "OTIMO", children: "\u00D3timo" }), _jsx("option", { value: "BOM", children: "Bom" }), _jsx("option", { value: "REGULAR", children: "Regular" })] }) }), _jsx(Field, { label: "Tamanho", children: _jsx(Input, { value: formValues.tamanho, onChange: (event) => setFormField("tamanho", event.target.value) }) }), _jsx(Field, { label: "Marca", children: _jsx(Input, { value: formValues.marca, onChange: (event) => setFormField("marca", event.target.value) }) }), _jsx(Field, { label: "Pre\u00E7o venda", children: _jsx(Input, { type: "number", step: "0.01", value: formValues.precoVenda, onChange: (event) => setFormField("precoVenda", event.target.value) }) }), _jsx(Field, { label: "Acervo", children: _jsxs(Select, { value: formValues.acervoTipo, onChange: (event) => setFormField("acervoTipo", event.target.value), children: [_jsx("option", { value: "PROPRIO", children: "Pr\u00F3prio" }), _jsx("option", { value: "CONSIGNACAO", children: "Consigna\u00E7\u00E3o" })] }) }), _jsxs(Field, { label: "Nome do acervo", children: [_jsx(Input, { list: "acervo-suggestions-ai-draft", value: formValues.acervoNome, onChange: (event) => setFormField("acervoNome", event.target.value) }), _jsx("datalist", { id: "acervo-suggestions-ai-draft", children: acervoSuggestionsQuery.data?.map((suggestion) => (_jsx("option", { value: suggestion }, suggestion))) })] }), _jsx(Field, { label: "Tem estampa?", children: _jsx("input", { type: "checkbox", checked: formValues.estampa, onChange: (event) => setFormField("estampa", event.target.checked) }) })] }), _jsxs("div", { className: "stack", style: { marginTop: 12, gap: 8 }, children: [_jsx(Button, { type: "button", onClick: () => submitMutation.mutate(), disabled: requiredMissing.length > 0 || submitMutation.isPending, children: submitMutation.isPending ? "Concluindo cadastro..." : "Concluir cadastro" }), requiredMissing.length > 0 && (_jsxs("small", { style: { color: "#8b2f2f" }, children: ["Obrigat\u00F3rios pendentes: ", requiredMissing.join(", "), "."] }))] })] })] }));
+                        }, children: [_jsx("strong", { style: { display: "block", marginBottom: 6 }, children: "Sugest\u00F5es da IA aplicadas automaticamente" }), _jsxs("p", { style: { margin: 0 }, children: ["Confian\u00E7a: ", Math.round(analysis.meta.confianca * 100), "% \u00B7 Ambiente: ", analysis.meta.ambienteFoto ?? "—", " \u00B7 Qualidade: ", analysis.meta.qualidadeFoto ?? "—"] }), _jsxs("p", { style: { margin: "6px 0 0", fontSize: 12, opacity: 0.85 }, children: ["Campos (confian\u00E7a): nome ", confidenceLabel(analysis.fieldConfidence.nome), " \u00B7 categoria", " ", confidenceLabel(analysis.fieldConfidence.categoria), " \u00B7 subcategoria", " ", confidenceLabel(analysis.fieldConfidence.subcategoria), " \u00B7 cor", " ", confidenceLabel(analysis.fieldConfidence.cor), " \u00B7 condi\u00E7\u00E3o", " ", confidenceLabel(analysis.fieldConfidence.condicao)] }), analysis.warnings.lowConfidence && (_jsx("p", { style: { color: "#7a5a00", margin: "8px 0 0", fontWeight: 600 }, children: "Confian\u00E7a baixa \u2014 revise os campos manualmente." })), analysis.warnings.multiplasPecas && (_jsx("p", { style: { color: "#7a5a00", margin: "8px 0 0", fontWeight: 600 }, children: "V\u00E1rios itens detectados \u2014 resultado pode ser impreciso." }))] })), _jsxs("div", { className: "grid cols-2", children: [_jsxs(Field, { label: "Nome", children: [_jsx(Input, { value: formValues.nome, onChange: (event) => setFormField("nome", event.target.value) }), analysis && (_jsxs("small", { style: { opacity: 0.75 }, children: ["Origem: ", analysis.fallbacksApplied.nome === "fallback" ? "fallback" : "modelo", " \u00B7 confian\u00E7a", " ", Math.round(analysis.fieldConfidence.nome * 100), "%"] }))] }), _jsx(Field, { label: "Categoria", children: _jsxs(Select, { value: formValues.categoria, onChange: (event) => setFormField("categoria", event.target.value), children: [_jsx("option", { value: "ROUPA_FEMININA", children: "Roupa feminina" }), _jsx("option", { value: "ROUPA_MASCULINA", children: "Roupa masculina" }), _jsx("option", { value: "CALCADO", children: "Cal\u00E7ado" }), _jsx("option", { value: "ACESSORIO", children: "Acess\u00F3rio" })] }) }), _jsxs(Field, { label: "Subcategoria", children: [_jsx(Input, { value: formValues.subcategoria, onChange: (event) => setFormField("subcategoria", event.target.value), placeholder: "Ex.: vestido, saia, t\u00EAnis..." }), analysis && (_jsxs("small", { style: { opacity: 0.75 }, children: ["Origem: ", analysis.fallbacksApplied.subcategoria === "fallback" ? "fallback" : "modelo", " \u00B7 confian\u00E7a", " ", Math.round(analysis.fieldConfidence.subcategoria * 100), "%"] }))] }), _jsxs(Field, { label: "Cor", children: [_jsx(Input, { value: formValues.cor, onChange: (event) => setFormField("cor", event.target.value) }), analysis && (_jsxs("small", { style: { opacity: 0.75 }, children: ["Origem: ", analysis.fallbacksApplied.cor === "fallback" ? "fallback" : "modelo", " \u00B7 confian\u00E7a", " ", Math.round(analysis.fieldConfidence.cor * 100), "%"] }))] }), _jsx(Field, { label: "Condi\u00E7\u00E3o", children: _jsxs(Select, { value: formValues.condicao, onChange: (event) => setFormField("condicao", event.target.value), children: [_jsx("option", { value: "OTIMO", children: "\u00D3timo" }), _jsx("option", { value: "BOM", children: "Bom" }), _jsx("option", { value: "REGULAR", children: "Regular" })] }) }), _jsx(Field, { label: "Tamanho", children: _jsx(Input, { value: formValues.tamanho, onChange: (event) => setFormField("tamanho", event.target.value) }) }), _jsx(Field, { label: "Marca", children: _jsx(Input, { value: formValues.marca, onChange: (event) => setFormField("marca", event.target.value) }) }), _jsx(Field, { label: "Pre\u00E7o venda", children: _jsx(Input, { type: "number", step: "0.01", value: formValues.precoVenda, onChange: (event) => setFormField("precoVenda", event.target.value) }) }), _jsx(Field, { label: "Acervo", children: _jsxs(Select, { value: formValues.acervoTipo, onChange: (event) => setFormField("acervoTipo", event.target.value), children: [_jsx("option", { value: "PROPRIO", children: "Pr\u00F3prio" }), _jsx("option", { value: "CONSIGNACAO", children: "Consigna\u00E7\u00E3o" })] }) }), _jsxs(Field, { label: "Nome do acervo", children: [_jsx(Input, { list: "acervo-suggestions-ai-draft", value: formValues.acervoNome, onChange: (event) => setFormField("acervoNome", event.target.value) }), _jsx("datalist", { id: "acervo-suggestions-ai-draft", children: acervoSuggestionsQuery.data?.map((suggestion) => (_jsx("option", { value: suggestion }, suggestion))) })] }), _jsx(Field, { label: "Tem estampa?", children: _jsx("input", { type: "checkbox", checked: formValues.estampa, onChange: (event) => setFormField("estampa", event.target.checked) }) })] }), _jsxs("div", { className: "stack", style: { marginTop: 12, gap: 8 }, children: [_jsx(Button, { type: "button", onClick: () => submitMutation.mutate(), disabled: requiredMissing.length > 0 || submitMutation.isPending, children: submitMutation.isPending ? "Concluindo cadastro..." : "Concluir cadastro" }), requiredMissing.length > 0 && (_jsxs("small", { style: { color: "#8b2f2f" }, children: ["Obrigat\u00F3rios pendentes: ", requiredMissing.join(", "), "."] }))] })] })] }));
 };

@@ -5,6 +5,7 @@ import { InventoryPage } from "./pages/inventory.page";
 import { ItemAIDraftPage } from "./pages/item-ai-draft.page";
 import { ItemDetailPage } from "./pages/item-detail.page";
 import { ItemFotoUploadPage } from "./pages/item-foto-upload.page";
+import { AiQualityPage } from "./pages/ai-quality.page";
 import { ReservePage } from "./pages/reserve.page";
 import { SellPage } from "./pages/sell.page";
 
@@ -22,6 +23,7 @@ export const App = () => {
           <Route path="/reserve/:itemId" element={<ReservePage />} />
           <Route path="/sell/:itemId" element={<SellPage />} />
           <Route path="/deliveries" element={<DeliveriesPage />} />
+          <Route path="/ai/quality" element={<AiQualityPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
