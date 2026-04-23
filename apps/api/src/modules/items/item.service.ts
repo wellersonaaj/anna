@@ -42,6 +42,36 @@ const mapCondicaoFromAi = (condicao: string | null | undefined): "OTIMO" | "BOM"
   return mapping[condicao] ?? null;
 };
 
+type DraftSuggestionSnapshot = {
+  nomeSugerido: string | null;
+  categoria: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO" | null;
+  subcategoria: string | null;
+  corPrincipal: string | null;
+  estampado: boolean;
+  descricaoEstampa: string | null;
+  condicao: "OTIMO" | "BOM" | "REGULAR" | null;
+};
+
+const buildDraftSuggestions = (parsed: {
+  nome_sugerido?: string | null;
+  categoria?: string | null;
+  subcategoria?: string | null;
+  cor_principal?: string | null;
+  estampado?: boolean;
+  descricao_estampa?: string | null;
+  condicao?: string | null;
+}): DraftSuggestionSnapshot => ({
+  nomeSugerido: parsed.nome_sugerido?.trim() || null,
+  categoria: mapCategoriaFromAi(parsed.categoria ?? undefined),
+  subcategoria: parsed.subcategoria?.trim() || null,
+  corPrincipal: parsed.cor_principal?.trim() || null,
+  estampado: parsed.estampado ?? false,
+  descricaoEstampa: parsed.descricao_estampa?.trim() || null,
+  condicao: mapCondicaoFromAi(parsed.condicao ?? undefined)
+});
+
+const normalizeText = (value: string | null | undefined) => value?.trim().toLowerCase() ?? "";
+
 export const itemService = {
   async create(prisma: PrismaClient, brechoId: string, data: {
     nome: string;
@@ -390,41 +420,142 @@ export const itemService = {
     });
   },
 
-  async analisarFotoRascunho(input: { imageBase64: string; imageMime: "image/jpeg" | "image/png"; textoNota?: string }) {
+  async analisarFotoRascunho(
+    prisma: PrismaClient,
+    brechoId: string,
+    input: {
+      images: Array<{ imageBase64: string; imageMime: "image/jpeg" | "image/png" }>;
+      textoNota?: string;
+    }
+  ) {
     const apiKey = env.OPENAI_API_KEY?.trim();
     if (!apiKey) {
       throw new Error("OpenAI is not configured.");
     }
 
     const model = env.OPENAI_VISION_MODEL?.trim() || "gpt-4o-mini";
-    const { parsed } = await analyzePecaImageWithOpenAI({
+    const { parsed, totalTokens, model: modelUsed } = await analyzePecaImageWithOpenAI({
       apiKey,
       model,
-      imageBase64: input.imageBase64,
-      imageMime: input.imageMime,
+      images: input.images,
       textoNota: input.textoNota?.trim() || null,
       transcricaoAudio: null
     });
 
-    return {
-      suggestions: {
-        nomeSugerido: parsed.nome_sugerido?.trim() || null,
-        categoria: mapCategoriaFromAi(parsed.categoria ?? undefined),
-        subcategoria: parsed.subcategoria?.trim() || null,
-        corPrincipal: parsed.cor_principal?.trim() || null,
-        estampado: parsed.estampado ?? false,
-        descricaoEstampa: parsed.descricao_estampa?.trim() || null,
-        condicao: mapCondicaoFromAi(parsed.condicao ?? undefined)
-      },
-      meta: {
-        confianca: parsed.confianca,
-        ambienteFoto: parsed.ambiente_foto ?? null,
-        qualidadeFoto: parsed.qualidade_foto ?? null
-      },
-      warnings: {
-        lowConfidence: parsed.confianca < 0.6,
-        multiplasPecas: parsed.multiplas_pecas === true
+    const suggestions = buildDraftSuggestions(parsed);
+    const meta = {
+      confianca: parsed.confianca,
+      ambienteFoto: parsed.ambiente_foto ?? null,
+      qualidadeFoto: parsed.qualidade_foto ?? null
+    };
+    const warnings = {
+      lowConfidence: parsed.confianca < 0.6,
+      multiplasPecas: parsed.multiplas_pecas === true
+    };
+
+    const analysis = await prisma.aIDraftAnalysis.create({
+      data: {
+        brechoId,
+        textoContexto: input.textoNota?.trim() || null,
+        imagensJson: input.images as Prisma.InputJsonValue,
+        sugestoesJson: suggestions as Prisma.InputJsonValue,
+        metaJson: meta as Prisma.InputJsonValue,
+        warningsJson: warnings as Prisma.InputJsonValue,
+        modeloUsado: modelUsed,
+        tokensConsumidos: totalTokens
       }
+    });
+
+    return {
+      draftAnalysisId: analysis.id,
+      suggestions,
+      meta,
+      warnings
+    };
+  },
+
+  async submitDraftFeedback(
+    prisma: PrismaClient,
+    brechoId: string,
+    analysisId: string,
+    payload: {
+      helpfulness: "SIM" | "PARCIAL" | "NAO";
+      itemId?: string;
+      finalValues: {
+        nome: string;
+        categoria: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
+        subcategoria: string;
+        cor: string;
+        estampa: boolean;
+        condicao: "OTIMO" | "BOM" | "REGULAR";
+        tamanho: string;
+        marca?: string;
+        precoVenda?: number;
+        acervoTipo: "PROPRIO" | "CONSIGNACAO";
+        acervoNome?: string;
+      };
+    }
+  ) {
+    const analysis = await prisma.aIDraftAnalysis.findFirst({
+      where: { id: analysisId, brechoId }
+    });
+
+    if (!analysis) {
+      throw new Error("Draft analysis not found.");
+    }
+
+    if (payload.itemId) {
+      const item = await prisma.peca.findFirst({
+        where: { id: payload.itemId, brechoId },
+        select: { id: true }
+      });
+      if (!item) {
+        throw new Error("Item not found.");
+      }
+    }
+
+    const suggestions = analysis.sugestoesJson as unknown as DraftSuggestionSnapshot;
+    const changedFields: string[] = [];
+
+    if (suggestions.nomeSugerido != null && normalizeText(suggestions.nomeSugerido) !== normalizeText(payload.finalValues.nome)) {
+      changedFields.push("nome");
+    }
+    if (suggestions.categoria != null && suggestions.categoria !== payload.finalValues.categoria) {
+      changedFields.push("categoria");
+    }
+    if (
+      suggestions.subcategoria != null &&
+      normalizeText(suggestions.subcategoria) !== normalizeText(payload.finalValues.subcategoria)
+    ) {
+      changedFields.push("subcategoria");
+    }
+    if (
+      suggestions.corPrincipal != null &&
+      normalizeText(suggestions.corPrincipal) !== normalizeText(payload.finalValues.cor)
+    ) {
+      changedFields.push("cor");
+    }
+    if (suggestions.condicao != null && suggestions.condicao !== payload.finalValues.condicao) {
+      changedFields.push("condicao");
+    }
+    if (suggestions.estampado !== payload.finalValues.estampa) {
+      changedFields.push("estampa");
+    }
+
+    const feedback = await prisma.aIDraftFeedback.create({
+      data: {
+        brechoId,
+        analysisId,
+        itemId: payload.itemId ?? null,
+        helpfulness: payload.helpfulness,
+        finalValuesJson: payload.finalValues as Prisma.InputJsonValue,
+        changedFields
+      }
+    });
+
+    return {
+      feedbackId: feedback.id,
+      changedFields
     };
   },
 
@@ -457,8 +588,7 @@ export const itemService = {
     const { parsed, totalTokens, model: modelUsed } = await analyzePecaImageWithOpenAI({
       apiKey,
       model,
-      imageBase64,
-      imageMime: mime,
+      images: [{ imageBase64, imageMime: mime }],
       textoNota,
       transcricaoAudio,
       pecaNome: foto.peca.nome,
@@ -477,6 +607,7 @@ export const itemService = {
 
     const lowConfidence = parsed.confianca < 0.6;
     const multiplasPecas = parsed.multiplas_pecas === true;
+    const suggestions = buildDraftSuggestions(parsed);
 
     return prisma.$transaction(async (tx) => {
       const analysis = await tx.aIAnalysis.create({
@@ -513,20 +644,7 @@ export const itemService = {
 
       return {
         analysisId: analysis.id,
-        suggestions: {
-          nomeSugerido: analysis.nomeSugerido,
-          categoria: analysis.categoria as
-            | "ROUPA_FEMININA"
-            | "ROUPA_MASCULINA"
-            | "CALCADO"
-            | "ACESSORIO"
-            | null,
-          subcategoria: analysis.subcategoria,
-          corPrincipal: analysis.corPrincipal,
-          estampado: analysis.estampado,
-          descricaoEstampa: analysis.descricaoEstampa,
-          condicao: analysis.condicao as "OTIMO" | "BOM" | "REGULAR" | null
-        },
+        suggestions,
         meta: {
           confianca: parsed.confianca,
           ambienteFoto: parsed.ambiente_foto ?? null,

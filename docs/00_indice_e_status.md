@@ -10,7 +10,7 @@ Documento de entrada para **onboarding** e para **retomar contexto** em nova ses
 - **Produção típica:** API em PaaS (ex.: Railway), front com `VITE_API_URL` apontando para a API; header `x-brecho-id` em todas as chamadas autenticadas do MVP.
 - **Fotos e storage:** upload via presign S3-compatible. A API aceita **`STORAGE_*`** ou **aliases `AWS_*`** (comum no Railway): ver secção [Variáveis de ambiente](#variáveis-de-ambiente) e [`apps/api/src/config/env.ts`](../apps/api/src/config/env.ts) (`storageEnv`).
 - **IA em foto:** `POST /items/:id/fotos/:fotoId/analisar` — OpenAI visão, grava `AIAnalysis` + snapshot em `PecaFoto`. Requer `OPENAI_API_KEY`; opcional `OPENAI_VISION_MODEL` (default `gpt-4o-mini`).
-- **Cadastro com IA (rascunho local):** rota web `/items/new/ai` com foto + texto opcional, análise de rascunho via `POST /items/analisar-rascunho`, autofill editável e criação do item apenas ao concluir.
+- **Cadastro com IA (rascunho local):** rota web `/items/new/ai` com **até 5 fotos** + texto opcional, análise de rascunho via `POST /items/analisar-rascunho`, autofill editável, criação do item ao concluir e feedback in-app (`SIM | PARCIAL | NAO`).
 - **Correções recentes (Sprint fotos/IA):** normalização de `Content-Type` no presign (ex.: `audio/webm;codecs=opus` → `audio/webm`); feedback “Texto salvo.” no lote; mensagens de validação Zod no cliente; leitura de imagem para IA via `fetch` ou `GetObject` quando a URL bate com o storage configurado.
 
 Pendências e próximos passos detalhados: [`03_proximos_passos.md`](03_proximos_passos.md).
@@ -56,7 +56,8 @@ Header: `x-brecho-id` (MVP). JSON salvo nas rotas de escrita.
 **Itens e fotos**
 
 - `POST /items`, `GET /items`, `GET /items/:id` (inclui última `aiAnalyses` por foto, `take: 1`).
-- `POST /items/analisar-rascunho` (IA de foto sem item prévio; usado no fluxo `/items/new/ai`)
+- `POST /items/analisar-rascunho` (IA de rascunho com 1..5 fotos sem item prévio; usado no fluxo `/items/new/ai`)
+- `POST /items/analisar-rascunho/:analysisId/feedback` (feedback in-app + diff passivo do resultado final)
 - `POST /items/:id/foto-lotes`, `PATCH /items/:id/foto-lotes/:loteId`
 - `POST /items/:id/foto-lotes/:loteId/presign` (body: `tipo`, `contentType`, `extensao`, `tamanhoBytes` opcional)
 - `POST /items/:id/foto-lotes/:loteId/transcribe` (Whisper; `OPENAI_API_KEY`)
@@ -115,9 +116,10 @@ Resolução unificada em código: `storageEnv` em [`apps/api/src/config/env.ts`]
 | Rotas + `handleError` | `apps/api/src/modules/items/item.routes.ts` |
 | Validação presign (MIME normalizado) | `apps/api/src/modules/items/item.schemas.ts` |
 | Client HTTP + erros com `issues` | `apps/web/src/api/client.ts` |
-| API items (incl. `analisarItemFoto` e `analisarFotoRascunho`) | `apps/web/src/api/items.ts` |
+| API items (incl. análise de rascunho multi-foto + feedback) | `apps/web/src/api/items.ts` |
 | Rascunho local do cadastro IA | `apps/web/src/store/item-ai-draft.store.ts` |
 | Página de cadastro ultra-rápido com IA | `apps/web/src/pages/item-ai-draft.page.tsx` |
+| Persistência de análise/feedback do rascunho | `prisma/schema.prisma` (`AIDraftAnalysis`, `AIDraftFeedback`) |
 | Upload lote + IA | `apps/web/src/pages/item-foto-upload.page.tsx` |
 | Detalhe peça + fotos | `apps/web/src/pages/item-detail.page.tsx` |
 | Card sugestões IA | `apps/web/src/components/foto-ai-suggestions.tsx` |

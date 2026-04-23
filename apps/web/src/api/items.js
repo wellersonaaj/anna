@@ -36,6 +36,13 @@ export const analisarFotoRascunho = async (brechoId, payload) => {
         body: payload
     });
 };
+export const enviarFeedbackRascunho = async (brechoId, analysisId, payload) => {
+    return request(`/items/analisar-rascunho/${analysisId}/feedback`, {
+        method: "POST",
+        brechoId,
+        body: payload
+    });
+};
 export const createFotoLote = async (brechoId, itemId, payload) => {
     return request(`/items/${itemId}/foto-lotes`, {
         method: "POST",

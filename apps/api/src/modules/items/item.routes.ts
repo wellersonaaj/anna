@@ -10,7 +10,8 @@ import {
   patchFotoLoteSchema,
   presignFotoLoteSchema,
   reserveItemSchema,
-  sellItemSchema
+  sellItemSchema,
+  submitDraftFeedbackSchema
 } from "./item.schemas.js";
 import { itemService } from "./item.service.js";
 
@@ -51,6 +52,10 @@ const handleError = (error: unknown, app: FastifyInstance) => {
   }
 
   if (message === "Lote not found.") {
+    return { statusCode: 404, body: { message } };
+  }
+
+  if (message === "Draft analysis not found.") {
     return { statusCode: 404, body: { message } };
   }
 
@@ -107,8 +112,20 @@ export const itemRoutes = async (app: FastifyInstance): Promise<void> => {
   app.post("/items/analisar-rascunho", async (request, reply) => {
     try {
       const payload = analyzeItemDraftSchema.parse(request.body);
-      const result = await itemService.analisarFotoRascunho(payload);
+      const result = await itemService.analisarFotoRascunho(app.prisma, request.brechoId, payload);
       return reply.send(result);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.post("/items/analisar-rascunho/:analysisId/feedback", async (request, reply) => {
+    try {
+      const params = request.params as { analysisId: string };
+      const payload = submitDraftFeedbackSchema.parse(request.body);
+      const result = await itemService.submitDraftFeedback(app.prisma, request.brechoId, params.analysisId, payload);
+      return reply.code(201).send(result);
     } catch (error) {
       const normalized = handleError(error, app);
       return reply.code(normalized.statusCode).send(normalized.body);

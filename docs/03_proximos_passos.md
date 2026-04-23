@@ -24,7 +24,7 @@
 
 - Cadastro de peca (camera + revisao AI).
   - incluir acervo por `tipo + nome`, com sugestao de nomes ja cadastrados.
-  - **Parcial:** novo fluxo `/items/new/ai` com rascunho local (foto + texto), `POST /items/analisar-rascunho`, autofill editavel e criacao final da peca ao concluir.
+  - **Parcial:** novo fluxo `/items/new/ai` com rascunho local (ate 5 fotos + texto), `POST /items/analisar-rascunho`, autofill editavel, criacao final da peca ao concluir e feedback in-app `SIM|PARCIAL|NAO` em `POST /items/analisar-rascunho/:analysisId/feedback`.
 - Estoque com filtros. **Feito:** `GET /items` + UI (status, categoria, busca).
 - Fotos: URL manual em `/items/:id` ou fluxo `/items/:id/fotos/upload` (lote texto/voz, presign S3, galeria, câmera com flash quando suportado). **Feito (upload + lote + revisão IA).** `POST /items/:id/fotos/:fotoId/analisar` (OpenAI visão + `AIAnalysis`); botão **Sugerir com IA** no detalhe e no upload por lote. A API lê a imagem via URL pública ou `GetObject` S3 quando a URL bate com o storage configurado (`storageEnv`: `STORAGE_*` ou aliases **`AWS_*`** no Railway). Requer `OPENAI_API_KEY`; opcional `OPENAI_VISION_MODEL`. Presign normaliza MIME (ex. áudio com `;codecs=opus`).
 - Fila de interessados na API + tela `/items/:id`. **Feito** (entrada so com peca `DISPONIVEL`).

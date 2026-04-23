@@ -32,12 +32,15 @@ const buildInitialFormValues = (): ItemAIDraftFormValues => ({
 
 type ItemAIDraftState = {
   draftId: string;
-  imageDataUrl: string | null;
+  images: string[];
   textoContexto: string;
   analysis: DraftFotoAnaliseResponse | null;
+  draftAnalysisId: string | null;
   formValues: ItemAIDraftFormValues;
   lastUpdatedAt: number;
-  setImageDataUrl: (value: string | null) => void;
+  addImageDataUrl: (value: string) => void;
+  removeImageAt: (index: number) => void;
+  clearImages: () => void;
   setTextoContexto: (value: string) => void;
   setFormField: <K extends keyof ItemAIDraftFormValues>(field: K, value: ItemAIDraftFormValues[K]) => void;
   applyAnalysis: (analysis: DraftFotoAnaliseResponse) => void;
@@ -55,9 +58,10 @@ const createDraftId = () => {
 
 const buildInitialState = () => ({
   draftId: createDraftId(),
-  imageDataUrl: null,
+  images: [],
   textoContexto: "",
   analysis: null,
+  draftAnalysisId: null,
   formValues: buildInitialFormValues(),
   lastUpdatedAt: touch()
 });
@@ -66,10 +70,30 @@ export const useItemAIDraftStore = create<ItemAIDraftState>()(
   persist(
     (set) => ({
       ...buildInitialState(),
-      setImageDataUrl: (value) =>
+      addImageDataUrl: (value) =>
+        set((state) => {
+          if (state.images.length >= 5) {
+            return state;
+          }
+          return {
+            images: [...state.images, value],
+            analysis: null,
+            draftAnalysisId: null,
+            lastUpdatedAt: touch()
+          };
+        }),
+      removeImageAt: (index) =>
+        set((state) => ({
+          images: state.images.filter((_, currentIndex) => currentIndex !== index),
+          analysis: null,
+          draftAnalysisId: null,
+          lastUpdatedAt: touch()
+        })),
+      clearImages: () =>
         set(() => ({
-          imageDataUrl: value,
-          analysis: value ? null : null,
+          images: [],
+          analysis: null,
+          draftAnalysisId: null,
           lastUpdatedAt: touch()
         })),
       setTextoContexto: (value) => set(() => ({ textoContexto: value, lastUpdatedAt: touch() })),
@@ -84,6 +108,7 @@ export const useItemAIDraftStore = create<ItemAIDraftState>()(
       applyAnalysis: (analysis) =>
         set((state) => ({
           analysis,
+          draftAnalysisId: analysis.draftAnalysisId,
           formValues: {
             ...state.formValues,
             nome: analysis.suggestions.nomeSugerido ?? state.formValues.nome,

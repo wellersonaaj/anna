@@ -47,6 +47,12 @@ enum EmailJobStatus {
   ERRO
 }
 
+enum AIDraftHelpfulness {
+  SIM
+  PARCIAL
+  NAO
+}
+
 model Brecho {
   id            String   @id @default(cuid())
   nome          String
@@ -56,9 +62,11 @@ model Brecho {
   trialExpiraEm DateTime?
   criadoEm      DateTime @default(now())
 
-  pecas     Peca[]
-  clientes  Cliente[]
-  emailJobs EmailJob[]
+  pecas             Peca[]
+  clientes          Cliente[]
+  emailJobs         EmailJob[]
+  aiDraftAnalyses   AIDraftAnalysis[]
+  aiDraftFeedbacks  AIDraftFeedback[]
 }
 
 model Peca {
@@ -86,6 +94,7 @@ model Peca {
   historicoStatus  PecaStatusHistorico[]
   venda            Venda?
   filaInteressados FilaInteressado[]
+  aiDraftFeedbacks AIDraftFeedback[]
 
   @@index([brechoId, status, criadoEm])
   @@index([brechoId, categoria, subcategoria])
@@ -217,6 +226,43 @@ model AIAnalysis {
   criadoEm         DateTime @default(now())
 
   pecaFoto PecaFoto @relation(fields: [pecaFotoId], references: [id], onDelete: Cascade)
+}
+
+model AIDraftAnalysis {
+  id             String   @id @default(cuid())
+  brechoId       String
+  textoContexto  String?  @db.Text
+  imagensJson    Json
+  sugestoesJson  Json
+  metaJson       Json
+  warningsJson   Json
+  modeloUsado    String
+  tokensConsumidos Int
+  criadoEm       DateTime @default(now())
+
+  brecho    Brecho            @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+  feedbacks AIDraftFeedback[]
+
+  @@index([brechoId, criadoEm])
+}
+
+model AIDraftFeedback {
+  id              String            @id @default(cuid())
+  brechoId        String
+  analysisId      String
+  itemId          String?
+  helpfulness     AIDraftHelpfulness
+  finalValuesJson Json
+  changedFields   String[]
+  criadoEm        DateTime          @default(now())
+
+  brecho   Brecho          @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+  analysis AIDraftAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  item     Peca?           @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  @@index([brechoId, criadoEm])
+  @@index([analysisId])
+  @@index([itemId])
 }
 
 model EmailJob {

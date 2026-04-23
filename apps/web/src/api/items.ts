@@ -104,6 +104,7 @@ export type FotoAnaliseResponse = {
 };
 
 export type DraftFotoAnaliseResponse = {
+  draftAnalysisId: string;
   suggestions: {
     nomeSugerido: string | null;
     categoria: ItemCategoria | null;
@@ -121,6 +122,24 @@ export type DraftFotoAnaliseResponse = {
   warnings: {
     lowConfidence: boolean;
     multiplasPecas: boolean;
+  };
+};
+
+export type DraftFeedbackPayload = {
+  helpfulness: "SIM" | "PARCIAL" | "NAO";
+  itemId?: string;
+  finalValues: {
+    nome: string;
+    categoria: ItemCategoria;
+    subcategoria: string;
+    cor: string;
+    estampa: boolean;
+    condicao: "OTIMO" | "BOM" | "REGULAR";
+    tamanho: string;
+    marca?: string;
+    precoVenda?: number;
+    acervoTipo: "PROPRIO" | "CONSIGNACAO";
+    acervoNome?: string;
   };
 };
 
@@ -207,13 +226,31 @@ export const analisarItemFoto = async (
 
 export const analisarFotoRascunho = async (
   brechoId: string,
-  payload: { imageBase64: string; imageMime: "image/jpeg" | "image/png"; textoNota?: string }
+  payload: {
+    images: Array<{ imageBase64: string; imageMime: "image/jpeg" | "image/png" }>;
+    textoNota?: string;
+  }
 ): Promise<DraftFotoAnaliseResponse> => {
   return request<DraftFotoAnaliseResponse>("/items/analisar-rascunho", {
     method: "POST",
     brechoId,
     body: payload
   });
+};
+
+export const enviarFeedbackRascunho = async (
+  brechoId: string,
+  analysisId: string,
+  payload: DraftFeedbackPayload
+): Promise<{ feedbackId: string; changedFields: string[] }> => {
+  return request<{ feedbackId: string; changedFields: string[] }>(
+    `/items/analisar-rascunho/${analysisId}/feedback`,
+    {
+      method: "POST",
+      brechoId,
+      body: payload
+    }
+  );
 };
 
 export const createFotoLote = async (

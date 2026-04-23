@@ -22,17 +22,36 @@ const createDraftId = () => {
 };
 const buildInitialState = () => ({
     draftId: createDraftId(),
-    imageDataUrl: null,
+    images: [],
     textoContexto: "",
     analysis: null,
+    draftAnalysisId: null,
     formValues: buildInitialFormValues(),
     lastUpdatedAt: touch()
 });
 export const useItemAIDraftStore = create()(persist((set) => ({
     ...buildInitialState(),
-    setImageDataUrl: (value) => set(() => ({
-        imageDataUrl: value,
-        analysis: value ? null : null,
+    addImageDataUrl: (value) => set((state) => {
+        if (state.images.length >= 5) {
+            return state;
+        }
+        return {
+            images: [...state.images, value],
+            analysis: null,
+            draftAnalysisId: null,
+            lastUpdatedAt: touch()
+        };
+    }),
+    removeImageAt: (index) => set((state) => ({
+        images: state.images.filter((_, currentIndex) => currentIndex !== index),
+        analysis: null,
+        draftAnalysisId: null,
+        lastUpdatedAt: touch()
+    })),
+    clearImages: () => set(() => ({
+        images: [],
+        analysis: null,
+        draftAnalysisId: null,
         lastUpdatedAt: touch()
     })),
     setTextoContexto: (value) => set(() => ({ textoContexto: value, lastUpdatedAt: touch() })),
@@ -45,6 +64,7 @@ export const useItemAIDraftStore = create()(persist((set) => ({
     })),
     applyAnalysis: (analysis) => set((state) => ({
         analysis,
+        draftAnalysisId: analysis.draftAnalysisId,
         formValues: {
             ...state.formValues,
             nome: analysis.suggestions.nomeSugerido ?? state.formValues.nome,

@@ -48,10 +48,32 @@ export const createFotoLoteSchema = z.object({
   textoNota: z.string().trim().max(8000).optional()
 });
 
-export const analyzeItemDraftSchema = z.object({
+const draftImageSchema = z.object({
   imageBase64: z.string().trim().min(1).max(12_000_000),
-  imageMime: z.enum(["image/jpeg", "image/png"]),
+  imageMime: z.enum(["image/jpeg", "image/png"])
+});
+
+export const analyzeItemDraftSchema = z.object({
+  images: z.array(draftImageSchema).min(1).max(5),
   textoNota: z.string().trim().max(8000).optional()
+});
+
+export const submitDraftFeedbackSchema = z.object({
+  helpfulness: z.enum(["SIM", "PARCIAL", "NAO"]),
+  itemId: z.string().cuid().optional(),
+  finalValues: z.object({
+    nome: z.string().trim().min(2),
+    categoria: z.enum(["ROUPA_FEMININA", "ROUPA_MASCULINA", "CALCADO", "ACESSORIO"]),
+    subcategoria: z.string().trim().min(2),
+    cor: z.string().trim().min(2),
+    estampa: z.boolean(),
+    condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
+    tamanho: z.string().trim().min(1),
+    marca: z.string().trim().optional(),
+    precoVenda: z.coerce.number().nonnegative().optional(),
+    acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
+    acervoNome: z.string().trim().max(80).optional()
+  })
 });
 
 export const patchFotoLoteSchema = z

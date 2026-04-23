@@ -67,8 +67,7 @@ export type VisionAnalyzeResult = {
 export const analyzePecaImageWithOpenAI = async (input: {
   apiKey: string;
   model: string;
-  imageBase64: string;
-  imageMime: string;
+  images: Array<{ imageBase64: string; imageMime: string }>;
   textoNota: string | null;
   transcricaoAudio: string | null;
   pecaNome?: string;
@@ -81,7 +80,13 @@ export const analyzePecaImageWithOpenAI = async (input: {
     pecaCategoria: input.pecaCategoria
   });
 
-  const dataUrl = `data:${input.imageMime};base64,${input.imageBase64}`;
+  const imageBlocks = input.images.map((image) => ({
+    type: "image_url" as const,
+    image_url: {
+      url: `data:${image.imageMime};base64,${image.imageBase64}`,
+      detail: "low" as const
+    }
+  }));
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -98,10 +103,7 @@ export const analyzePecaImageWithOpenAI = async (input: {
           role: "user",
           content: [
             { type: "text", text: userText },
-            {
-              type: "image_url",
-              image_url: { url: dataUrl, detail: "low" }
-            }
+            ...imageBlocks
           ]
         }
       ],

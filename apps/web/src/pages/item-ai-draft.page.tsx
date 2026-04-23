@@ -6,6 +6,7 @@ import {
   analisarFotoRascunho,
   createFotoLote,
   createItem,
+  enviarFeedbackRascunho,
   listAcervoSuggestions,
   presignFotoLoteUpload,
   putToPresignedUrl
@@ -60,13 +61,33 @@ export const ItemAIDraftPage = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingFeedback, setPendingFeedback] = useState<{
+    analysisId: string;
+    itemId: string;
+    finalValues: {
+      nome: string;
+      categoria: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
+      subcategoria: string;
+      cor: string;
+      estampa: boolean;
+      condicao: "OTIMO" | "BOM" | "REGULAR";
+      tamanho: string;
+      marca?: string;
+      precoVenda?: number;
+      acervoTipo: "PROPRIO" | "CONSIGNACAO";
+      acervoNome?: string;
+    };
+  } | null>(null);
 
   const {
-    imageDataUrl,
+    images,
     textoContexto,
     analysis,
+    draftAnalysisId,
     formValues,
-    setImageDataUrl,
+    addImageDataUrl,
+    removeImageAt,
+    clearImages,
     setTextoContexto,
     setFormField,
     applyAnalysis,
@@ -83,14 +104,18 @@ export const ItemAIDraftPage = () => {
       })
   });
 
-  const handleImagePicked = async (file: File | null) => {
-    if (!file) {
+  const handleImagePicked = async (fileList: FileList | null) => {
+    if (!fileList?.length) {
       return;
     }
     try {
-      const jpeg = await resizeImageToJpeg(file);
-      const dataUrl = await toDataUrl(jpeg);
-      setImageDataUrl(dataUrl);
+      const availableSlots = Math.max(0, 5 - images.length);
+      const files = Array.from(fileList).slice(0, availableSlots);
+      for (const file of files) {
+        const jpeg = await resizeImageToJpeg(file);
+        const dataUrl = await toDataUrl(jpeg);
+        addImageDataUrl(dataUrl);
+      }
       setActionError(null);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Não foi possível preparar a imagem.");
@@ -99,13 +124,15 @@ export const ItemAIDraftPage = () => {
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
-      if (!imageDataUrl) {
-        throw new Error("Selecione uma foto para analisar.");
+      if (images.length === 0) {
+        throw new Error("Selecione ao menos 1 foto para analisar.");
       }
-      const parsed = parseDataUrl(imageDataUrl);
+      const parsedImages = images.map((imageDataUrl) => parseDataUrl(imageDataUrl));
       return analisarFotoRascunho(brechoId, {
-        imageBase64: parsed.base64,
-        imageMime: parsed.mime,
+        images: parsedImages.map((image) => ({
+          imageBase64: image.base64,
+          imageMime: image.mime
+        })),
         textoNota: textoContexto.trim() || undefined
       });
     },
@@ -119,7 +146,7 @@ export const ItemAIDraftPage = () => {
   });
 
   const requiredMissing = [
-    !imageDataUrl ? "foto" : null,
+    images.length === 0 ? "foto" : null,
     !formValues.nome.trim() ? "nome" : null,
     !formValues.categoria ? "categoria" : null,
     !formValues.cor.trim() ? "cor" : null,
@@ -129,12 +156,11 @@ export const ItemAIDraftPage = () => {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (requiredMissing.length > 0 || !imageDataUrl) {
+      if (requiredMissing.length > 0 || images.length === 0) {
         throw new Error(`Complete os campos obrigatórios: ${requiredMissing.join(", ")}.`);
       }
 
-      const imageBlob = await (await fetch(imageDataUrl)).blob();
-      const created = await createItem(brechoId, {
+      const finalValues = {
         nome: formValues.nome.trim(),
         categoria: formValues.categoria,
         subcategoria: formValues.subcategoria.trim() || "sem_subcategoria",
@@ -148,32 +174,77 @@ export const ItemAIDraftPage = () => {
           : undefined,
         acervoTipo: formValues.acervoTipo,
         acervoNome: formValues.acervoNome.trim() || undefined
+      };
+
+      const created = await createItem(brechoId, {
+        ...finalValues
       });
 
       const lote = await createFotoLote(brechoId, created.id, {
         textoNota: textoContexto.trim() || undefined
       });
-      const signed = await presignFotoLoteUpload(brechoId, created.id, lote.id, {
-        tipo: "imagem",
-        contentType: "image/jpeg",
-        extensao: "jpeg",
-        tamanhoBytes: imageBlob.size
-      });
-      await putToPresignedUrl(signed.uploadUrl, imageBlob, "image/jpeg");
-      await addItemFoto(brechoId, created.id, { url: signed.publicUrl, loteId: lote.id });
+      let index = 0;
+      for (const imageDataUrl of images) {
+        const imageBlob = await (await fetch(imageDataUrl)).blob();
+        const signed = await presignFotoLoteUpload(brechoId, created.id, lote.id, {
+          tipo: "imagem",
+          contentType: "image/jpeg",
+          extensao: "jpeg",
+          tamanhoBytes: imageBlob.size
+        });
+        await putToPresignedUrl(signed.uploadUrl, imageBlob, "image/jpeg");
+        await addItemFoto(brechoId, created.id, { url: signed.publicUrl, loteId: lote.id, ordem: index });
+        index += 1;
+      }
 
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["item", brechoId, created.id] });
 
-      return created.id;
+      return {
+        itemId: created.id,
+        finalValues
+      };
     },
-    onSuccess: (itemId) => {
-      resetDraft();
+    onSuccess: ({ itemId, finalValues }) => {
       setActionError(null);
+      if (draftAnalysisId) {
+        setPendingFeedback({
+          analysisId: draftAnalysisId,
+          itemId,
+          finalValues
+        });
+        return;
+      }
+      resetDraft();
       navigate(`/items/${itemId}`);
     },
     onError: (error) => {
       setActionError(error instanceof ApiError ? error.message : String(error));
+    }
+  });
+
+  const feedbackMutation = useMutation({
+    mutationFn: (helpfulness: "SIM" | "PARCIAL" | "NAO") => {
+      if (!pendingFeedback) {
+        throw new Error("Feedback indisponível.");
+      }
+      return enviarFeedbackRascunho(brechoId, pendingFeedback.analysisId, {
+        helpfulness,
+        itemId: pendingFeedback.itemId,
+        finalValues: pendingFeedback.finalValues
+      });
+    },
+    onSuccess: () => {
+      if (!pendingFeedback) {
+        return;
+      }
+      const itemId = pendingFeedback.itemId;
+      setPendingFeedback(null);
+      resetDraft();
+      navigate(`/items/${itemId}`);
+    },
+    onError: (error) => {
+      setActionError(error instanceof ApiError ? error.message : "Não foi possível salvar o feedback.");
     }
   });
 
@@ -194,15 +265,43 @@ export const ItemAIDraftPage = () => {
         </p>
       )}
 
+      {pendingFeedback && (
+        <Section title="3. A sugestão da IA ajudou?">
+          <p style={{ margin: 0, opacity: 0.9 }}>
+            Seu toque ajuda o app a aprender com as correções reais do cadastro.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button type="button" disabled={feedbackMutation.isPending} onClick={() => feedbackMutation.mutate("SIM")}>
+              Sim
+            </Button>
+            <Button
+              type="button"
+              disabled={feedbackMutation.isPending}
+              onClick={() => feedbackMutation.mutate("PARCIAL")}
+            >
+              Parcial
+            </Button>
+            <Button type="button" disabled={feedbackMutation.isPending} onClick={() => feedbackMutation.mutate("NAO")}>
+              Não
+            </Button>
+          </div>
+        </Section>
+      )}
+
       <Section title="1. Foto e contexto">
         <div className="stack" style={{ gap: 10 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Button type="button" onClick={() => cameraInputRef.current?.click()}>
+            <Button type="button" onClick={() => cameraInputRef.current?.click()} disabled={images.length >= 5}>
               Tirar foto
             </Button>
-            <Button type="button" onClick={() => galleryInputRef.current?.click()}>
+            <Button type="button" onClick={() => galleryInputRef.current?.click()} disabled={images.length >= 5}>
               Escolher da galeria
             </Button>
+            {images.length > 0 && (
+              <Button type="button" onClick={clearImages} disabled={analyzeMutation.isPending || submitMutation.isPending}>
+                Limpar fotos
+              </Button>
+            )}
           </div>
           <input
             ref={cameraInputRef}
@@ -211,7 +310,7 @@ export const ItemAIDraftPage = () => {
             capture="environment"
             hidden
             onChange={(event) => {
-              void handleImagePicked(event.target.files?.[0] ?? null);
+              void handleImagePicked(event.target.files);
               event.target.value = "";
             }}
           />
@@ -219,18 +318,47 @@ export const ItemAIDraftPage = () => {
             ref={galleryInputRef}
             type="file"
             accept="image/*"
+            multiple
             hidden
             onChange={(event) => {
-              void handleImagePicked(event.target.files?.[0] ?? null);
+              void handleImagePicked(event.target.files);
               event.target.value = "";
             }}
           />
-          {imageDataUrl ? (
-            <img
-              src={imageDataUrl}
-              alt="Pré-visualização da foto selecionada"
-              style={{ width: "100%", maxWidth: 360, borderRadius: 12, border: "1px solid #e7d5d6" }}
-            />
+          {images.length > 0 ? (
+            <div className="stack" style={{ gap: 8 }}>
+              <p style={{ margin: 0, fontSize: 13, opacity: 0.85 }}>Fotos selecionadas: {images.length}/5</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                {images.map((imageDataUrl, index) => (
+                  <div key={imageDataUrl + index} style={{ position: "relative" }}>
+                    <img
+                      src={imageDataUrl}
+                      alt={`Foto ${index + 1}`}
+                      style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 10, border: "1px solid #e7d5d6" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImageAt(index)}
+                      style={{
+                        position: "absolute",
+                        top: 6,
+                        right: 6,
+                        border: 0,
+                        borderRadius: 999,
+                        width: 30,
+                        height: 30,
+                        cursor: "pointer",
+                        background: "rgba(0,0,0,0.65)",
+                        color: "#fff"
+                      }}
+                      aria-label={`Remover foto ${index + 1}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <p style={{ opacity: 0.8, margin: 0 }}>Nenhuma foto selecionada ainda.</p>
           )}
@@ -250,7 +378,7 @@ export const ItemAIDraftPage = () => {
               placeholder="Ex.: vestido com brilho, costas com zíper e caimento reto..."
             />
           </Field>
-          <Button type="button" onClick={() => analyzeMutation.mutate()} disabled={!imageDataUrl || analyzeMutation.isPending}>
+          <Button type="button" onClick={() => analyzeMutation.mutate()} disabled={images.length === 0 || analyzeMutation.isPending}>
             {analyzeMutation.isPending ? "Analisando..." : "Sugerir com IA"}
           </Button>
         </div>
