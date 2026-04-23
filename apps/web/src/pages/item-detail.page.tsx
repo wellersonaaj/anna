@@ -174,13 +174,19 @@ export const ItemDetailPage = () => {
                       style={{ display: "flex", flexDirection: "column", gap: 12 }}
                     >
                       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                        <img
-                          src={foto.url}
-                          alt=""
-                          style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8 }}
-                        />
+                        <a href={foto.url} target="_blank" rel="noreferrer" aria-label="Abrir foto em nova aba">
+                          <img
+                            src={foto.url}
+                            alt={`Foto da peça ${item.nome}`}
+                            style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 8 }}
+                          />
+                        </a>
                         <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-                          <small style={{ wordBreak: "break-all" }}>{foto.url}</small>
+                          <small>
+                            <a href={foto.url} target="_blank" rel="noreferrer">
+                              Abrir original
+                            </a>
+                          </small>
                           <small>Ordem {foto.ordem}</small>
                         </div>
                         <div className="stack" style={{ gap: 8 }}>
