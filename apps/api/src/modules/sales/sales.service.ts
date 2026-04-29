@@ -1,9 +1,29 @@
 import { canTransitionStatus, itemStatus } from "@anna/shared";
 import type { PrismaClient, StatusPeca } from "@prisma/client";
+import { storageEnv } from "../../config/env.js";
+import { createPresignedGet, isStorageConfigured, resolveObjectKeyFromPublicUrl } from "../../lib/storage.js";
 
 const ensureTransition = (from: StatusPeca, to: StatusPeca) => {
   if (!canTransitionStatus(from, to)) {
     throw new Error(`Invalid status transition: ${from} -> ${to}`);
+  }
+};
+
+const resolveDisplayImageUrl = async (url: string | null | undefined): Promise<string | null> => {
+  if (!url) {
+    return null;
+  }
+  if (!isStorageConfigured(storageEnv)) {
+    return url;
+  }
+  const key = resolveObjectKeyFromPublicUrl(storageEnv, url);
+  if (!key) {
+    return url;
+  }
+  try {
+    return await createPresignedGet(storageEnv, { key, expiresSeconds: 3600 });
+  } catch {
+    return url;
   }
 };
 
@@ -33,14 +53,16 @@ export const salesService = {
       }
     });
 
-    return rows.map((row) => ({
-      ...row,
-      peca: {
-        id: row.peca.id,
-        nome: row.peca.nome,
-        fotoCapaUrl: row.peca.fotos[0]?.url ?? null
-      }
-    }));
+    return Promise.all(
+      rows.map(async (row) => ({
+        ...row,
+        peca: {
+          id: row.peca.id,
+          nome: row.peca.nome,
+          fotoCapaUrl: await resolveDisplayImageUrl(row.peca.fotos[0]?.url ?? null)
+        }
+      }))
+    );
   },
 
   async listDelivered(
@@ -87,15 +109,19 @@ export const salesService = {
       prisma.venda.count({ where })
     ]);
 
-    return {
-      rows: rows.map((row) => ({
+    const mappedRows = await Promise.all(
+      rows.map(async (row) => ({
         ...row,
         peca: {
           id: row.peca.id,
           nome: row.peca.nome,
-          fotoCapaUrl: row.peca.fotos[0]?.url ?? null
+          fotoCapaUrl: await resolveDisplayImageUrl(row.peca.fotos[0]?.url ?? null)
         }
-      })),
+      }))
+    );
+
+    return {
+      rows: mappedRows,
       total,
       hasMore: query.offset + rows.length < total
     };

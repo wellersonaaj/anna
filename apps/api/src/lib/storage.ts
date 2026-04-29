@@ -71,6 +71,28 @@ export const createPresignedPut = async (
   };
 };
 
+export const createPresignedGet = async (
+  e: StorageEnv,
+  params: {
+    key: string;
+    expiresSeconds?: number;
+  }
+): Promise<string> => {
+  if (!isStorageConfigured(e)) {
+    throw new Error("Storage is not configured.");
+  }
+
+  const client = s3Client(e);
+  const command = new GetObjectCommand({
+    Bucket: e.STORAGE_BUCKET!.trim(),
+    Key: params.key
+  });
+
+  return getSignedUrl(client, command, {
+    expiresIn: params.expiresSeconds ?? 3600
+  });
+};
+
 export const buildUploadKey = (parts: {
   brechoId: string;
   pecaId: string;

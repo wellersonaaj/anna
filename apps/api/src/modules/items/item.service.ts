@@ -2,7 +2,14 @@ import { canTransitionStatus, itemStatus } from "@anna/shared";
 import type { Prisma, PrismaClient, StatusPeca } from "@prisma/client";
 import { env, storageEnv } from "../../config/env.js";
 import { analyzePecaImageWithOpenAI } from "../../lib/openaiVision.js";
-import { buildUploadKey, createPresignedPut, downloadImageForAnalysis, isStorageConfigured } from "../../lib/storage.js";
+import {
+  buildUploadKey,
+  createPresignedGet,
+  createPresignedPut,
+  downloadImageForAnalysis,
+  isStorageConfigured,
+  resolveObjectKeyFromPublicUrl
+} from "../../lib/storage.js";
 import { clientService } from "../clients/client.service.js";
 
 const ensureTransition = (from: StatusPeca, to: StatusPeca): void => {
@@ -119,6 +126,24 @@ const buildDraftSuggestions = (parsed: {
 });
 
 const normalizeText = (value: string | null | undefined) => value?.trim().toLowerCase() ?? "";
+
+const resolveDisplayImageUrl = async (url: string | null | undefined): Promise<string | null> => {
+  if (!url) {
+    return null;
+  }
+  if (!isStorageConfigured(storageEnv)) {
+    return url;
+  }
+  const key = resolveObjectKeyFromPublicUrl(storageEnv, url);
+  if (!key) {
+    return url;
+  }
+  try {
+    return await createPresignedGet(storageEnv, { key, expiresSeconds: 3600 });
+  } catch {
+    return url;
+  }
+};
 
 const normalizeFieldConfidence = (parsed: { field_confidence?: Record<string, number> }): DraftFieldConfidence => ({
   nome: parsed.field_confidence?.nome_sugerido ?? 0.5,
@@ -266,35 +291,37 @@ export const itemService = {
       }
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      nome: row.nome,
-      categoria: row.categoria,
-      subcategoria: row.subcategoria,
-      status: row.status,
-      criadoEm: row.criadoEm,
-      cor: row.cor,
-      tamanho: row.tamanho,
-      acervoTipo: row.acervoTipo,
-      acervoNome: row.acervoNome,
-      precoVenda: row.precoVenda,
-      marca: row.marca,
-      fotoCapaUrl: row.fotos[0]?.url ?? null,
-      ultimoStatus: row.historicoStatus[0]
-        ? {
-            status: row.historicoStatus[0].status,
-            criadoEm: row.historicoStatus[0].criadoEm,
-            cliente: row.historicoStatus[0].cliente
-              ? {
-                  id: row.historicoStatus[0].cliente.id,
-                  nome: row.historicoStatus[0].cliente.nome,
-                  whatsapp: row.historicoStatus[0].cliente.whatsapp,
-                  instagram: row.historicoStatus[0].cliente.instagram
-                }
-              : null
-          }
-        : null
-    }));
+    return Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        nome: row.nome,
+        categoria: row.categoria,
+        subcategoria: row.subcategoria,
+        status: row.status,
+        criadoEm: row.criadoEm,
+        cor: row.cor,
+        tamanho: row.tamanho,
+        acervoTipo: row.acervoTipo,
+        acervoNome: row.acervoNome,
+        precoVenda: row.precoVenda,
+        marca: row.marca,
+        fotoCapaUrl: await resolveDisplayImageUrl(row.fotos[0]?.url ?? null),
+        ultimoStatus: row.historicoStatus[0]
+          ? {
+              status: row.historicoStatus[0].status,
+              criadoEm: row.historicoStatus[0].criadoEm,
+              cliente: row.historicoStatus[0].cliente
+                ? {
+                    id: row.historicoStatus[0].cliente.id,
+                    nome: row.historicoStatus[0].cliente.nome,
+                    whatsapp: row.historicoStatus[0].cliente.whatsapp,
+                    instagram: row.historicoStatus[0].cliente.instagram
+                  }
+                : null
+            }
+          : null
+      }))
+    );
   },
 
   async listAcervoSuggestions(
@@ -327,7 +354,7 @@ export const itemService = {
   },
 
   async findById(prisma: PrismaClient, brechoId: string, itemId: string) {
-    return prisma.peca.findFirst({
+    const item = await prisma.peca.findFirst({
       where: { id: itemId, brechoId },
       include: {
         historicoStatus: {
@@ -361,6 +388,19 @@ export const itemService = {
         }
       }
     });
+    if (!item) {
+      return item;
+    }
+    const signedFotos = await Promise.all(
+      (item.fotos ?? []).map(async (foto) => ({
+        ...foto,
+        url: (await resolveDisplayImageUrl(foto.url)) ?? foto.url
+      }))
+    );
+    return {
+      ...item,
+      fotos: signedFotos
+    };
   },
 
   async addFoto(
