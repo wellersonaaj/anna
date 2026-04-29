@@ -6,6 +6,7 @@ import type {
   ReactNode,
   SelectHTMLAttributes
 } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
@@ -163,7 +164,10 @@ const navItemClass = (active: boolean) =>
 
 const BottomNav = ({ activeTab, fabLink }: { activeTab: MainTab; fabLink: string }) => {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 rounded-t-[2rem] border-t border-rose-100 bg-[#fff8f7]/95 px-2 pb-6 pt-2 shadow-[0_-12px_40px_rgba(186,19,64,0.08)] backdrop-blur-md">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 rounded-t-[2rem] border-t border-rose-100 bg-[#fff8f7]/95 px-2 pt-2 shadow-[0_-12px_40px_rgba(186,19,64,0.08)] backdrop-blur-md"
+      style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+    >
       <div className="mx-auto flex max-w-5xl items-end justify-around">
         <Link to="/" className={navItemClass(activeTab === "estoque")}>
           <span className="material-symbols-outlined">inventory_2</span>
@@ -276,29 +280,35 @@ export const ProductCard = ({
   subtitle: string;
   priceLabel?: string;
   children?: ReactNode;
-}) => (
-  <article className="group">
-    <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low">
-      {item.fotoCapaUrl ? (
-        <img
-          src={item.fotoCapaUrl}
-          alt={`Foto da peça ${item.nome}`}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          loading="lazy"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-xs font-bold text-outline">Sem foto</div>
-      )}
-      <div className="absolute left-3 top-3">
-        <ItemStatusTone status={item.status} />
+}) => {
+  const [imageBroken, setImageBroken] = useState(false);
+  const hasImage = Boolean(item.fotoCapaUrl) && !imageBroken;
+
+  return (
+    <article className="group">
+      <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low">
+        {hasImage ? (
+          <img
+            src={item.fotoCapaUrl ?? undefined}
+            alt={`Foto da peça ${item.nome}`}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            loading="lazy"
+            onError={() => setImageBroken(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs font-bold text-outline">Sem foto</div>
+        )}
+        <div className="absolute left-3 top-3">
+          <ItemStatusTone status={item.status} />
+        </div>
       </div>
-    </div>
-    <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-outline">{subtitle}</p>
-    <h3 className="mb-1 text-sm font-bold leading-tight tracking-tight text-on-background">{item.nome}</h3>
-    {priceLabel && <p className="text-sm font-bold text-on-background">{priceLabel}</p>}
-    {children}
-  </article>
-);
+      <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-outline">{subtitle}</p>
+      <h3 className="mb-1 text-sm font-bold leading-tight tracking-tight text-on-background">{item.nome}</h3>
+      {priceLabel && <p className="text-sm font-bold text-on-background">{priceLabel}</p>}
+      {children}
+    </article>
+  );
+};
 
 export const formatCurrency = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined || value === "") {
