@@ -483,15 +483,17 @@ export const ItemFotoUploadPage = () => {
                             />
                             <div className="stack" style={{ flex: 1, minWidth: 0, gap: 8 }}>
                               <small style={{ opacity: 0.75 }}>Ordem {foto.ordem}</small>
-                              <Button
-                                type="button"
-                                onClick={() => analyzeMutation.mutate(foto.id)}
-                                disabled={analyzeMutation.isPending}
-                              >
-                                {analyzeMutation.isPending && analyzeMutation.variables === foto.id
-                                  ? "Analisando..."
-                                  : "Sugerir com IA"}
-                              </Button>
+                              {!latest && (
+                                <Button
+                                  type="button"
+                                  onClick={() => analyzeMutation.mutate(foto.id)}
+                                  disabled={analyzeMutation.isPending}
+                                >
+                                  {analyzeMutation.isPending && analyzeMutation.variables === foto.id
+                                    ? "Analisando..."
+                                    : "Sugerir com IA"}
+                                </Button>
+                              )}
                               {latest && <FotoAiSuggestionsCard analysis={latest} />}
                             </div>
                           </div>

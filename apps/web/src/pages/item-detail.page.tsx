@@ -190,15 +190,17 @@ export const ItemDetailPage = () => {
                           <small>Ordem {foto.ordem}</small>
                         </div>
                         <div className="stack" style={{ gap: 8 }}>
-                          <Button
-                            type="button"
-                            onClick={() => analyzeFotoMutation.mutate(foto.id)}
-                            disabled={analyzeFotoMutation.isPending}
-                          >
-                            {analyzeFotoMutation.isPending && analyzeFotoMutation.variables === foto.id
-                              ? "Analisando..."
-                              : "Sugerir com IA"}
-                          </Button>
+                          {!latestAi && (
+                            <Button
+                              type="button"
+                              onClick={() => analyzeFotoMutation.mutate(foto.id)}
+                              disabled={analyzeFotoMutation.isPending}
+                            >
+                              {analyzeFotoMutation.isPending && analyzeFotoMutation.variables === foto.id
+                                ? "Analisando..."
+                                : "Sugerir com IA"}
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             onClick={() => deleteFotoMutation.mutate(foto.id)}
