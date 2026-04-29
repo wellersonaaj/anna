@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   agruparImportacaoLote,
@@ -24,7 +24,7 @@ type FilaRow = {
 
 type UploadMutationVars = {
   brechoId: string;
-  loteId: string;
+  loteId: string | null;
   pend: FilaRow[];
 };
 
@@ -51,30 +51,12 @@ export const ImportacaoCriarPage = () => {
   const queryClient = useQueryClient();
   const [loteId, setLoteId] = useState<string | null>(loteIdParam ?? null);
   const [fila, setFila] = useState<FilaRow[]>([]);
-  const [criarError, setCriarError] = useState<string | null>(null);
-  const creatingRef = useRef(false);
 
   useEffect(() => {
     if (loteIdParam) {
       setLoteId(loteIdParam);
     }
   }, [loteIdParam]);
-
-  useEffect(() => {
-    if (loteId || loteIdParam || creatingRef.current) {
-      return;
-    }
-    creatingRef.current = true;
-    void (async () => {
-      try {
-        const l = await createImportacaoLote(brechoId);
-        setLoteId(l.id);
-        void navigate(`/importacoes/${l.id}/criar`, { replace: true });
-      } catch (e) {
-        setCriarError(e instanceof Error ? e.message : "Falha ao criar lote.");
-      }
-    })();
-  }, [brechoId, loteId, loteIdParam, navigate]);
 
   const detailQuery = useQuery({
     queryKey: ["importacao", brechoId, loteId],
@@ -120,18 +102,27 @@ export const ImportacaoCriarPage = () => {
   const uploadMutation = useMutation({
     mutationFn: async ({ brechoId: bid, loteId: lid, pend }: UploadMutationVars) => {
       let fail = 0;
+      let activeLoteId = lid;
+
+      if (!activeLoteId) {
+        const lote = await createImportacaoLote(bid);
+        activeLoteId = lote.id;
+        setLoteId(lote.id);
+        void navigate(`/importacoes/${lote.id}/criar`, { replace: true });
+      }
+      const uploadLoteId = activeLoteId;
 
       const uploadOneRow = async (row: FilaRow) => {
         const mime = row.file.type.split(";")[0]?.trim() || "image/jpeg";
         const ext = extFromMime(mime);
-        const signed = await presignImportFoto(bid, lid, {
+        const signed = await presignImportFoto(bid, uploadLoteId, {
           contentType: mime,
           extensao: ext,
           ordemOriginal: row.ordemOriginal,
           tamanhoBytes: row.file.size
         });
         await putToPresignedUrl(signed.uploadUrl, row.file, mime);
-        await registerImportFoto(bid, lid, {
+        await registerImportFoto(bid, uploadLoteId, {
           ordemOriginal: row.ordemOriginal,
           url: signed.publicUrl,
           mime,
@@ -160,10 +151,10 @@ export const ImportacaoCriarPage = () => {
           );
         }
       }
-      await queryClient.invalidateQueries({ queryKey: ["importacao", bid, lid] });
+      await queryClient.invalidateQueries({ queryKey: ["importacao", bid, uploadLoteId] });
       await queryClient.invalidateQueries({ queryKey: ["importacoes", bid] });
       await queryClient.invalidateQueries({ queryKey: ["importacoes-pendentes", bid] });
-      return { brechoId: bid, loteId: lid, fail };
+      return { brechoId: bid, loteId: uploadLoteId, fail };
     },
     onSuccess: (result) => {
       if (result.fail === 0) {
@@ -198,8 +189,6 @@ export const ImportacaoCriarPage = () => {
         </p>
       </section>
 
-      {criarError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{criarError}</p> : null}
-
       <Section title="Adicionar fotos">
         <p className="mb-2 text-sm text-on-surface-variant">
           No servidor: <strong>{totalFotosServidor}</strong> · Na fila local: <strong>{fila.length}</strong>
@@ -223,14 +212,10 @@ export const ImportacaoCriarPage = () => {
           <Button
             type="button"
             disabled={
-              !loteId ||
               (!filaPendente && !fila.some((f) => f.status === "erro")) ||
               filaEmProcessamento
             }
             onClick={() => {
-              if (!loteId) {
-                return;
-              }
               const pend = fila.filter((f) => f.status === "pendente" || f.status === "erro");
               if (pend.length === 0) {
                 return;

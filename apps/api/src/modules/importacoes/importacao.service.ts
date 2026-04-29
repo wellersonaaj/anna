@@ -98,7 +98,8 @@ export const importacaoService = {
           brechoId,
           status: {
             notIn: [ImportacaoLoteStatus.CONCLUIDO, ImportacaoLoteStatus.ABANDONADO]
-          }
+          },
+          OR: [{ status: { not: ImportacaoLoteStatus.RECEBENDO_FOTOS } }, { totalFotos: { gt: 0 } }]
         }
       }),
       prisma.importacaoRascunho.count({
@@ -120,9 +121,25 @@ export const importacaoService = {
     });
   },
 
+  async cancelarLote(prisma: PrismaClient, brechoId: string, loteId: string) {
+    const lote = await assertLote(prisma, brechoId, loteId);
+    if (lote.status === ImportacaoLoteStatus.CONCLUIDO) {
+      throw new Error("Lote concluido nao pode ser cancelado.");
+    }
+
+    return prisma.importacaoLote.update({
+      where: { id: loteId },
+      data: { status: ImportacaoLoteStatus.ABANDONADO }
+    });
+  },
+
   async listLotes(prisma: PrismaClient, brechoId: string) {
     return prisma.importacaoLote.findMany({
-      where: { brechoId },
+      where: {
+        brechoId,
+        status: { not: ImportacaoLoteStatus.ABANDONADO },
+        OR: [{ status: { not: ImportacaoLoteStatus.RECEBENDO_FOTOS } }, { totalFotos: { gt: 0 } }]
+      },
       orderBy: { criadoEm: "desc" },
       take: 50,
       select: {
@@ -148,7 +165,8 @@ export const importacaoService = {
             ImportacaoLoteStatus.REVISAR_DADOS,
             ImportacaoLoteStatus.AGRUPANDO
           ]
-        }
+        },
+        OR: [{ status: { not: ImportacaoLoteStatus.RECEBENDO_FOTOS } }, { totalFotos: { gt: 0 } }]
       }
     });
   },

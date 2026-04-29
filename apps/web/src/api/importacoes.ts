@@ -49,6 +49,13 @@ export const createImportacaoLote = async (brechoId: string): Promise<Importacao
   return request<ImportacaoLoteListItem>("/importacoes", { method: "POST", brechoId });
 };
 
+export const cancelarImportacaoLote = async (
+  brechoId: string,
+  loteId: string
+): Promise<ImportacaoLoteListItem> => {
+  return request<ImportacaoLoteListItem>(`/importacoes/${loteId}/cancelar`, { method: "POST", brechoId });
+};
+
 export const listImportacaoLotes = async (brechoId: string): Promise<ImportacaoLoteListItem[]> => {
   return request<ImportacaoLoteListItem[]>("/importacoes", { brechoId });
 };

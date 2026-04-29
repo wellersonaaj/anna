@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { listImportacaoLotes } from "../api/importacoes";
+import { cancelarImportacaoLote, listImportacaoLotes } from "../api/importacoes";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Section } from "../components/ui";
 
@@ -17,10 +17,21 @@ const statusLabel: Record<string, string> = {
 
 export const ImportacaoInboxPage = () => {
   const brechoId = useSessionStore((s) => s.brechoId);
+  const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["importacoes", brechoId],
     queryFn: () => listImportacaoLotes(brechoId)
   });
+  const cancelarMutation = useMutation({
+    mutationFn: (loteId: string) => cancelarImportacaoLote(brechoId, loteId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["importacoes", brechoId] });
+      void queryClient.invalidateQueries({ queryKey: ["importacoes-pendentes", brechoId] });
+    }
+  });
+  const lotesVisiveis =
+    query.data?.filter((l) => l.status !== "ABANDONADO" && !(l.status === "RECEBENDO_FOTOS" && l.totalFotos === 0)) ??
+    [];
 
   return (
     <AppShell
@@ -43,9 +54,9 @@ export const ImportacaoInboxPage = () => {
       <Section title="Seus lotes">
         {query.isLoading ? (
           <p className="text-sm">Carregando…</p>
-        ) : query.data?.length ? (
+        ) : lotesVisiveis.length ? (
           <ul className="space-y-3">
-            {query.data.map((l) => (
+            {lotesVisiveis.map((l) => (
               <li
                 key={l.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-rose-100 bg-white p-3"
@@ -76,6 +87,20 @@ export const ImportacaoInboxPage = () => {
                   )}
                   {l.status === "CONCLUIDO" ? (
                     <span className="text-xs font-bold text-[#006a39]">Publicado</span>
+                  ) : null}
+                  {l.status !== "CONCLUIDO" ? (
+                    <button
+                      type="button"
+                      className="text-xs font-bold text-primary underline disabled:opacity-60"
+                      disabled={cancelarMutation.isPending}
+                      onClick={() => {
+                        if (window.confirm("Cancelar esta importação? Ela sairá da lista.")) {
+                          cancelarMutation.mutate(l.id);
+                        }
+                      }}
+                    >
+                      Cancelar
+                    </button>
                   ) : null}
                 </div>
               </li>

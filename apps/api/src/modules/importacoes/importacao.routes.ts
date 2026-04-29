@@ -86,6 +86,17 @@ export const importacaoRoutes = async (app: FastifyInstance): Promise<void> => {
     }
   });
 
+  app.post("/importacoes/:loteId/cancelar", async (request, reply) => {
+    try {
+      const params = request.params as { loteId: string };
+      const lote = await importacaoService.cancelarLote(app.prisma, request.brechoId, params.loteId);
+      return reply.send(lote);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
   app.post("/importacoes/:loteId/fotos/presign", async (request, reply) => {
     try {
       const params = request.params as { loteId: string };

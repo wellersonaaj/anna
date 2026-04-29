@@ -3,6 +3,9 @@ import { putToPresignedUrl } from "./items";
 export const createImportacaoLote = async (brechoId) => {
     return request("/importacoes", { method: "POST", brechoId });
 };
+export const cancelarImportacaoLote = async (brechoId, loteId) => {
+    return request(`/importacoes/${loteId}/cancelar`, { method: "POST", brechoId });
+};
 export const listImportacaoLotes = async (brechoId) => {
     return request("/importacoes", { brechoId });
 };
