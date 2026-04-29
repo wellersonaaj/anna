@@ -135,8 +135,41 @@ export const ItemAIDraftPage = () => {
     }
   }, []);
 
+  const playVideoElement = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+    try {
+      await video.play();
+      setNeedsVideoActivation(false);
+      setActionError(null);
+      return;
+    } catch {
+      // Alguns navegadores (especialmente iOS/PWA) exigem gesto do usuário.
+    }
+    await new Promise<void>((resolve) => {
+      const onReady = () => {
+        video.removeEventListener("loadedmetadata", onReady);
+        video.removeEventListener("canplay", onReady);
+        resolve();
+      };
+      video.addEventListener("loadedmetadata", onReady);
+      video.addEventListener("canplay", onReady);
+      window.setTimeout(onReady, 900);
+    });
+    try {
+      await video.play();
+      setNeedsVideoActivation(false);
+      setActionError(null);
+    } catch {
+      setNeedsVideoActivation(true);
+    }
+  }, []);
+
   const startCamera = useCallback(async () => {
     setActionError(null);
+    stopStream();
     if (!navigator.mediaDevices?.getUserMedia) {
       setActionError("Câmera indisponível neste navegador. Use a galeria.");
       return;
@@ -147,6 +180,7 @@ export const ItemAIDraftPage = () => {
         audio: false
       });
       streamRef.current = stream;
+      setCameraOpen(true);
       if (videoRef.current) {
         const video = videoRef.current;
         video.srcObject = stream;
@@ -155,21 +189,16 @@ export const ItemAIDraftPage = () => {
         video.playsInline = true;
         video.setAttribute("playsinline", "true");
         video.setAttribute("webkit-playsinline", "true");
-        try {
-          await video.play();
-          setNeedsVideoActivation(false);
-        } catch {
-          // iOS/PWA pode exigir toque do usuário para iniciar preview.
-          setNeedsVideoActivation(true);
-        }
+        await playVideoElement();
       }
-      setFlashSupported(true);
+      const track = stream.getVideoTracks()[0];
+      const caps = (track?.getCapabilities?.() ?? {}) as { torch?: boolean };
+      setFlashSupported(Boolean(caps.torch));
       setFlashOn(false);
-      setCameraOpen(true);
     } catch {
       setActionError("Não foi possível acessar a câmera. Verifique permissões ou use a galeria.");
     }
-  }, []);
+  }, [playVideoElement, stopStream]);
 
   useEffect(() => {
     if (initializedRef.current) {
@@ -194,14 +223,19 @@ export const ItemAIDraftPage = () => {
     if (!track) {
       return;
     }
-    try {
-      void track.applyConstraints({
+    const caps = (track.getCapabilities?.() ?? {}) as { torch?: boolean };
+    if (!caps.torch) {
+      setFlashSupported(false);
+      return;
+    }
+    track
+      .applyConstraints({
         // @ts-expect-error torch não está em todos os typings
         advanced: [{ torch: flashOn }]
+      })
+      .catch(() => {
+        setFlashSupported(false);
       });
-    } catch {
-      setFlashSupported(false);
-    }
   }, [cameraOpen, flashOn]);
 
   const closeCamera = () => {
@@ -211,14 +245,8 @@ export const ItemAIDraftPage = () => {
   };
 
   const activateVideoPreview = async () => {
-    const video = videoRef.current;
-    if (!video) {
-      return;
-    }
     try {
-      await video.play();
-      setNeedsVideoActivation(false);
-      setActionError(null);
+      await playVideoElement();
     } catch {
       setActionError("Não foi possível iniciar o preview da câmera. Tente fechar e abrir novamente.");
     }
