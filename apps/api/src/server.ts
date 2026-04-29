@@ -10,6 +10,7 @@ import { itemRoutes } from "./modules/items/item.routes.js";
 import { salesRoutes } from "./modules/sales/sales.routes.js";
 import { importacaoRoutes } from "./modules/importacoes/importacao.routes.js";
 
+// Deploy marker: force Railway rebuild with idempotent importacao migration.
 export const buildServer = () => {
   const app = Fastify({
     logger: true,
