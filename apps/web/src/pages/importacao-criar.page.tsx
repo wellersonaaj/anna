@@ -28,6 +28,11 @@ type UploadMutationVars = {
   pend: FilaRow[];
 };
 
+type ImportacaoMutationVars = {
+  brechoId: string;
+  loteId: string;
+};
+
 const extFromMime = (mime: string): string => {
   const m = mime.split(";")[0]?.trim().toLowerCase() ?? "image/jpeg";
   if (m === "image/png") {
@@ -114,6 +119,8 @@ export const ImportacaoCriarPage = () => {
 
   const uploadMutation = useMutation({
     mutationFn: async ({ brechoId: bid, loteId: lid, pend }: UploadMutationVars) => {
+      let fail = 0;
+
       const uploadOneRow = async (row: FilaRow) => {
         const mime = row.file.type.split(";")[0]?.trim() || "image/jpeg";
         const ext = extFromMime(mime);
@@ -144,6 +151,7 @@ export const ImportacaoCriarPage = () => {
             prev.map((r) => (r.ordemOriginal === row.ordemOriginal ? { ...r, status: "ok" as const } : r))
           );
         } catch (e) {
+          fail++;
           const msg = e instanceof Error ? e.message : "Erro no upload.";
           setFila((prev) =>
             prev.map((r) =>
@@ -155,22 +163,23 @@ export const ImportacaoCriarPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["importacao", bid, lid] });
       await queryClient.invalidateQueries({ queryKey: ["importacoes", bid] });
       await queryClient.invalidateQueries({ queryKey: ["importacoes-pendentes", bid] });
+      return { brechoId: bid, loteId: lid, fail };
+    },
+    onSuccess: (result) => {
+      if (result.fail === 0) {
+        agruparMutation.mutate({ brechoId: result.brechoId, loteId: result.loteId });
+      }
     }
   });
 
   const agruparMutation = useMutation({
-    mutationFn: async () => {
-      if (!loteId) {
-        throw new Error("Sem lote.");
-      }
-      return agruparImportacaoLote(brechoId, loteId);
+    mutationFn: async ({ brechoId: bid, loteId: lid }: ImportacaoMutationVars) => {
+      return agruparImportacaoLote(bid, lid);
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["importacao", brechoId, loteId] });
-      await queryClient.invalidateQueries({ queryKey: ["importacoes", brechoId] });
-      if (loteId) {
-        navigate(`/importacoes/${loteId}/grupos`);
-      }
+    onSuccess: async (_detail, vars) => {
+      await queryClient.invalidateQueries({ queryKey: ["importacao", vars.brechoId, vars.loteId] });
+      await queryClient.invalidateQueries({ queryKey: ["importacoes", vars.brechoId] });
+      navigate(`/importacoes/${vars.loteId}/grupos`);
     }
   });
 
@@ -178,13 +187,14 @@ export const ImportacaoCriarPage = () => {
   const filaPendente = fila.some((f) => f.status === "pendente" || f.status === "erro");
   const filaEnviando = fila.some((f) => f.status === "enviando");
   const podeAgrupar = totalFotosServidor > 0 && !filaPendente && !filaEnviando && !uploadMutation.isPending;
+  const filaEmProcessamento = uploadMutation.isPending || agruparMutation.isPending;
 
   return (
     <AppShell showTopBar showBottomNav activeTab="estoque" topBarTitle="Nova importação" fabLink="/items/new">
       <section>
         <h1 className="font-headline text-3xl font-extrabold tracking-tighter">Fotos do lote</h1>
         <p className="mt-1 text-sm text-on-surface-variant">
-          Selecione na ordem em que quer agrupar (a ordem importa). Envie todas antes de organizar.
+          Selecione na ordem em que quer agrupar (a ordem importa). Ao enviar, a IA organiza as fotos automaticamente.
         </p>
       </section>
 
@@ -215,7 +225,7 @@ export const ImportacaoCriarPage = () => {
             disabled={
               !loteId ||
               (!filaPendente && !fila.some((f) => f.status === "erro")) ||
-              uploadMutation.isPending
+              filaEmProcessamento
             }
             onClick={() => {
               if (!loteId) {
@@ -228,16 +238,27 @@ export const ImportacaoCriarPage = () => {
               uploadMutation.mutate({ brechoId, loteId, pend });
             }}
           >
-            {uploadMutation.isPending ? "Enviando…" : "Enviar fotos da fila"}
+            {uploadMutation.isPending
+              ? "Enviando…"
+              : agruparMutation.isPending
+                ? "Organizando…"
+                : "Enviar e organizar fotos"}
           </Button>
-          <Button
-            type="button"
-            disabled={!podeAgrupar || agruparMutation.isPending}
-            onClick={() => agruparMutation.mutate()}
-            className="!bg-[#006a39]"
-          >
-            {agruparMutation.isPending ? "Organizando…" : "Organizar fotos com IA"}
-          </Button>
+          {!filaPendente && totalFotosServidor > 0 ? (
+            <Button
+              type="button"
+              disabled={!podeAgrupar || agruparMutation.isPending}
+              onClick={() => {
+                if (!loteId) {
+                  return;
+                }
+                agruparMutation.mutate({ brechoId, loteId });
+              }}
+              className="!bg-[#006a39]"
+            >
+              {agruparMutation.isPending ? "Organizando…" : "Organizar fotos com IA"}
+            </Button>
+          ) : null}
         </div>
         {uploadMutation.isError ? (
           <p className="mt-2 text-sm text-rose-800">
