@@ -63,6 +63,8 @@ Regras:
 - NAO crie campo "material" no JSON.
 - evite null para nome_sugerido, subcategoria, cor_principal, tamanho e marca quando houver qualquer evidencia visual/contextual razoavel.
 - use null somente quando realmente impossivel inferir.
+- subcategoria deve ser texto simples para busca (sem underscore).
+- nome_sugerido deve ser objetivo e comercial; evite adjetivos vagos como "elegante", "casual", "decorado" sem evidencia forte.
 
 Obrigatorio:
 - confianca (0..1)
@@ -87,6 +89,8 @@ Sua tarefa:
 - reduzir null desnecessario em nome_sugerido, subcategoria, cor_principal, tamanho e marca.
 - manter conformidade com enums e schema.
 - ajustar field_confidence por campo com realismo.
+- subcategoria sem underscore (ex.: "blusa cropped", nunca "blusa_cropped").
+- nome_sugerido curto, especifico e sem adjetivo promocional sem evidencia.
 - retornar APENAS JSON final valido, sem markdown.
 `;
 
@@ -131,12 +135,35 @@ export type VisionAnalyzeResult = {
   model: string;
 };
 
+const hasBlank = (value: string | null | undefined): boolean => !value || value.trim() === "";
+
+const shouldRunReviewer = (stage1: PecaAiJson): boolean => {
+  const fc = stage1.field_confidence;
+  const avgFieldConfidence =
+    (fc.nome_sugerido + fc.categoria + fc.subcategoria + fc.cor_principal + fc.condicao + fc.tamanho + fc.marca) /
+    7;
+  const criticalMissing =
+    hasBlank(stage1.nome_sugerido) ||
+    hasBlank(stage1.subcategoria) ||
+    hasBlank(stage1.cor_principal) ||
+    hasBlank(stage1.tamanho) ||
+    hasBlank(stage1.marca);
+
+  return (
+    stage1.multiplas_pecas === true ||
+    (stage1.confianca ?? 0) < 0.72 ||
+    avgFieldConfidence < 0.72 ||
+    criticalMissing
+  );
+};
+
 const callVisionModel = async (input: {
   apiKey: string;
   model: string;
   images: Array<{ imageBase64: string; imageMime: string }>;
   systemPrompt: string;
   userText: string;
+  imageDetail?: "high" | "auto" | "low";
 }): Promise<{ parsed: PecaAiJson; totalTokens: number; model: string; latencyMs: number }> => {
   const startedAt = Date.now();
 
@@ -144,7 +171,7 @@ const callVisionModel = async (input: {
     type: "image_url" as const,
     image_url: {
       url: `data:${image.imageMime};base64,${image.imageBase64}`,
-      detail: "high" as const
+      detail: input.imageDetail ?? "high"
     }
   }));
 
@@ -232,8 +259,22 @@ export const analyzePecaImageWithOpenAI = async (input: {
     model: input.model,
     images: input.images,
     systemPrompt: SYSTEM_PROMPT_EXTRACTOR,
-    userText
+    userText,
+    imageDetail: "high"
   });
+
+  if (!shouldRunReviewer(stage1.parsed)) {
+    return {
+      stage1: stage1.parsed,
+      parsed: stage1.parsed,
+      stage1Tokens: stage1.totalTokens,
+      stage2Tokens: 0,
+      stage1LatencyMs: stage1.latencyMs,
+      stage2LatencyMs: 0,
+      totalTokens: stage1.totalTokens,
+      model: stage1.model
+    };
+  }
 
   const reviewerText = [
     userText,
@@ -249,7 +290,8 @@ export const analyzePecaImageWithOpenAI = async (input: {
     model: input.model,
     images: input.images,
     systemPrompt: SYSTEM_PROMPT_REVIEWER,
-    userText: reviewerText
+    userText: reviewerText,
+    imageDetail: "auto"
   });
 
   return {

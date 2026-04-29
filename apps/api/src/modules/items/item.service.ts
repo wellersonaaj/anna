@@ -68,6 +68,34 @@ type DraftFallbacksApplied = {
   cor: "model" | "fallback";
 };
 
+const normalizeSubcategoria = (value: string | null | undefined): string | null => {
+  const raw = value?.trim();
+  if (!raw) {
+    return null;
+  }
+  return raw
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+};
+
+const normalizeMarca = (value: string | null | undefined): string | null => {
+  const raw = value?.trim();
+  if (!raw) {
+    return null;
+  }
+  return raw;
+};
+
+const normalizeTamanho = (value: string | null | undefined): string | null => {
+  const raw = value?.trim();
+  if (!raw) {
+    return null;
+  }
+  return raw;
+};
+
 const buildDraftSuggestions = (parsed: {
   nome_sugerido?: string | null;
   categoria?: string | null;
@@ -81,13 +109,13 @@ const buildDraftSuggestions = (parsed: {
 }): DraftSuggestionSnapshot => ({
   nomeSugerido: parsed.nome_sugerido?.trim() || null,
   categoria: mapCategoriaFromAi(parsed.categoria ?? undefined),
-  subcategoria: parsed.subcategoria?.trim() || null,
+  subcategoria: normalizeSubcategoria(parsed.subcategoria),
   corPrincipal: parsed.cor_principal?.trim() || null,
   estampado: parsed.estampado ?? false,
   descricaoEstampa: parsed.descricao_estampa?.trim() || null,
   condicao: mapCondicaoFromAi(parsed.condicao ?? undefined),
-  tamanho: parsed.tamanho?.trim() || null,
-  marca: parsed.marca?.trim() || null
+  tamanho: normalizeTamanho(parsed.tamanho),
+  marca: normalizeMarca(parsed.marca)
 });
 
 const normalizeText = (value: string | null | undefined) => value?.trim().toLowerCase() ?? "";
