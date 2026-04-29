@@ -22,6 +22,12 @@ type FilaRow = {
   error?: string;
 };
 
+type UploadMutationVars = {
+  brechoId: string;
+  loteId: string;
+  pend: FilaRow[];
+};
+
 const extFromMime = (mime: string): string => {
   const m = mime.split(";")[0]?.trim().toLowerCase() ?? "image/jpeg";
   if (m === "image/png") {
@@ -106,44 +112,34 @@ export const ImportacaoCriarPage = () => {
     [nextOrdem]
   );
 
-  const uploadOne = useCallback(
-    async (row: FilaRow) => {
-      if (!loteId) {
-        return;
-      }
-      const mime = row.file.type.split(";")[0]?.trim() || "image/jpeg";
-      const ext = extFromMime(mime);
-      const signed = await presignImportFoto(brechoId, loteId, {
-        contentType: mime,
-        extensao: ext,
-        ordemOriginal: row.ordemOriginal,
-        tamanhoBytes: row.file.size
-      });
-      await putToPresignedUrl(signed.uploadUrl, row.file, mime);
-      await registerImportFoto(brechoId, loteId, {
-        ordemOriginal: row.ordemOriginal,
-        url: signed.publicUrl,
-        mime,
-        tamanhoBytes: row.file.size,
-        nomeArquivo: row.file.name,
-        source: "galeria"
-      });
-    },
-    [brechoId, loteId]
-  );
-
   const uploadMutation = useMutation({
-    mutationFn: async () => {
-      if (!loteId) {
-        throw new Error("Lote nao criado.");
-      }
-      const pend = fila.filter((f) => f.status === "pendente" || f.status === "erro");
+    mutationFn: async ({ brechoId: bid, loteId: lid, pend }: UploadMutationVars) => {
+      const uploadOneRow = async (row: FilaRow) => {
+        const mime = row.file.type.split(";")[0]?.trim() || "image/jpeg";
+        const ext = extFromMime(mime);
+        const signed = await presignImportFoto(bid, lid, {
+          contentType: mime,
+          extensao: ext,
+          ordemOriginal: row.ordemOriginal,
+          tamanhoBytes: row.file.size
+        });
+        await putToPresignedUrl(signed.uploadUrl, row.file, mime);
+        await registerImportFoto(bid, lid, {
+          ordemOriginal: row.ordemOriginal,
+          url: signed.publicUrl,
+          mime,
+          tamanhoBytes: row.file.size,
+          nomeArquivo: row.file.name,
+          source: "galeria"
+        });
+      };
+
       for (const row of pend) {
         setFila((prev) =>
           prev.map((r) => (r.ordemOriginal === row.ordemOriginal ? { ...r, status: "enviando" as const } : r))
         );
         try {
-          await uploadOne(row);
+          await uploadOneRow(row);
           setFila((prev) =>
             prev.map((r) => (r.ordemOriginal === row.ordemOriginal ? { ...r, status: "ok" as const } : r))
           );
@@ -156,9 +152,9 @@ export const ImportacaoCriarPage = () => {
           );
         }
       }
-      await queryClient.invalidateQueries({ queryKey: ["importacao", brechoId, loteId] });
-      await queryClient.invalidateQueries({ queryKey: ["importacoes", brechoId] });
-      await queryClient.invalidateQueries({ queryKey: ["importacoes-pendentes", brechoId] });
+      await queryClient.invalidateQueries({ queryKey: ["importacao", bid, lid] });
+      await queryClient.invalidateQueries({ queryKey: ["importacoes", bid] });
+      await queryClient.invalidateQueries({ queryKey: ["importacoes-pendentes", bid] });
     }
   });
 
@@ -214,7 +210,24 @@ export const ImportacaoCriarPage = () => {
           />
         </label>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button type="button" disabled={!filaPendente && !fila.some((f) => f.status === "erro")} onClick={() => uploadMutation.mutate()}>
+          <Button
+            type="button"
+            disabled={
+              !loteId ||
+              (!filaPendente && !fila.some((f) => f.status === "erro")) ||
+              uploadMutation.isPending
+            }
+            onClick={() => {
+              if (!loteId) {
+                return;
+              }
+              const pend = fila.filter((f) => f.status === "pendente" || f.status === "erro");
+              if (pend.length === 0) {
+                return;
+              }
+              uploadMutation.mutate({ brechoId, loteId, pend });
+            }}
+          >
             {uploadMutation.isPending ? "Enviando…" : "Enviar fotos da fila"}
           </Button>
           <Button
@@ -226,6 +239,11 @@ export const ImportacaoCriarPage = () => {
             {agruparMutation.isPending ? "Organizando…" : "Organizar fotos com IA"}
           </Button>
         </div>
+        {uploadMutation.isError ? (
+          <p className="mt-2 text-sm text-rose-800">
+            {(uploadMutation.error as Error)?.message ?? "Falha ao enviar fotos."}
+          </p>
+        ) : null}
         {agruparMutation.isError ? (
           <p className="mt-2 text-sm text-rose-800">
             {(agruparMutation.error as Error)?.message ?? "Falha ao agrupar."}
