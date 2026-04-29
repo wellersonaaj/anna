@@ -43,6 +43,15 @@ Este arquivo registra regras operacionais para evitar retrabalho e manter o dese
 - Nao pular validacoes minimas de fluxo critico (reserva, venda, entrega).
 - Nao criar comportamento novo sem verificar se ja existe definicao no Stitch/docs.
 
+## Regra 7: Deploy Vercel com SPA (rotas diretas sem 404)
+
+- Para frontend React com `BrowserRouter`, sempre garantir fallback de SPA no `vercel.json`.
+- Quando o `Root Directory` do projeto na Vercel for `./` (raiz), o `vercel.json` obrigatoriamente deve estar na raiz do repositorio.
+- Quando o `Root Directory` for `apps/web`, o `vercel.json` deve existir dentro de `apps/web`.
+- Usar estrategia `filesystem` primeiro e fallback para `/index.html` depois.
+- Smoke test obrigatorio apos deploy: abrir `/`, depois abrir rota direta como `/ai/quality` em nova aba.
+- Se `/` abrir e rota direta der 404, tratar como erro de roteamento/rewrite de SPA (nao de backend).
+
 ## Definicao de pronto (DoD) para cada feature
 
 - Comportamento alinhado ao Stitch.
