@@ -14,13 +14,19 @@ type RequestOptions = {
 };
 
 export const request = async <T>(path: string, options: RequestOptions): Promise<T> => {
+  const headers: Record<string, string> = {
+    "x-brecho-id": options.brechoId
+  };
+  const body = options.body === undefined ? undefined : JSON.stringify(options.body);
+
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method: options.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "x-brecho-id": options.brechoId
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined
+    headers,
+    body
   });
 
   if (!response.ok) {

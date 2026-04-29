@@ -8,13 +8,17 @@ export class ApiError extends Error {
     }
 }
 export const request = async (path, options) => {
+    const headers = {
+        "x-brecho-id": options.brechoId
+    };
+    const body = options.body === undefined ? undefined : JSON.stringify(options.body);
+    if (body !== undefined) {
+        headers["Content-Type"] = "application/json";
+    }
     const response = await fetch(`${apiBaseUrl}${path}`, {
         method: options.method ?? "GET",
-        headers: {
-            "Content-Type": "application/json",
-            "x-brecho-id": options.brechoId
-        },
-        body: options.body ? JSON.stringify(options.body) : undefined
+        headers,
+        body
     });
     if (!response.ok) {
         const payload = (await response.json().catch(() => ({})));
