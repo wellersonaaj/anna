@@ -8,12 +8,24 @@ export type Item = {
   categoria: string;
   subcategoria: string;
   status: "DISPONIVEL" | "RESERVADO" | "VENDIDO" | "ENTREGUE" | "INDISPONIVEL";
+  criadoEm: string;
   cor: string;
   tamanho: string;
   acervoTipo: "PROPRIO" | "CONSIGNACAO";
   acervoNome?: string | null;
   precoVenda?: string | number | null;
   marca?: string | null;
+  fotoCapaUrl?: string | null;
+  ultimoStatus?: {
+    status: "DISPONIVEL" | "RESERVADO" | "VENDIDO" | "ENTREGUE" | "INDISPONIVEL";
+    criadoEm: string;
+    cliente?: {
+      id: string;
+      nome: string;
+      whatsapp: string | null;
+      instagram: string | null;
+    } | null;
+  } | null;
 };
 
 export type ClienteContato = {
@@ -195,10 +207,32 @@ export type SalePendingDelivery = {
   peca: {
     id: string;
     nome: string;
+    fotoCapaUrl?: string | null;
   };
   cliente: {
     nome: string;
   };
+};
+
+export type DeliveredSale = {
+  id: string;
+  precoVenda: string | number;
+  ganhosTotal: string | number;
+  criadoEm: string;
+  peca: {
+    id: string;
+    nome: string;
+    fotoCapaUrl?: string | null;
+  };
+  cliente: {
+    id: string;
+    nome: string;
+  };
+  entrega: {
+    id: string;
+    entregueEm: string;
+    codigoRastreio?: string | null;
+  } | null;
 };
 
 export type ListItemsFilters = {
@@ -478,6 +512,20 @@ export const sellItem = async (
 
 export const listSalesPendingDelivery = async (brechoId: string): Promise<SalePendingDelivery[]> => {
   return request<SalePendingDelivery[]>("/sales/pending-delivery", { brechoId });
+};
+
+export const listSalesDelivered = async (
+  brechoId: string,
+  query?: { days?: number; limit?: number; offset?: number }
+): Promise<{ rows: DeliveredSale[]; total: number; hasMore: boolean }> => {
+  const params = new URLSearchParams();
+  params.set("days", String(query?.days ?? 30));
+  params.set("limit", String(query?.limit ?? 20));
+  params.set("offset", String(query?.offset ?? 0));
+  return request<{ rows: DeliveredSale[]; total: number; hasMore: boolean }>(
+    `/sales/delivered?${params.toString()}`,
+    { brechoId }
+  );
 };
 
 export const deliverSale = async (

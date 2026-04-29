@@ -7,3 +7,6 @@ export const searchClients = async (brechoId, search) => {
     const qs = params.toString();
     return request(`/clients${qs ? `?${qs}` : ""}`, { brechoId });
 };
+export const getClientById = async (brechoId, clientId) => {
+    return request(`/clients/${clientId}`, { brechoId });
+};

@@ -45,7 +45,11 @@ Base: origem onde o `apps/web` está hospedado. Paths principais:
 | `/items/:itemId/fotos/upload` | Fluxo de lote: nota texto/voz, presign, galeria/câmera, fotos do lote, **Sugerir com IA**. |
 | `/reserve/:itemId` | Reserva. |
 | `/sell/:itemId` | Venda. |
+| `/vendas` | Hub de vendas (Reservados, Aguardando entrega, Entregues 30 dias + ver mais). |
 | `/deliveries` | Entregas pendentes. |
+| `/clientes` | Lista de clientes (casca visual inicial). |
+| `/clientes/:clientId` | Detalhe de cliente com histórico de compras. |
+| `/relatorios` | Relatórios (casca visual inicial). |
 | `/ai/quality` | Métricas de qualidade da IA (null rate, aceitação, helpfulness, motivos). |
 
 Router: [`apps/web/src/app.tsx`](../apps/web/src/app.tsx).

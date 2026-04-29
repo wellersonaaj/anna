@@ -145,6 +145,13 @@ export const sellItem = async (brechoId, itemId, payload) => {
 export const listSalesPendingDelivery = async (brechoId) => {
     return request("/sales/pending-delivery", { brechoId });
 };
+export const listSalesDelivered = async (brechoId, query) => {
+    const params = new URLSearchParams();
+    params.set("days", String(query?.days ?? 30));
+    params.set("limit", String(query?.limit ?? 20));
+    params.set("offset", String(query?.offset ?? 0));
+    return request(`/sales/delivered?${params.toString()}`, { brechoId });
+};
 export const deliverSale = async (brechoId, saleId, payload) => {
     return request(`/sales/${saleId}/deliver`, {
         method: "POST",

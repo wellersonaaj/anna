@@ -231,7 +231,7 @@ export const itemService = {
     categoria?: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
     search?: string;
   }) {
-    return prisma.peca.findMany({
+    const rows = await prisma.peca.findMany({
       where: {
         brechoId,
         status: query.status,
@@ -247,10 +247,54 @@ export const itemService = {
             }
           : {})
       },
+      include: {
+        fotos: {
+          select: { url: true },
+          orderBy: { ordem: "asc" },
+          take: 1
+        },
+        historicoStatus: {
+          orderBy: { criadoEm: "desc" },
+          take: 1,
+          include: {
+            cliente: true
+          }
+        }
+      },
       orderBy: {
         criadoEm: "desc"
       }
     });
+
+    return rows.map((row) => ({
+      id: row.id,
+      nome: row.nome,
+      categoria: row.categoria,
+      subcategoria: row.subcategoria,
+      status: row.status,
+      criadoEm: row.criadoEm,
+      cor: row.cor,
+      tamanho: row.tamanho,
+      acervoTipo: row.acervoTipo,
+      acervoNome: row.acervoNome,
+      precoVenda: row.precoVenda,
+      marca: row.marca,
+      fotoCapaUrl: row.fotos[0]?.url ?? null,
+      ultimoStatus: row.historicoStatus[0]
+        ? {
+            status: row.historicoStatus[0].status,
+            criadoEm: row.historicoStatus[0].criadoEm,
+            cliente: row.historicoStatus[0].cliente
+              ? {
+                  id: row.historicoStatus[0].cliente.id,
+                  nome: row.historicoStatus[0].cliente.nome,
+                  whatsapp: row.historicoStatus[0].cliente.whatsapp,
+                  instagram: row.historicoStatus[0].cliente.instagram
+                }
+              : null
+          }
+        : null
+    }));
   },
 
   async listAcervoSuggestions(

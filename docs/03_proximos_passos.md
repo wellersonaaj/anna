@@ -32,6 +32,8 @@
 - Fotos: URL manual em `/items/:id` ou fluxo `/items/:id/fotos/upload` (lote texto/voz, presign S3, galeria, câmera com flash quando suportado). **Feito (upload + lote + revisão IA).** `POST /items/:id/fotos/:fotoId/analisar` (OpenAI visão + `AIAnalysis`); botão **Sugerir com IA** no detalhe e no upload por lote. A API lê a imagem via URL pública ou `GetObject` S3 quando a URL bate com o storage configurado (`storageEnv`: `STORAGE_*` ou aliases **`AWS_*`** no Railway). Requer `OPENAI_API_KEY`; opcional `OPENAI_VISION_MODEL`. Presign normaliza MIME (ex. áudio com `;codecs=opus`).
 - Fila de interessados na API + tela `/items/:id`. **Feito** (entrada so com peca `DISPONIVEL`).
 - Confirmar venda e mover para aguardando entrega.
+- Navegação principal (Estoque, Vendas, Clientes, Relatórios) com shell visual alinhado ao Stitch. **Feito (casca visual inicial).**
+- **Backlog funcional Clientes/Relatórios:** evoluir métricas reais de relatórios, detalhamento de compras por cliente com fotos e ações operacionais avançadas mantendo a casca visual atual.
 
 ## 5) Observabilidade minima
 

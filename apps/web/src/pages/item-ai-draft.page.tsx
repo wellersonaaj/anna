@@ -314,6 +314,7 @@ export const ItemAIDraftPage = () => {
     return (
       <AppShell>
         <Link to="/">← Voltar ao estoque</Link>
+        <Link to="/items/new/manual">Usar cadastro manual</Link>
         <Section title="Cadastro concluído">
           <p style={{ margin: 0, opacity: 0.9 }}>
             Peça cadastrada com sucesso. O rascunho foi limpo para o próximo cadastro.
@@ -334,6 +335,7 @@ export const ItemAIDraftPage = () => {
   return (
     <AppShell>
       <Link to="/">← Voltar ao estoque</Link>
+      <Link to="/items/new/manual">Prefere sem IA? Ir para cadastro manual</Link>
 
       <header>
         <h1 style={{ marginBottom: 4 }}>Cadastrar com IA</h1>

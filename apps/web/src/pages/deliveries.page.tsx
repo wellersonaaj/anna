@@ -29,7 +29,10 @@ export const DeliveriesPage = () => {
 
   return (
     <AppShell>
-      <Link to="/">Voltar ao estoque</Link>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <Link to="/">Voltar ao estoque</Link>
+        <Link to="/vendas#aguardando">Abrir visão completa de vendas</Link>
+      </div>
       <Section title="Aguardando entrega">
         {pendingSalesQuery.isLoading ? (
           <p>Carregando...</p>
