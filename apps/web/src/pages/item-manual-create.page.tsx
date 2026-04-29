@@ -67,7 +67,7 @@ export const ItemManualCreatePage = () => {
 
   return (
     <AppShell>
-      <Link to="/items/new/ai" className="text-sm font-semibold text-on-surface-variant">
+      <Link to="/items/new" className="text-sm font-semibold text-on-surface-variant">
         ← Voltar para cadastro com IA
       </Link>
       <header>

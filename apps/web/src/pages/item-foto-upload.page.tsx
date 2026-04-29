@@ -60,7 +60,7 @@ export const ItemFotoUploadPage = () => {
   });
 
   const fotoCount = itemQuery.data?.fotos?.length ?? 0;
-  const remaining = Math.max(0, 5 - fotoCount);
+  const remaining = Math.max(0, 15 - fotoCount);
 
   const createLoteMutation = useMutation({
     mutationFn: () => createFotoLote(brechoId, itemId!, { textoNota: textoNota.trim() || undefined }),
@@ -222,7 +222,7 @@ export const ItemFotoUploadPage = () => {
     let n = itemQuery.data?.fotos?.length ?? 0;
     try {
       for (const file of Array.from(files)) {
-        if (n >= 5) {
+        if (n >= 15) {
           break;
         }
         const jpeg = await resizeImageToJpeg(file);
@@ -331,7 +331,7 @@ export const ItemFotoUploadPage = () => {
           <header>
             <h1 style={{ marginBottom: 4 }}>Fotos — {item.nome}</h1>
             <p style={{ marginTop: 0, opacity: 0.85 }}>
-              Máximo 5 fotos na peça. Agora: {fotoCount}/5. Neste lote você pode enviar até {remaining}{" "}
+              Máximo 15 fotos na peça. Agora: {fotoCount}/15. Neste lote você pode enviar até {remaining}{" "}
               nova(s).
             </p>
           </header>
@@ -371,7 +371,7 @@ export const ItemFotoUploadPage = () => {
               >
                 {createLoteMutation.isPending ? "Criando..." : "Começar envio de fotos"}
               </Button>
-              {remaining === 0 && <p>Você já atingiu 5 fotos nesta peça.</p>}
+              {remaining === 0 && <p>Você já atingiu 15 fotos nesta peça.</p>}
             </Section>
           ) : (
             <>

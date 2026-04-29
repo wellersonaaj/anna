@@ -2,7 +2,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 const cx = (...parts) => parts.filter(Boolean).join(" ");
-export const AppShell = ({ children, showTopBar = false, topBarTitle = "Agente", topBarAction, showBottomNav = false, activeTab = "estoque", fabLink = "/items/new/ai", maxWidthClass = "max-w-5xl" }) => {
+export const AppShell = ({ children, showTopBar = false, topBarTitle = "Agente", topBarAction, showBottomNav = false, activeTab = "estoque", fabLink = "/items/new", maxWidthClass = "max-w-5xl" }) => {
     return (_jsxs("div", { className: "min-h-screen bg-background text-on-background", children: [showTopBar && (_jsx("header", { className: "fixed inset-x-0 top-0 z-40 border-b border-rose-100 bg-[#fff8f7]/90 backdrop-blur-md", children: _jsxs("div", { className: cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass), children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("div", { className: "h-9 w-9 overflow-hidden rounded-full bg-surface-container-high" }), _jsx("span", { className: "font-headline text-lg font-bold text-primary", children: topBarTitle })] }), _jsx("div", { children: topBarAction })] }) })), _jsx("div", { className: cx("mx-auto px-4 pb-8 pt-6", maxWidthClass, showTopBar && "pt-24", showBottomNav && "pb-36"), children: _jsx("div", { className: "flex flex-col gap-4", children: children }) }), showBottomNav && _jsx(BottomNav, { activeTab: activeTab, fabLink: fabLink })] }));
 };
 export const Section = ({ title, children }) => {

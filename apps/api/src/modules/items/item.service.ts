@@ -422,7 +422,7 @@ export const itemService = {
       where: { pecaId: itemId }
     });
 
-    if (existingCount >= 5) {
+    if (existingCount >= 15) {
       throw new Error("Photo limit reached.");
     }
 
@@ -627,9 +627,10 @@ export const itemService = {
     prisma: PrismaClient,
     brechoId: string,
     input: {
-      images: Array<{ imageBase64: string; imageMime: "image/jpeg" | "image/png" }>;
+      images: Array<{ imageBase64: string; imageMime: string }>;
       textoNota?: string;
-    }
+    },
+    importLink?: { importacaoLoteId?: string | null; importacaoGrupoId?: string | null }
   ) {
     const apiKey = env.OPENAI_API_KEY?.trim();
     if (!apiKey) {
@@ -680,7 +681,7 @@ export const itemService = {
       subcategoria: rawSuggestions.subcategoria ? "model" : "fallback",
       cor: rawSuggestions.corPrincipal ? "model" : "fallback"
     };
-    const meta = {
+    const photoMeta = {
       confianca: parsed.confianca,
       ambienteFoto: parsed.ambiente_foto ?? null,
       qualidadeFoto: parsed.qualidade_foto ?? null
@@ -693,10 +694,12 @@ export const itemService = {
     const analysis = await prisma.aIDraftAnalysis.create({
       data: {
         brechoId,
+        importacaoLoteId: importLink?.importacaoLoteId ?? undefined,
+        importacaoGrupoId: importLink?.importacaoGrupoId ?? undefined,
         textoContexto: input.textoNota?.trim() || null,
         imagensJson: input.images as Prisma.InputJsonValue,
         sugestoesJson: suggestions as Prisma.InputJsonValue,
-        metaJson: meta as Prisma.InputJsonValue,
+        metaJson: photoMeta as Prisma.InputJsonValue,
         warningsJson: warnings as Prisma.InputJsonValue,
         modeloUsado: modelUsed,
         tokensConsumidos: totalTokens,
@@ -714,7 +717,7 @@ export const itemService = {
     return {
       draftAnalysisId: analysis.id,
       suggestions,
-      meta,
+      meta: photoMeta,
       warnings,
       fieldConfidence,
       fallbacksApplied

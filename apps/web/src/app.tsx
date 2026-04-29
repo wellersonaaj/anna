@@ -3,6 +3,12 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { DeliveriesPage } from "./pages/deliveries.page";
 import { InventoryPage } from "./pages/inventory.page";
 import { ItemAIDraftPage } from "./pages/item-ai-draft.page";
+import { ItemCreateChoicePage } from "./pages/item-create-choice.page";
+import { ImportacaoInboxPage } from "./pages/importacao-inbox.page";
+import { ImportacaoCriarPage } from "./pages/importacao-criar.page";
+import { ImportacaoGruposPage } from "./pages/importacao-grupos.page";
+import { ImportacaoRascunhosPage } from "./pages/importacao-rascunhos.page";
+import { ImportacaoRascunhoDetailPage } from "./pages/importacao-rascunho-detail.page";
 import { ItemDetailPage } from "./pages/item-detail.page";
 import { ItemFotoUploadPage } from "./pages/item-foto-upload.page";
 import { ItemManualCreatePage } from "./pages/item-manual-create.page";
@@ -22,7 +28,14 @@ export const App = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<InventoryPage />} />
+          <Route path="/items/new" element={<ItemCreateChoicePage />} />
           <Route path="/items/new/ai" element={<ItemAIDraftPage />} />
+          <Route path="/importacoes/criar" element={<ImportacaoCriarPage />} />
+          <Route path="/importacoes/:loteId/criar" element={<ImportacaoCriarPage />} />
+          <Route path="/importacoes/:loteId/grupos" element={<ImportacaoGruposPage />} />
+          <Route path="/importacoes/:loteId/rascunhos/:rascunhoId" element={<ImportacaoRascunhoDetailPage />} />
+          <Route path="/importacoes/:loteId/rascunhos" element={<ImportacaoRascunhosPage />} />
+          <Route path="/importacoes" element={<ImportacaoInboxPage />} />
           <Route path="/items/new/manual" element={<ItemManualCreatePage />} />
           <Route path="/items/:itemId" element={<ItemDetailPage />} />
           <Route path="/items/:itemId/fotos/upload" element={<ItemFotoUploadPage />} />

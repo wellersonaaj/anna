@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { countImportacoesPendentes } from "../api/importacoes";
 import { listItems, type Item, type ItemCategoria } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Input, PillButton, ProductCard, formatCurrency } from "../components/ui";
@@ -25,6 +26,11 @@ export const InventoryPage = () => {
     queryFn: () => listItems(brechoId, listFilters)
   });
 
+  const importPendentesQuery = useQuery({
+    queryKey: ["importacoes-pendentes", brechoId],
+    queryFn: () => countImportacoesPendentes(brechoId)
+  });
+
   const statusFilters: Array<{ key: "" | Item["status"]; label: string }> = [
     { key: "", label: "Todos" },
     { key: "DISPONIVEL", label: "Disponível" },
@@ -41,9 +47,33 @@ export const InventoryPage = () => {
   ];
 
   return (
-    <AppShell showTopBar showBottomNav activeTab="estoque" topBarTitle="Agente Brechó">
+    <AppShell
+      showTopBar
+      showBottomNav
+      activeTab="estoque"
+      topBarTitle="Agente Brechó"
+      topBarAction={
+        <Link to="/importacoes" className="text-xs font-bold text-primary underline">
+          Importações
+          {importPendentesQuery.data?.count ? ` (${importPendentesQuery.data.count})` : ""}
+        </Link>
+      }
+    >
       <section>
         <h1 className="mb-2 font-headline text-5xl font-extrabold tracking-tighter">Estoque</h1>
+        {importPendentesQuery.data?.count ? (
+          <p className="mb-2 rounded-2xl border border-amber-100 bg-amber-50/90 px-3 py-2 text-sm text-on-background">
+            Você tem{" "}
+            <strong>
+              {importPendentesQuery.data.count}{" "}
+              {importPendentesQuery.data.count === 1 ? "importação pendente" : "importações pendentes"}
+            </strong>
+            .{" "}
+            <Link to="/importacoes" className="font-bold text-primary underline">
+              Continuar
+            </Link>
+          </p>
+        ) : null}
       </section>
 
       <div className="mb-2">

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 const buildInitialFormValues = () => ({
     nome: "",
     categoria: "ROUPA_FEMININA",
@@ -29,19 +28,14 @@ const buildInitialState = () => ({
     formValues: buildInitialFormValues(),
     lastUpdatedAt: touch()
 });
-export const useItemAIDraftStore = create()(persist((set) => ({
+export const useItemAIDraftStore = create()((set) => ({
     ...buildInitialState(),
-    addImageDataUrl: (value) => set((state) => {
-        if (state.images.length >= 5) {
-            return state;
-        }
-        return {
-            images: [...state.images, value],
-            analysis: null,
-            draftAnalysisId: null,
-            lastUpdatedAt: touch()
-        };
-    }),
+    addImageDataUrl: (value) => set((state) => ({
+        images: [...state.images, value],
+        analysis: null,
+        draftAnalysisId: null,
+        lastUpdatedAt: touch()
+    })),
     removeImageAt: (index) => set((state) => ({
         images: state.images.filter((_, currentIndex) => currentIndex !== index),
         analysis: null,
@@ -81,6 +75,4 @@ export const useItemAIDraftStore = create()(persist((set) => ({
     resetDraft: () => set(() => ({
         ...buildInitialState()
     }))
-}), {
-    name: "anna-item-ai-draft-v1"
 }));

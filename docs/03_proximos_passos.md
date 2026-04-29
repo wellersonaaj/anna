@@ -28,6 +28,7 @@
   - **Feito:** leitura de etiqueta para sugerir `tamanho` e `marca` no rascunho IA.
   - **Decisao atual:** `material` sem campo estruturado por enquanto; quando informado no contexto da dona, pode enriquecer o `nome_sugerido`.
   - Backlog de evolucao do `material`: [`04_backlog_material.md`](04_backlog_material.md).
+  - **Feito (MVP):** importacao em lote multipeças — inbox `/importacoes`, presign em `brecho/import/...`, grupos com IA (ordem de envio), confirmação, classificação por grupo, publicação. Ver [`05_backlog_importacao_lote_multipecas.md`](05_backlog_importacao_lote_multipecas.md) para limites e próximos incrementos.
 - Estoque com filtros. **Feito:** `GET /items` + UI (status, categoria, busca).
 - Fotos: URL manual em `/items/:id` ou fluxo `/items/:id/fotos/upload` (lote texto/voz, presign S3, galeria, câmera com flash quando suportado). **Feito (upload + lote + revisão IA).** `POST /items/:id/fotos/:fotoId/analisar` (OpenAI visão + `AIAnalysis`); botão **Sugerir com IA** no detalhe e no upload por lote. A API lê a imagem via URL pública ou `GetObject` S3 quando a URL bate com o storage configurado (`storageEnv`: `STORAGE_*` ou aliases **`AWS_*`** no Railway). Requer `OPENAI_API_KEY`; opcional `OPENAI_VISION_MODEL`. Presign normaliza MIME (ex. áudio com `;codecs=opus`).
 - Fila de interessados na API + tela `/items/:id`. **Feito** (entrada so com peca `DISPONIVEL`).

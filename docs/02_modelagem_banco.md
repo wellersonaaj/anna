@@ -27,6 +27,12 @@ Baseado nas secoes 16 e 17 do PRD.
 - `fila_interessados`: ordenacao por posicao para cada peca.
 - `ai_analysis`: predicao completa da AI e contexto textual/audio.
 - `email_job`: rastreio de jobs de email.
+- **Importação multipeças (fora do estoque até publicar):**
+  - `importacao_lote`: sessão por `brecho_id` com `status` próprio (não confundir com `StatusPeca`).
+  - `importacao_foto`: fotos do lote com `ordem_original` (contrato para agrupamento).
+  - `importacao_grupo` + `importacao_grupo_foto`: proposta/revisão humana de conjuntos por peça.
+  - `importacao_rascunho`: 1:1 com grupo; liga a `AIDraftAnalysis` após classificação e a `peca` após publicação.
+  - `AIDraftAnalysis` pode referenciar `importacao_lote_id` / `importacao_grupo_id` para rastreio.
 
 ## Regras de integridade (obrigatorias)
 

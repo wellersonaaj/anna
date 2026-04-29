@@ -103,6 +103,12 @@ export const buildUploadKey = (parts: {
   return `${parts.brechoId}/${parts.pecaId}/${parts.loteId}/${randomUUID()}.${ext}`;
 };
 
+/** Storage key for photos of a multi-piece import session (no Peca yet). */
+export const buildImportUploadKey = (parts: { brechoId: string; importLoteId: string; extensao: string }): string => {
+  const ext = parts.extensao.replace(/^\./, "").toLowerCase();
+  return `${parts.brechoId}/import/${parts.importLoteId}/${randomUUID()}.${ext}`;
+};
+
 /** If `imageUrl` was produced by this app for the configured bucket, return the S3 object key (for private buckets). */
 export const resolveObjectKeyFromPublicUrl = (e: StorageEnv, imageUrl: string): string | null => {
   if (!isStorageConfigured(e)) {

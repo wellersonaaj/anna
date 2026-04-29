@@ -18,9 +18,10 @@ Este repositório inicia o MVP v1 com foco em:
 - `docs/01_arquitetura_inicial.md`: decisões técnicas iniciais para implementação.
 - `docs/02_modelagem_banco.md`: guia de modelagem e regras de integridade.
 - `docs/03_proximos_passos.md`: checklist Sprint 0 e pendências.
+- `docs/05_backlog_importacao_lote_multipecas.md`: backlog — lote com várias peças (agrupar fotos → classificar por grupo).
 - `prisma/schema.prisma`: primeira versão do schema relacional.
 - `apps/api`: API Fastify + Prisma com fluxos P0.
-- `apps/web`: PWA React com estoque (filtros), detalhe da peça (`/items/:id` — fotos e fila), **upload de fotos** (`/items/:id/fotos/upload` — lote, texto/voz, câmera/galeria), cadastro IA (`/items/new/ai` com múltiplas fotos), reserva, venda e entrega.
+- `apps/web`: PWA React com estoque (filtros), detalhe da peça (`/items/:id` — fotos e fila), **upload de fotos** (`/items/:id/fotos/upload` — lote, texto/voz, câmera/galeria), **cadastro** (`/items/new` — escolha: uma peça com IA, manual ou importação multipeças), cadastro IA (`/items/new/ai`), **importações** (`/importacoes`, `/importacoes/criar`, revisão de grupos e rascunhos), reserva, venda e entrega.
 - `packages/shared`: utilitários compartilhados de domínio (ex.: máquina de status).
 
 ## Setup local
@@ -58,7 +59,7 @@ Este repositório inicia o MVP v1 com foco em:
 - `GET /items` (filtros opcionais: `?status=&categoria=&search=`)
 - `GET /items/:id` (detalhe com `fotos`, `fotoLotes`, `filaInteressados`)
 - `POST /items/:id/foto-lotes`, `PATCH .../foto-lotes/:loteId`, `POST .../foto-lotes/:loteId/presign`, `POST .../foto-lotes/:loteId/transcribe`
-- `POST /items/:id/fotos` / `DELETE /items/:id/fotos/:fotoId` (body de foto aceita `loteId` opcional; máx. 5 fotos por peça)
+- `POST /items/:id/fotos` / `DELETE /items/:id/fotos/:fotoId` (body de foto aceita `loteId` opcional; máx. 15 fotos por peça)
 - `POST /items/:id/fotos/:fotoId/analisar` (IA visão; persiste `AIAnalysis` + snapshot em `PecaFoto`)
 - `POST /items/analisar-rascunho` (IA de rascunho com múltiplas fotos, pipeline em 2 estágios: extractor + reviewer)
 - `POST /items/analisar-rascunho/:analysisId/feedback` (feedback in-app com helpfulness + motivos opcionais + diff passivo)
@@ -72,6 +73,7 @@ Este repositório inicia o MVP v1 com foco em:
 - `POST /items/:id/sell` (body: `cliente` + `precoVenda` preço da peça + frete; total gravado = peça + frete)
 - `GET /sales/pending-delivery`
 - `POST /sales/:id/deliver`
+- **Importação multipeças (inbox):** `POST /importacoes`, `GET /importacoes`, `GET /importacoes/metricas/resumo`, `GET /importacoes/pendentes/count`, `GET /importacoes/:loteId`, `POST /importacoes/:loteId/fotos/presign`, `POST /importacoes/:loteId/fotos`, `POST /importacoes/:loteId/agrupar`, `PATCH /importacoes/:loteId/grupos`, `POST /importacoes/:loteId/grupos/confirmar`, `POST /importacoes/:loteId/classificar`, `PATCH /importacoes/:loteId/rascunhos/:rascunhoId`, `POST /importacoes/:loteId/rascunhos/:rascunhoId/publicar` (header `x-brecho-id`)
 
 > Nota: no MVP técnico atual, o `brecho_id` é passado no header `x-brecho-id`.
 

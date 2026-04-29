@@ -20,7 +20,7 @@ export const AppShell = ({
   topBarAction,
   showBottomNav = false,
   activeTab = "estoque",
-  fabLink = "/items/new/ai",
+  fabLink = "/items/new",
   maxWidthClass = "max-w-5xl"
 }: PropsWithChildren<{
   showTopBar?: boolean;

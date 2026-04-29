@@ -53,6 +53,35 @@ enum AIDraftHelpfulness {
   NAO
 }
 
+/// Estado do fluxo de importação multipeças (inbox), separado de StatusPeca.
+enum ImportacaoLoteStatus {
+  RECEBENDO_FOTOS
+  AGRUPANDO
+  REVISAR_GRUPOS
+  CLASSIFICANDO
+  REVISAR_DADOS
+  CONCLUIDO
+  ERRO
+  ABANDONADO
+}
+
+enum ImportacaoFotoUploadStatus {
+  PENDENTE
+  ENVIADA
+  ERRO
+}
+
+enum ImportacaoGrupoStatus {
+  PROPOSTO
+  CONFIRMADO
+}
+
+enum ImportacaoRascunhoStatus {
+  RASCUNHO
+  PUBLICADO
+  ERRO_CLASSIFICACAO
+}
+
 model Brecho {
   id            String   @id @default(cuid())
   nome          String
@@ -67,6 +96,7 @@ model Brecho {
   emailJobs         EmailJob[]
   aiDraftAnalyses   AIDraftAnalysis[]
   aiDraftFeedbacks  AIDraftFeedback[]
+  importacaoLotes   ImportacaoLote[]
 }
 
 model Peca {
@@ -95,6 +125,7 @@ model Peca {
   venda            Venda?
   filaInteressados FilaInteressado[]
   aiDraftFeedbacks AIDraftFeedback[]
+  importacaoRascunhos ImportacaoRascunho[]
 
   @@index([brechoId, status, criadoEm])
   @@index([brechoId, categoria, subcategoria])
@@ -231,6 +262,9 @@ model AIAnalysis {
 model AIDraftAnalysis {
   id                  String   @id @default(cuid())
   brechoId            String
+  /// Quando a análise veio de importação multipeças (opcional).
+  importacaoLoteId    String?
+  importacaoGrupoId  String?
   textoContexto       String?  @db.Text
   imagensJson         Json
   sugestoesJson       Json
@@ -248,10 +282,101 @@ model AIDraftAnalysis {
   stage2LatencyMs     Int?
   criadoEm            DateTime @default(now())
 
-  brecho    Brecho            @relation(fields: [brechoId], references: [id], onDelete: Cascade)
-  feedbacks AIDraftFeedback[]
+  brecho            Brecho            @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+  importacaoLote    ImportacaoLote?   @relation(fields: [importacaoLoteId], references: [id], onDelete: SetNull)
+  importacaoGrupo   ImportacaoGrupo?  @relation(fields: [importacaoGrupoId], references: [id], onDelete: SetNull)
+  importacaoRascunho ImportacaoRascunho?
+  feedbacks         AIDraftFeedback[]
 
   @@index([brechoId, criadoEm])
+  @@index([importacaoLoteId])
+  @@index([importacaoGrupoId])
+}
+
+model ImportacaoLote {
+  id          String               @id @default(cuid())
+  brechoId    String
+  status      ImportacaoLoteStatus @default(RECEBENDO_FOTOS)
+  totalFotos  Int                  @default(0)
+  totalGrupos Int                  @default(0)
+  criadoEm    DateTime             @default(now())
+  atualizadoEm DateTime            @updatedAt
+
+  brecho Brecho @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+  fotos  ImportacaoFoto[]
+  grupos ImportacaoGrupo[]
+  aiDraftAnalyses AIDraftAnalysis[]
+
+  @@index([brechoId, status, criadoEm])
+}
+
+model ImportacaoFoto {
+  id             String                     @id @default(cuid())
+  loteId         String
+  ordemOriginal  Int
+  url            String
+  mime           String
+  tamanhoBytes   Int?
+  nomeArquivo    String?
+  source         String?
+  statusUpload   ImportacaoFotoUploadStatus @default(PENDENTE)
+  ignorada       Boolean                    @default(false)
+  criadoEm       DateTime                   @default(now())
+
+  lote ImportacaoLote @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  grupoLinks ImportacaoGrupoFoto[]
+
+  @@unique([loteId, ordemOriginal])
+  @@index([loteId, ordemOriginal])
+}
+
+model ImportacaoGrupo {
+  id                     String               @id @default(cuid())
+  loteId                 String
+  ordem                  Int
+  status                 ImportacaoGrupoStatus @default(PROPOSTO)
+  confiancaAgrupamento   Float?
+  motivoRevisao          String?              @db.Text
+  ordemInicio            Int
+  ordemFim               Int
+  temFotosNaoContiguas   Boolean              @default(false)
+  criadoEm               DateTime             @default(now())
+
+  lote       ImportacaoLote        @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  fotoLinks  ImportacaoGrupoFoto[]
+  rascunho   ImportacaoRascunho?
+  aiDraftAnalyses AIDraftAnalysis[]
+
+  @@index([loteId, ordem])
+}
+
+model ImportacaoGrupoFoto {
+  id           String @id @default(cuid())
+  grupoId      String
+  fotoId       String
+  ordemNoGrupo Int
+
+  grupo ImportacaoGrupo @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  foto  ImportacaoFoto  @relation(fields: [fotoId], references: [id], onDelete: Cascade)
+
+  @@unique([grupoId, fotoId])
+  @@unique([grupoId, ordemNoGrupo])
+  @@index([fotoId])
+}
+
+model ImportacaoRascunho {
+  id               String                   @id @default(cuid())
+  grupoId          String                   @unique
+  draftAnalysisId  String?                  @unique
+  formValuesJson   Json?
+  status           ImportacaoRascunhoStatus @default(RASCUNHO)
+  pecaId           String?                  @unique
+  criadoEm         DateTime                 @default(now())
+  atualizadoEm     DateTime                 @updatedAt
+
+  grupo    ImportacaoGrupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  analysis AIDraftAnalysis? @relation(fields: [draftAnalysisId], references: [id], onDelete: SetNull)
+  peca     Peca?            @relation(fields: [pecaId], references: [id], onDelete: SetNull)
 }
 
 model AIDraftFeedback {

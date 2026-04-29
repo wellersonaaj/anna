@@ -8,6 +8,7 @@ import { healthRoutes } from "./modules/health/health.routes.js";
 import { clientRoutes } from "./modules/clients/client.routes.js";
 import { itemRoutes } from "./modules/items/item.routes.js";
 import { salesRoutes } from "./modules/sales/sales.routes.js";
+import { importacaoRoutes } from "./modules/importacoes/importacao.routes.js";
 
 export const buildServer = () => {
   const app = Fastify({
@@ -48,6 +49,7 @@ export const buildServer = () => {
 
   app.register(clientRoutes);
   app.register(itemRoutes);
+  app.register(importacaoRoutes);
   app.register(salesRoutes);
 
   return app;
