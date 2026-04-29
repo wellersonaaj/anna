@@ -81,6 +81,7 @@ export const ItemAIDraftPage = () => {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [flashSupported, setFlashSupported] = useState(true);
+  const [needsVideoActivation, setNeedsVideoActivation] = useState(false);
   const [feedbackChoice, setFeedbackChoice] = useState<"SIM" | "PARCIAL" | "NAO" | null>(null);
   const [feedbackReasons, setFeedbackReasons] = useState<ReasonCode[]>([]);
   const [pendingFeedback, setPendingFeedback] = useState<{
@@ -147,8 +148,20 @@ export const ItemAIDraftPage = () => {
       });
       streamRef.current = stream;
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        const video = videoRef.current;
+        video.srcObject = stream;
+        video.muted = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.setAttribute("playsinline", "true");
+        video.setAttribute("webkit-playsinline", "true");
+        try {
+          await video.play();
+          setNeedsVideoActivation(false);
+        } catch {
+          // iOS/PWA pode exigir toque do usuário para iniciar preview.
+          setNeedsVideoActivation(true);
+        }
       }
       setFlashSupported(true);
       setFlashOn(false);
@@ -194,6 +207,21 @@ export const ItemAIDraftPage = () => {
   const closeCamera = () => {
     stopStream();
     setCameraOpen(false);
+    setNeedsVideoActivation(false);
+  };
+
+  const activateVideoPreview = async () => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+    try {
+      await video.play();
+      setNeedsVideoActivation(false);
+      setActionError(null);
+    } catch {
+      setActionError("Não foi possível iniciar o preview da câmera. Tente fechar e abrir novamente.");
+    }
   };
 
   const handleImagePicked = async (fileList: FileList | null) => {
@@ -842,6 +870,13 @@ export const ItemAIDraftPage = () => {
             <Link to="/items/new/manual" style={{ color: "#fff", textDecoration: "underline", fontSize: 14 }}>
               Prefere sem IA? Ir para cadastro manual
             </Link>
+            {needsVideoActivation && (
+              <div style={{ marginTop: 10 }}>
+                <Button type="button" onClick={() => void activateVideoPreview()}>
+                  Toque para ativar câmera
+                </Button>
+              </div>
+            )}
           </div>
           <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
             <video ref={videoRef} playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
