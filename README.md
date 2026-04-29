@@ -89,3 +89,5 @@ No cadastro IA (`/items/new/ai`), a análise usa múltiplas fotos + contexto em 
 - `field_confidence` por campo crítico;
 - fallback determinístico para reduzir `null` em `nome`, `subcategoria` e `cor`;
 - coleta de feedback in-app para ciclo contínuo de melhoria.
+
+**Comportamento no front (resumo):** a tela abre com a câmera; o vídeo recebe a stream após o overlay existir (evita preview preto). O rascunho não fica salvo em `localStorage` entre visitas. Há várias fotos por tentativa de análise, com limite técnico de tamanho total do payload no cliente e na API. No overlay, cada captura dispara feedback visual (flash) e opcionalmente vibração; a contagem de fotos fica visível; há miniatura da última foto e ação **Revisar fotos** que fecha a câmera e leva à seção de fotos/contexto. Detalhes e ponteiros de arquivo: [`docs/00_indice_e_status.md`](docs/00_indice_e_status.md).

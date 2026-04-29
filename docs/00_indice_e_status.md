@@ -11,6 +11,7 @@ Documento de entrada para **onboarding** e para **retomar contexto** em nova ses
 - **Fotos e storage:** upload via presign S3-compatible. A API aceita **`STORAGE_*`** ou **aliases `AWS_*`** (comum no Railway): ver secção [Variáveis de ambiente](#variáveis-de-ambiente) e [`apps/api/src/config/env.ts`](../apps/api/src/config/env.ts) (`storageEnv`).
 - **IA em foto:** `POST /items/:id/fotos/:fotoId/analisar` — OpenAI visão, grava `AIAnalysis` + snapshot em `PecaFoto`. Requer `OPENAI_API_KEY`; opcional `OPENAI_VISION_MODEL` (default `gpt-4o-mini`).
 - **Cadastro com IA (rascunho local):** rota web `/items/new/ai` com múltiplas fotos + texto opcional, análise em **2 estágios** (extractor + reviewer), `detail: high`, autofill com fallback, criação do item ao concluir e feedback in-app com motivos.
+- **Cadastro IA no web (`/items/new/ai`) — comportamento atual:** abertura prioritária da câmera (`getUserMedia`); a stream é associada ao `<video>` **depois** que o overlay de câmera monta no DOM (evita preview preto em iOS/desktop). O rascunho **não** é mais persistido em `localStorage` entre visitas: ao entrar na rota o estado inicia limpo. Várias fotos por cadastro; `POST /items/analisar-rascunho` aceita várias imagens e aplica limite técnico de **tamanho total** do payload de base64 (aprox. 32 MB) para evitar falhas/timeouts. No overlay: após cada captura há **flash** visual curto, **vibração** opcional (`navigator.vibrate`), **contagem** com pluralização (“Nenhuma foto” / “1 foto” / “N fotos”), **miniatura da última foto** no rodapé e botão **Revisar fotos** que fecha a câmera e rola até a seção de fotos/contexto (`#ai-draft-fotos-section`). Implementação principal: [`apps/web/src/pages/item-ai-draft.page.tsx`](../apps/web/src/pages/item-ai-draft.page.tsx); store sem persist: [`apps/web/src/store/item-ai-draft.store.ts`](../apps/web/src/store/item-ai-draft.store.ts); validação do corpo: [`apps/api/src/modules/items/item.schemas.ts`](../apps/api/src/modules/items/item.schemas.ts) (`analyzeItemDraftSchema`).
 - **Etiqueta no rascunho IA:** quando legível, a IA agora sugere `tamanho` e `marca` automaticamente no fluxo `/items/new/ai`. `material` segue sem campo estruturado nesta fase, influenciando apenas o `nome_sugerido` via contexto.
 - **Correções recentes (Sprint fotos/IA):** normalização de `Content-Type` no presign (ex.: `audio/webm;codecs=opus` → `audio/webm`); feedback “Texto salvo.” no lote; mensagens de validação Zod no cliente; leitura de imagem para IA via `fetch` ou `GetObject` quando a URL bate com o storage configurado.
 
@@ -40,7 +41,7 @@ Base: origem onde o `apps/web` está hospedado. Paths principais:
 | Path | Tela / função |
 |------|----------------|
 | `/` | Estoque (lista, cadastro rápido, link “Fotos / fila” por peça). |
-| `/items/new/ai` | Cadastro ultra-rápido: foto + contexto, sugestão IA, revisão e conclusão. |
+| `/items/new/ai` | Cadastro ultra-rápido: câmera-first, várias fotos, contexto opcional, sugestão IA, revisão e conclusão (flash/contagem/miniatura no overlay; sem rascunho persistido entre visitas). |
 | `/items/:itemId` | Detalhe da peça: fotos (URL manual ou link para upload), fila, **Sugerir com IA** por foto. |
 | `/items/:itemId/fotos/upload` | Fluxo de lote: nota texto/voz, presign, galeria/câmera, fotos do lote, **Sugerir com IA**. |
 | `/reserve/:itemId` | Reserva. |
@@ -125,8 +126,8 @@ Resolução unificada em código: `storageEnv` em [`apps/api/src/config/env.ts`]
 | Validação presign (MIME normalizado) | `apps/api/src/modules/items/item.schemas.ts` |
 | Client HTTP + erros com `issues` | `apps/web/src/api/client.ts` |
 | API items (incl. análise de rascunho multi-foto + feedback) | `apps/web/src/api/items.ts` |
-| Rascunho local do cadastro IA | `apps/web/src/store/item-ai-draft.store.ts` |
-| Página de cadastro ultra-rápido com IA | `apps/web/src/pages/item-ai-draft.page.tsx` |
+| Estado do rascunho IA (Zustand, sem `persist` em storage) | `apps/web/src/store/item-ai-draft.store.ts` |
+| Página cadastro IA (câmera-first, overlay, UX de captura) | `apps/web/src/pages/item-ai-draft.page.tsx` |
 | Pipeline de visão 2 estágios + prompt | `apps/api/src/lib/openaiVision.ts` |
 | Persistência estendida de análise/feedback | `prisma/schema.prisma` (`AIDraftAnalysis`, `AIDraftFeedback`) |
 | Upload lote + IA | `apps/web/src/pages/item-foto-upload.page.tsx` |

@@ -24,7 +24,7 @@
 
 - Cadastro de peca (camera + revisao AI).
   - incluir acervo por `tipo + nome`, com sugestao de nomes ja cadastrados.
-  - **Parcial:** fluxo `/items/new/ai` com ate 5 fotos + texto, analise IA em 2 estagios (`extractor + reviewer`), fallback para reduzir nulls criticos, feedback in-app com motivos e metricas em `GET /ai/quality-metrics`.
+  - **Parcial / em evolucao:** fluxo `/items/new/ai` com multiplas fotos + texto, analise IA em 2 estagios (`extractor + reviewer`), fallback para reduzir nulls criticos, feedback in-app com motivos e metricas em `GET /ai/quality-metrics`. Front: câmera-first, UX de captura (flash, contagem, miniatura, Revisar fotos), rascunho sem persistencia em `localStorage`, limite tecnico de payload na analise de rascunho.
   - **Feito:** leitura de etiqueta para sugerir `tamanho` e `marca` no rascunho IA.
   - **Decisao atual:** `material` sem campo estruturado por enquanto; quando informado no contexto da dona, pode enriquecer o `nome_sugerido`.
   - Backlog de evolucao do `material`: [`04_backlog_material.md`](04_backlog_material.md).
