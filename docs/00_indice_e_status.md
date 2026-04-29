@@ -10,7 +10,7 @@ Documento de entrada para **onboarding** e para **retomar contexto** em nova ses
 - **Produção típica:** API em PaaS (ex.: Railway), front com `VITE_API_URL` apontando para a API; header `x-brecho-id` em todas as chamadas autenticadas do MVP.
 - **Fotos e storage:** upload via presign S3-compatible. A API aceita **`STORAGE_*`** ou **aliases `AWS_*`** (comum no Railway): ver secção [Variáveis de ambiente](#variáveis-de-ambiente) e [`apps/api/src/config/env.ts`](../apps/api/src/config/env.ts) (`storageEnv`).
 - **IA em foto:** `POST /items/:id/fotos/:fotoId/analisar` — OpenAI visão, grava `AIAnalysis` + snapshot em `PecaFoto`. Requer `OPENAI_API_KEY`; opcional `OPENAI_VISION_MODEL` (default `gpt-4o-mini`).
-- **Cadastro com IA (rascunho local):** rota web `/items/new/ai` com **até 5 fotos** + texto opcional, análise em **2 estágios** (extractor + reviewer), `detail: high`, autofill com fallback, criação do item ao concluir e feedback in-app com motivos.
+- **Cadastro com IA (rascunho local):** rota web `/items/new/ai` com múltiplas fotos + texto opcional, análise em **2 estágios** (extractor + reviewer), `detail: high`, autofill com fallback, criação do item ao concluir e feedback in-app com motivos.
 - **Etiqueta no rascunho IA:** quando legível, a IA agora sugere `tamanho` e `marca` automaticamente no fluxo `/items/new/ai`. `material` segue sem campo estruturado nesta fase, influenciando apenas o `nome_sugerido` via contexto.
 - **Correções recentes (Sprint fotos/IA):** normalização de `Content-Type` no presign (ex.: `audio/webm;codecs=opus` → `audio/webm`); feedback “Texto salvo.” no lote; mensagens de validação Zod no cliente; leitura de imagem para IA via `fetch` ou `GetObject` quando a URL bate com o storage configurado.
 
@@ -63,7 +63,7 @@ Header: `x-brecho-id` (MVP). JSON salvo nas rotas de escrita.
 **Itens e fotos**
 
 - `POST /items`, `GET /items`, `GET /items/:id` (inclui última `aiAnalyses` por foto, `take: 1`).
-- `POST /items/analisar-rascunho` (IA de rascunho com 1..5 fotos sem item prévio; usado no fluxo `/items/new/ai`)
+- `POST /items/analisar-rascunho` (IA de rascunho com múltiplas fotos sem item prévio; usado no fluxo `/items/new/ai`)
 - `POST /items/analisar-rascunho/:analysisId/feedback` (feedback in-app + diff passivo do resultado final)
 - `GET /ai/quality-metrics?days=30` (métricas agregadas de qualidade da IA por período)
 - `POST /items/:id/foto-lotes`, `PATCH /items/:id/foto-lotes/:loteId`

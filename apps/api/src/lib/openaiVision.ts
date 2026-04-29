@@ -51,7 +51,7 @@ export const pecaAiJsonSchema = z.object({
 export type PecaAiJson = z.infer<typeof pecaAiJsonSchema>;
 
 const SYSTEM_PROMPT_EXTRACTOR = `Voce e um assistente especialista em catalogacao de roupas/acessorios para brecho no Brasil.
-Analise 1..5 fotos da mesma peca principal e retorne APENAS JSON valido.
+Analise as fotos da mesma peca principal e retorne APENAS JSON valido.
 
 Regras:
 - sem markdown, sem comentarios.

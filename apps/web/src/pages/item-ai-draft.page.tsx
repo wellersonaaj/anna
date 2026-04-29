@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   addItemFoto,
@@ -66,14 +66,21 @@ const parseDataUrl = (
   };
 };
 
+const MAX_DRAFT_ANALYZE_BYTES = 32 * 1024 * 1024;
+
 export const ItemAIDraftPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const initializedRef = useRef(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [completedItemId, setCompletedItemId] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [flashOn, setFlashOn] = useState(false);
+  const [flashSupported, setFlashSupported] = useState(true);
   const [feedbackChoice, setFeedbackChoice] = useState<"SIM" | "PARCIAL" | "NAO" | null>(null);
   const [feedbackReasons, setFeedbackReasons] = useState<ReasonCode[]>([]);
   const [pendingFeedback, setPendingFeedback] = useState<{
@@ -119,13 +126,82 @@ export const ItemAIDraftPage = () => {
       })
   });
 
+  const stopStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    setActionError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setActionError("Câmera indisponível neste navegador. Use a galeria.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setFlashSupported(true);
+      setFlashOn(false);
+      setCameraOpen(true);
+    } catch {
+      setActionError("Não foi possível acessar a câmera. Verifique permissões ou use a galeria.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initializedRef.current) {
+      return;
+    }
+    initializedRef.current = true;
+    resetDraft();
+    void startCamera();
+  }, [resetDraft, startCamera]);
+
+  useEffect(() => {
+    return () => {
+      stopStream();
+    };
+  }, [stopStream]);
+
+  useEffect(() => {
+    if (!cameraOpen || !streamRef.current) {
+      return;
+    }
+    const track = streamRef.current.getVideoTracks()[0];
+    if (!track) {
+      return;
+    }
+    try {
+      void track.applyConstraints({
+        // @ts-expect-error torch não está em todos os typings
+        advanced: [{ torch: flashOn }]
+      });
+    } catch {
+      setFlashSupported(false);
+    }
+  }, [cameraOpen, flashOn]);
+
+  const closeCamera = () => {
+    stopStream();
+    setCameraOpen(false);
+  };
+
   const handleImagePicked = async (fileList: FileList | null) => {
     if (!fileList?.length) {
       return;
     }
     try {
-      const availableSlots = Math.max(0, 5 - images.length);
-      const files = Array.from(fileList).slice(0, availableSlots);
+      const files = Array.from(fileList);
       for (const file of files) {
         const jpeg = await resizeImageToJpeg(file);
         const dataUrl = await toDataUrl(jpeg);
@@ -137,12 +213,56 @@ export const ItemAIDraftPage = () => {
     }
   };
 
+  const captureFromVideo = async () => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    if (!width || !height) {
+      setActionError("Aguarde a câmera carregar para capturar.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setActionError("Falha ao preparar captura.");
+      return;
+    }
+    ctx.drawImage(video, 0, 0, width, height);
+    const raw = await new Promise<Blob | null>((resolve) => canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92));
+    if (!raw) {
+      setActionError("Falha ao capturar imagem.");
+      return;
+    }
+    try {
+      const jpeg = await resizeImageToJpeg(raw);
+      const dataUrl = await toDataUrl(jpeg);
+      addImageDataUrl(dataUrl);
+      setActionError(null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Não foi possível preparar a imagem capturada.");
+    }
+  };
+
   const analyzeMutation = useMutation({
     mutationFn: async () => {
       if (images.length === 0) {
         throw new Error("Selecione ao menos 1 foto para analisar.");
       }
       const parsedImages = images.map((imageDataUrl) => parseDataUrl(imageDataUrl));
+      const totalBytes = parsedImages.reduce(
+        (sum, image) => sum + Math.floor((image.base64.length * 3) / 4),
+        0
+      );
+      if (totalBytes > MAX_DRAFT_ANALYZE_BYTES) {
+        throw new Error(
+          "As fotos selecionadas estão muito pesadas para análise em lote. Remova algumas ou use imagens menores."
+        );
+      }
       return analisarFotoRascunho(brechoId, {
         images: parsedImages.map((image) => ({
           imageBase64: image.base64,
@@ -425,10 +545,10 @@ export const ItemAIDraftPage = () => {
       <Section title="1. Foto e contexto">
         <div className="stack" style={{ gap: 10 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Button type="button" onClick={() => cameraInputRef.current?.click()} disabled={images.length >= 5}>
-              Tirar foto
+            <Button type="button" onClick={() => void startCamera()}>
+              Abrir câmera
             </Button>
-            <Button type="button" onClick={() => galleryInputRef.current?.click()} disabled={images.length >= 5}>
+            <Button type="button" onClick={() => galleryInputRef.current?.click()}>
               Escolher da galeria
             </Button>
             {images.length > 0 && (
@@ -437,17 +557,6 @@ export const ItemAIDraftPage = () => {
               </Button>
             )}
           </div>
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            onChange={(event) => {
-              void handleImagePicked(event.target.files);
-              event.target.value = "";
-            }}
-          />
           <input
             ref={galleryInputRef}
             type="file"
@@ -461,7 +570,7 @@ export const ItemAIDraftPage = () => {
           />
           {images.length > 0 ? (
             <div className="stack" style={{ gap: 8 }}>
-              <p style={{ margin: 0, fontSize: 13, opacity: 0.85 }}>Fotos selecionadas: {images.length}/5</p>
+              <p style={{ margin: 0, fontSize: 13, opacity: 0.85 }}>Fotos selecionadas: {images.length}</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
                 {images.map((imageDataUrl, index) => (
                   <div key={imageDataUrl + index} style={{ position: "relative" }}>
@@ -667,6 +776,140 @@ export const ItemAIDraftPage = () => {
           )}
         </div>
       </Section>
+
+      {cameraOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            background: "#000",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          <header
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "12px 16px",
+              color: "#fff",
+              gap: 12
+            }}
+          >
+            <button
+              type="button"
+              onClick={closeCamera}
+              style={{
+                background: "rgba(255,255,255,0.15)",
+                border: 0,
+                color: "#fff",
+                borderRadius: 999,
+                width: 44,
+                height: 44,
+                cursor: "pointer"
+              }}
+              aria-label="Fechar câmera"
+            >
+              ✕
+            </button>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              <span style={{ fontWeight: 600 }}>Capturar fotos com IA</span>
+              <small style={{ opacity: 0.85 }}>{images.length} fotos selecionadas</small>
+            </div>
+            <button
+              type="button"
+              disabled={!flashSupported}
+              title={flashSupported ? "Alternar flash" : "Flash não disponível neste aparelho ou navegador."}
+              onClick={() => setFlashOn((value) => !value)}
+              style={{
+                background: flashOn ? "#b60e3d" : "rgba(255,255,255,0.15)",
+                border: 0,
+                color: "#fff",
+                borderRadius: 999,
+                width: 44,
+                height: 44,
+                cursor: flashSupported ? "pointer" : "not-allowed",
+                opacity: flashSupported ? 1 : 0.4
+              }}
+              aria-label="Alternar flash"
+            >
+              ⚡
+            </button>
+          </header>
+          <div style={{ padding: "0 16px 12px" }}>
+            <Link to="/items/new/manual" style={{ color: "#fff", textDecoration: "underline", fontSize: 14 }}>
+              Prefere sem IA? Ir para cadastro manual
+            </Link>
+          </div>
+          <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
+            <video ref={videoRef} playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              <div
+                style={{
+                  width: "72vmin",
+                  height: "72vmin",
+                  maxWidth: 320,
+                  maxHeight: 320,
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  borderRadius: "2rem"
+                }}
+              />
+            </div>
+          </div>
+          <footer
+            style={{
+              padding: "24px 32px 36px",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 48,
+              background: "linear-gradient(transparent, rgba(0,0,0,0.85))"
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.25)",
+                color: "#fff",
+                borderRadius: 999,
+                width: 56,
+                height: 56,
+                cursor: "pointer"
+              }}
+              title="Galeria"
+              aria-label="Escolher foto da galeria"
+            >
+              🖼
+            </button>
+            <button
+              type="button"
+              onClick={() => void captureFromVideo()}
+              style={{
+                width: 76,
+                height: 76,
+                borderRadius: "50%",
+                border: "3px solid #fff",
+                background: "radial-gradient(circle, #b60e3d 62%, transparent 63%)",
+                cursor: "pointer"
+              }}
+              aria-label="Capturar foto"
+            />
+          </footer>
+        </div>
+      )}
     </AppShell>
   );
 };

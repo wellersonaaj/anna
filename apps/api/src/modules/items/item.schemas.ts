@@ -53,10 +53,26 @@ const draftImageSchema = z.object({
   imageMime: z.enum(["image/jpeg", "image/png"])
 });
 
-export const analyzeItemDraftSchema = z.object({
-  images: z.array(draftImageSchema).min(1).max(5),
-  textoNota: z.string().trim().max(8000).optional()
-});
+const maxDraftAnalyzePayloadBytes = 32 * 1024 * 1024;
+
+export const analyzeItemDraftSchema = z
+  .object({
+    images: z.array(draftImageSchema).min(1),
+    textoNota: z.string().trim().max(8000).optional()
+  })
+  .superRefine((data, ctx) => {
+    const approxPayloadBytes = data.images.reduce(
+      (sum, image) => sum + Math.floor((image.imageBase64.length * 3) / 4),
+      0
+    );
+    if (approxPayloadBytes > maxDraftAnalyzePayloadBytes) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Payload de imagens muito grande para análise em lote.",
+        path: ["images"]
+      });
+    }
+  });
 
 export const submitDraftFeedbackSchema = z.object({
   helpfulness: z.enum(["SIM", "PARCIAL", "NAO"]),
