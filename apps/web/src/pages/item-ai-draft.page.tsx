@@ -68,6 +68,16 @@ const parseDataUrl = (
 
 const MAX_DRAFT_ANALYZE_BYTES = 32 * 1024 * 1024;
 
+const formatPhotoCountLabel = (count: number): string => {
+  if (count === 0) {
+    return "Nenhuma foto";
+  }
+  if (count === 1) {
+    return "1 foto";
+  }
+  return `${count} fotos`;
+};
+
 export const ItemAIDraftPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const navigate = useNavigate();
@@ -76,12 +86,17 @@ export const ItemAIDraftPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const initializedRef = useRef(false);
+  const fotoSectionRef = useRef<HTMLDivElement>(null);
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shutterAnimTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [completedItemId, setCompletedItemId] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [flashSupported, setFlashSupported] = useState(true);
   const [needsVideoActivation, setNeedsVideoActivation] = useState(false);
+  const [captureFlashVisible, setCaptureFlashVisible] = useState(false);
+  const [shutterPressed, setShutterPressed] = useState(false);
   const [feedbackChoice, setFeedbackChoice] = useState<"SIM" | "PARCIAL" | "NAO" | null>(null);
   const [feedbackReasons, setFeedbackReasons] = useState<ReasonCode[]>([]);
   const [pendingFeedback, setPendingFeedback] = useState<{
@@ -232,8 +247,34 @@ export const ItemAIDraftPage = () => {
   useEffect(() => {
     return () => {
       stopStream();
+      if (flashTimeoutRef.current) {
+        clearTimeout(flashTimeoutRef.current);
+        flashTimeoutRef.current = null;
+      }
+      if (shutterAnimTimeoutRef.current) {
+        clearTimeout(shutterAnimTimeoutRef.current);
+        shutterAnimTimeoutRef.current = null;
+      }
     };
   }, [stopStream]);
+
+  const triggerCaptureFeedback = useCallback(() => {
+    if (flashTimeoutRef.current) {
+      clearTimeout(flashTimeoutRef.current);
+    }
+    setCaptureFlashVisible(true);
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      try {
+        navigator.vibrate(15);
+      } catch {
+        // ignore unsupported vibrate
+      }
+    }
+    flashTimeoutRef.current = window.setTimeout(() => {
+      setCaptureFlashVisible(false);
+      flashTimeoutRef.current = null;
+    }, 160);
+  }, []);
 
   useEffect(() => {
     if (!cameraOpen) {
@@ -271,6 +312,13 @@ export const ItemAIDraftPage = () => {
     setNeedsVideoActivation(false);
   };
 
+  const continueFromCameraToReview = () => {
+    closeCamera();
+    window.requestAnimationFrame(() => {
+      fotoSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const activateVideoPreview = async () => {
     try {
       await playVideoElement();
@@ -285,10 +333,15 @@ export const ItemAIDraftPage = () => {
     }
     try {
       const files = Array.from(fileList);
+      let added = 0;
       for (const file of files) {
         const jpeg = await resizeImageToJpeg(file);
         const dataUrl = await toDataUrl(jpeg);
         addImageDataUrl(dataUrl);
+        added += 1;
+      }
+      if (added > 0 && cameraOpen) {
+        triggerCaptureFeedback();
       }
       setActionError(null);
     } catch (error) {
@@ -297,6 +350,15 @@ export const ItemAIDraftPage = () => {
   };
 
   const captureFromVideo = async () => {
+    if (shutterAnimTimeoutRef.current) {
+      clearTimeout(shutterAnimTimeoutRef.current);
+    }
+    setShutterPressed(true);
+    shutterAnimTimeoutRef.current = window.setTimeout(() => {
+      setShutterPressed(false);
+      shutterAnimTimeoutRef.current = null;
+    }, 150);
+
     const video = videoRef.current;
     if (!video) {
       return;
@@ -325,6 +387,7 @@ export const ItemAIDraftPage = () => {
       const jpeg = await resizeImageToJpeg(raw);
       const dataUrl = await toDataUrl(jpeg);
       addImageDataUrl(dataUrl);
+      triggerCaptureFeedback();
       setActionError(null);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Não foi possível preparar a imagem capturada.");
@@ -626,7 +689,7 @@ export const ItemAIDraftPage = () => {
       )}
 
       <Section title="1. Foto e contexto">
-        <div className="stack" style={{ gap: 10 }}>
+        <div id="ai-draft-fotos-section" ref={fotoSectionRef} className="stack" style={{ gap: 10 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Button type="button" onClick={() => void startCamera()}>
               Abrir câmera
@@ -871,6 +934,35 @@ export const ItemAIDraftPage = () => {
             flexDirection: "column"
           }}
         >
+          <div
+            aria-hidden={!captureFlashVisible}
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 60,
+              pointerEvents: "none",
+              background: "rgba(255,255,255,0.92)",
+              opacity: captureFlashVisible ? 1 : 0,
+              transition: "opacity 70ms ease-out"
+            }}
+          />
+          <span
+            aria-live="polite"
+            aria-atomic="true"
+            style={{
+              position: "absolute",
+              width: 1,
+              height: 1,
+              padding: 0,
+              margin: -1,
+              overflow: "hidden",
+              clip: "rect(0,0,0,0)",
+              whiteSpace: "nowrap",
+              border: 0
+            }}
+          >
+            {formatPhotoCountLabel(images.length)}
+          </span>
           <header
             style={{
               display: "flex",
@@ -897,9 +989,23 @@ export const ItemAIDraftPage = () => {
             >
               ✕
             </button>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-              <span style={{ fontWeight: 600 }}>Capturar fotos com IA</span>
-              <small style={{ opacity: 0.85 }}>{images.length} fotos selecionadas</small>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
+              <span style={{ fontWeight: 600, textAlign: "center" }}>Capturar fotos com IA</span>
+              <span
+                style={{
+                  display: "inline-block",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: 0.02,
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.18)",
+                  color: "#fff",
+                  border: "1px solid rgba(255,255,255,0.35)"
+                }}
+              >
+                {formatPhotoCountLabel(images.length)}
+              </span>
             </div>
             <button
               type="button"
@@ -921,12 +1027,32 @@ export const ItemAIDraftPage = () => {
               ⚡
             </button>
           </header>
-          <div style={{ padding: "0 16px 12px" }}>
-            <Link to="/items/new/manual" style={{ color: "#fff", textDecoration: "underline", fontSize: 14 }}>
-              Prefere sem IA? Ir para cadastro manual
-            </Link>
+          <div style={{ padding: "0 16px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+              <Link to="/items/new/manual" style={{ color: "#fff", textDecoration: "underline", fontSize: 14 }}>
+                Prefere sem IA? Ir para cadastro manual
+              </Link>
+              {images.length > 0 && (
+                <button
+                  type="button"
+                  onClick={continueFromCameraToReview}
+                  style={{
+                    background: "rgba(255,255,255,0.2)",
+                    border: "1px solid rgba(255,255,255,0.45)",
+                    color: "#fff",
+                    borderRadius: 999,
+                    padding: "8px 16px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  Revisar fotos
+                </button>
+              )}
+            </div>
             {needsVideoActivation && (
-              <div style={{ marginTop: 10 }}>
+              <div>
                 <Button type="button" onClick={() => void activateVideoPreview()}>
                   Toque para ativar câmera
                 </Button>
@@ -934,6 +1060,24 @@ export const ItemAIDraftPage = () => {
             )}
           </div>
           <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
+            <div
+              style={{
+                position: "absolute",
+                top: 12,
+                right: 12,
+                zIndex: 55,
+                fontSize: 15,
+                fontWeight: 800,
+                padding: "8px 14px",
+                borderRadius: 12,
+                background: "rgba(0,0,0,0.55)",
+                color: "#fff",
+                border: "1px solid rgba(255,255,255,0.25)",
+                pointerEvents: "none"
+              }}
+            >
+              {formatPhotoCountLabel(images.length)}
+            </div>
             <video ref={videoRef} playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             <div
               style={{
@@ -967,23 +1111,41 @@ export const ItemAIDraftPage = () => {
               background: "linear-gradient(transparent, rgba(0,0,0,0.85))"
             }}
           >
-            <button
-              type="button"
-              onClick={() => galleryInputRef.current?.click()}
-              style={{
-                background: "rgba(255,255,255,0.12)",
-                border: "1px solid rgba(255,255,255,0.25)",
-                color: "#fff",
-                borderRadius: 999,
-                width: 56,
-                height: 56,
-                cursor: "pointer"
-              }}
-              title="Galeria"
-              aria-label="Escolher foto da galeria"
-            >
-              🖼
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+              {images.length > 0 ? (
+                <img
+                  src={images[images.length - 1]}
+                  alt="Última foto capturada"
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 12,
+                    objectFit: "cover",
+                    border: "2px solid rgba(255,255,255,0.45)",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.35)"
+                  }}
+                />
+              ) : (
+                <span style={{ width: 56, height: 56 }} aria-hidden />
+              )}
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                style={{
+                  background: "rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  color: "#fff",
+                  borderRadius: 999,
+                  width: 56,
+                  height: 56,
+                  cursor: "pointer"
+                }}
+                title="Galeria"
+                aria-label="Escolher foto da galeria"
+              >
+                🖼
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => void captureFromVideo()}
@@ -993,10 +1155,34 @@ export const ItemAIDraftPage = () => {
                 borderRadius: "50%",
                 border: "3px solid #fff",
                 background: "radial-gradient(circle, #b60e3d 62%, transparent 63%)",
-                cursor: "pointer"
+                cursor: "pointer",
+                transform: shutterPressed ? "scale(0.94)" : "scale(1)",
+                transition: "transform 120ms ease-out"
               }}
               aria-label="Capturar foto"
             />
+            {images.length > 0 ? (
+              <button
+                type="button"
+                onClick={continueFromCameraToReview}
+                style={{
+                  background: "rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  color: "#fff",
+                  borderRadius: 999,
+                  padding: "10px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  maxWidth: 120,
+                  lineHeight: 1.2
+                }}
+              >
+                Revisar fotos
+              </button>
+            ) : (
+              <span style={{ width: 120 }} aria-hidden />
+            )}
           </footer>
         </div>
       )}
