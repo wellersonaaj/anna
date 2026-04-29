@@ -72,7 +72,6 @@ export const ItemAIDraftPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -83,7 +82,6 @@ export const ItemAIDraftPage = () => {
   const [flashOn, setFlashOn] = useState(false);
   const [flashSupported, setFlashSupported] = useState(true);
   const [needsVideoActivation, setNeedsVideoActivation] = useState(false);
-  const [previewUnavailable, setPreviewUnavailable] = useState(false);
   const [feedbackChoice, setFeedbackChoice] = useState<"SIM" | "PARCIAL" | "NAO" | null>(null);
   const [feedbackReasons, setFeedbackReasons] = useState<ReasonCode[]>([]);
   const [pendingFeedback, setPendingFeedback] = useState<{
@@ -186,9 +184,23 @@ export const ItemAIDraftPage = () => {
     throw lastError ?? new Error("Falha ao acessar câmera.");
   }, []);
 
+  const attachStreamToVideo = useCallback(async () => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) {
+      return;
+    }
+    video.srcObject = stream;
+    video.muted = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("webkit-playsinline", "true");
+    await playVideoElement();
+  }, [playVideoElement]);
+
   const startCamera = useCallback(async () => {
     setActionError(null);
-    setPreviewUnavailable(false);
     setNeedsVideoActivation(false);
     stopStream();
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -199,36 +211,14 @@ export const ItemAIDraftPage = () => {
       const stream = await getCameraStream();
       streamRef.current = stream;
       setCameraOpen(true);
-      if (videoRef.current) {
-        const video = videoRef.current;
-        video.srcObject = stream;
-        video.muted = true;
-        video.autoplay = true;
-        video.playsInline = true;
-        video.setAttribute("playsinline", "true");
-        video.setAttribute("webkit-playsinline", "true");
-        await playVideoElement();
-        window.setTimeout(() => {
-          const activeVideo = videoRef.current;
-          if (!activeVideo || !streamRef.current) {
-            return;
-          }
-          if (activeVideo.videoWidth === 0 || activeVideo.readyState < 2) {
-            setPreviewUnavailable(true);
-            setNeedsVideoActivation(false);
-            setActionError("Preview indisponível neste navegador. Use a câmera nativa.");
-          }
-        }, 1400);
-      }
       const track = stream.getVideoTracks()[0];
       const caps = (track?.getCapabilities?.() ?? {}) as { torch?: boolean };
       setFlashSupported(Boolean(caps.torch));
       setFlashOn(false);
     } catch {
       setActionError("Não foi possível acessar a câmera. Verifique permissões ou use a galeria.");
-      setPreviewUnavailable(true);
     }
-  }, [getCameraStream, playVideoElement, stopStream]);
+  }, [getCameraStream, stopStream]);
 
   useEffect(() => {
     if (initializedRef.current) {
@@ -244,6 +234,13 @@ export const ItemAIDraftPage = () => {
       stopStream();
     };
   }, [stopStream]);
+
+  useEffect(() => {
+    if (!cameraOpen) {
+      return;
+    }
+    void attachStreamToVideo();
+  }, [attachStreamToVideo, cameraOpen]);
 
   useEffect(() => {
     if (!cameraOpen || !streamRef.current) {
@@ -272,7 +269,6 @@ export const ItemAIDraftPage = () => {
     stopStream();
     setCameraOpen(false);
     setNeedsVideoActivation(false);
-    setPreviewUnavailable(false);
   };
 
   const activateVideoPreview = async () => {
@@ -281,10 +277,6 @@ export const ItemAIDraftPage = () => {
     } catch {
       setActionError("Não foi possível iniciar o preview da câmera. Tente fechar e abrir novamente.");
     }
-  };
-
-  const openNativeCameraCapture = () => {
-    cameraInputRef.current?.click();
   };
 
   const handleImagePicked = async (fileList: FileList | null) => {
@@ -649,17 +641,6 @@ export const ItemAIDraftPage = () => {
             )}
           </div>
           <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            onChange={(event) => {
-              void handleImagePicked(event.target.files);
-              event.target.value = "";
-            }}
-          />
-          <input
             ref={galleryInputRef}
             type="file"
             accept="image/*"
@@ -951,13 +932,6 @@ export const ItemAIDraftPage = () => {
                 </Button>
               </div>
             )}
-            {previewUnavailable && (
-              <div style={{ marginTop: 10 }}>
-                <Button type="button" onClick={openNativeCameraCapture}>
-                  Usar câmera nativa
-                </Button>
-              </div>
-            )}
           </div>
           <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
             <video ref={videoRef} playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -1012,7 +986,7 @@ export const ItemAIDraftPage = () => {
             </button>
             <button
               type="button"
-              onClick={() => (previewUnavailable ? openNativeCameraCapture() : void captureFromVideo())}
+              onClick={() => void captureFromVideo()}
               style={{
                 width: 76,
                 height: 76,
@@ -1021,7 +995,7 @@ export const ItemAIDraftPage = () => {
                 background: "radial-gradient(circle, #b60e3d 62%, transparent 63%)",
                 cursor: "pointer"
               }}
-              aria-label={previewUnavailable ? "Abrir câmera nativa" : "Capturar foto"}
+              aria-label="Capturar foto"
             />
           </footer>
         </div>
