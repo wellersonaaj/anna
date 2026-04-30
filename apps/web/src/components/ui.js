@@ -1,20 +1,9 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { logout } from "../api/auth";
-import { useSessionStore } from "../store/session.store";
+import { Link } from "react-router-dom";
 const cx = (...parts) => parts.filter(Boolean).join(" ");
 export const AppShell = ({ children, showTopBar = false, topBarTitle = "Agente", topBarAction, showBottomNav = false, activeTab = "estoque", fabLink = "/items/new", maxWidthClass = "max-w-5xl" }) => {
-    const navigate = useNavigate();
-    const activeBrecho = useSessionStore((state) => state.activeBrecho);
-    const clearSession = useSessionStore((state) => state.clearSession);
-    const title = topBarTitle.startsWith("Agente") ? activeBrecho?.nome ?? topBarTitle : topBarTitle;
-    const onLogout = async () => {
-        await logout().catch(() => undefined);
-        clearSession();
-        navigate("/login", { replace: true });
-    };
-    return (_jsxs("div", { className: "min-h-screen bg-background text-on-background", children: [showTopBar && (_jsx("header", { className: "fixed inset-x-0 top-0 z-40 border-b border-rose-100 bg-[#fff8f7]/90 backdrop-blur-md", children: _jsxs("div", { className: cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass), children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("div", { className: "h-9 w-9 overflow-hidden rounded-full bg-surface-container-high" }), _jsx("span", { className: "font-headline text-lg font-bold text-primary", children: title })] }), _jsxs("div", { className: "flex items-center gap-3", children: [topBarAction, _jsx("button", { type: "button", onClick: onLogout, className: "text-xs font-bold text-on-surface-variant underline", children: "Sair" })] })] }) })), _jsx("div", { className: cx("mx-auto px-4 pb-8 pt-6", maxWidthClass, showTopBar && "pt-24", showBottomNav && "pb-36"), children: _jsx("div", { className: "flex flex-col gap-4", children: children }) }), showBottomNav && _jsx(BottomNav, { activeTab: activeTab, fabLink: fabLink })] }));
+    return (_jsxs("div", { className: "min-h-screen bg-background text-on-background", children: [showTopBar && (_jsx("header", { className: "fixed inset-x-0 top-0 z-40 border-b border-rose-100 bg-[#fff8f7]/90 backdrop-blur-md", children: _jsxs("div", { className: cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass), children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("div", { className: "h-9 w-9 overflow-hidden rounded-full bg-surface-container-high" }), _jsx("span", { className: "font-headline text-lg font-bold text-primary", children: topBarTitle })] }), _jsx("div", { children: topBarAction })] }) })), _jsx("div", { className: cx("mx-auto px-4 pb-8 pt-6", maxWidthClass, showTopBar && "pt-24", showBottomNav && "pb-36"), children: _jsx("div", { className: "flex flex-col gap-4", children: children }) }), showBottomNav && _jsx(BottomNav, { activeTab: activeTab, fabLink: fabLink })] }));
 };
 export const Section = ({ title, children }) => {
     return (_jsxs("section", { className: "rounded-3xl border border-rose-100 bg-white p-4 shadow-sm", children: [_jsx("h2", { className: "m-0 mb-3 font-headline text-lg font-extrabold tracking-tight", children: title }), children] }));

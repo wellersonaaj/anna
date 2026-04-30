@@ -7,9 +7,7 @@ import type {
   SelectHTMLAttributes
 } from "react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { logout } from "../api/auth";
-import { useSessionStore } from "../store/session.store";
+import { Link } from "react-router-dom";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
@@ -33,16 +31,6 @@ export const AppShell = ({
   fabLink?: string;
   maxWidthClass?: string;
 }>) => {
-  const navigate = useNavigate();
-  const activeBrecho = useSessionStore((state) => state.activeBrecho);
-  const clearSession = useSessionStore((state) => state.clearSession);
-  const title = topBarTitle.startsWith("Agente") ? activeBrecho?.nome ?? topBarTitle : topBarTitle;
-  const onLogout = async () => {
-    await logout().catch(() => undefined);
-    clearSession();
-    navigate("/login", { replace: true });
-  };
-
   return (
     <div className="min-h-screen bg-background text-on-background">
       {showTopBar && (
@@ -50,14 +38,9 @@ export const AppShell = ({
           <div className={cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass)}>
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 overflow-hidden rounded-full bg-surface-container-high" />
-              <span className="font-headline text-lg font-bold text-primary">{title}</span>
+              <span className="font-headline text-lg font-bold text-primary">{topBarTitle}</span>
             </div>
-            <div className="flex items-center gap-3">
-              {topBarAction}
-              <button type="button" onClick={onLogout} className="text-xs font-bold text-on-surface-variant underline">
-                Sair
-              </button>
-            </div>
+            <div>{topBarAction}</div>
           </div>
         </header>
       )}
