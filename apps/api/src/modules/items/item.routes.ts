@@ -12,7 +12,9 @@ import {
   presignFotoLoteSchema,
   reserveItemSchema,
   sellItemSchema,
-  submitDraftFeedbackSchema
+  submitDraftFeedbackSchema,
+  updateItemSchema,
+  updateItemStatusSchema
 } from "./item.schemas.js";
 import { itemService } from "./item.service.js";
 
@@ -104,6 +106,30 @@ export const itemRoutes = async (app: FastifyInstance): Promise<void> => {
       const payload = createItemSchema.parse(request.body);
       const item = await itemService.create(app.prisma, request.brechoId, payload);
       return reply.code(201).send(item);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.patch("/items/:id", async (request, reply) => {
+    try {
+      const params = request.params as { id: string };
+      const payload = updateItemSchema.parse(request.body);
+      const item = await itemService.update(app.prisma, request.brechoId, params.id, payload);
+      return reply.send(item);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.post("/items/:id/status", async (request, reply) => {
+    try {
+      const params = request.params as { id: string };
+      const payload = updateItemStatusSchema.parse(request.body);
+      const item = await itemService.updateStatus(app.prisma, request.brechoId, params.id, payload.status);
+      return reply.send(item);
     } catch (error) {
       const normalized = handleError(error, app);
       return reply.code(normalized.statusCode).send(normalized.body);

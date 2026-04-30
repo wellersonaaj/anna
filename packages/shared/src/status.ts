@@ -10,7 +10,7 @@ export type ItemStatus = (typeof itemStatus)[keyof typeof itemStatus];
 
 const allowedTransitions: Record<ItemStatus, ItemStatus[]> = {
   DISPONIVEL: [itemStatus.RESERVADO, itemStatus.VENDIDO, itemStatus.INDISPONIVEL],
-  RESERVADO: [itemStatus.VENDIDO, itemStatus.DISPONIVEL],
+  RESERVADO: [itemStatus.VENDIDO, itemStatus.DISPONIVEL, itemStatus.INDISPONIVEL],
   VENDIDO: [itemStatus.ENTREGUE],
   ENTREGUE: [],
   INDISPONIVEL: [itemStatus.DISPONIVEL]

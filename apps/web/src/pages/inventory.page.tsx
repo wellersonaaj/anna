@@ -4,13 +4,14 @@ import { Link } from "react-router-dom";
 import { countImportacoesPendentes } from "../api/importacoes";
 import { listItems, type Item, type ItemCategoria } from "../api/items";
 import { useSessionStore } from "../store/session.store";
-import { AppShell, Input, PillButton, ProductCard, formatCurrency } from "../components/ui";
+import { AppShell, Input, PhotoLightbox, PillButton, ProductCard, formatCurrency } from "../components/ui";
 
 export const InventoryPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const [filterStatus, setFilterStatus] = useState<"" | Item["status"]>("");
   const [filterCategoria, setFilterCategoria] = useState<"" | ItemCategoria>("");
   const [filterSearch, setFilterSearch] = useState("");
+  const [expandedItem, setExpandedItem] = useState<Item | null>(null);
 
   const listFilters = useMemo(
     () => ({
@@ -129,14 +130,26 @@ export const InventoryPage = () => {
                 item={item}
                 subtitle={`${item.categoria.replaceAll("_", " ")} / ${item.subcategoria}`}
                 priceLabel={formatCurrency(item.precoVenda)}
+                onImageClick={
+                  item.fotoCapaUrl
+                    ? () => {
+                        setExpandedItem(item);
+                      }
+                    : undefined
+                }
               >
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Link className="text-xs font-bold text-on-surface-variant underline" to={`/items/${item.id}`}>
-                    Abrir
+                    Ver detalhes
                   </Link>
                   {(item.status === "DISPONIVEL" || item.status === "RESERVADO") && (
                     <Link className="text-xs font-bold text-primary underline" to={`/sell/${item.id}`}>
                       Vender
+                    </Link>
+                  )}
+                  {(item.status === "DISPONIVEL" || item.status === "RESERVADO") && (
+                    <Link className="text-xs font-bold text-primary underline" to={`/reserve/${item.id}`}>
+                      {item.status === "RESERVADO" ? "Adicionar à fila" : "Reservar"}
                     </Link>
                   )}
                 </div>
@@ -148,6 +161,14 @@ export const InventoryPage = () => {
         <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
           Nenhuma peça encontrada com os filtros atuais.
         </p>
+      )}
+      {expandedItem?.fotoCapaUrl && (
+        <PhotoLightbox
+          photos={[{ id: expandedItem.id, url: expandedItem.fotoCapaUrl, alt: `Foto da peça ${expandedItem.nome}` }]}
+          initialIndex={0}
+          title={expandedItem.nome}
+          onClose={() => setExpandedItem(null)}
+        />
       )}
     </AppShell>
   );

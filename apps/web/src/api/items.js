@@ -16,6 +16,20 @@ export const listItems = async (brechoId, filters) => {
 export const getItem = async (brechoId, itemId) => {
     return request(`/items/${itemId}`, { brechoId });
 };
+export const updateItem = async (brechoId, itemId, payload) => {
+    return request(`/items/${itemId}`, {
+        method: "PATCH",
+        brechoId,
+        body: payload
+    });
+};
+export const updateItemStatus = async (brechoId, itemId, status) => {
+    return request(`/items/${itemId}/status`, {
+        method: "POST",
+        brechoId,
+        body: { status }
+    });
+};
 export const addItemFoto = async (brechoId, itemId, payload) => {
     return request(`/items/${itemId}/fotos`, {
         method: "POST",

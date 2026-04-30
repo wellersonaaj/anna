@@ -274,29 +274,38 @@ export const ProductCard = ({
   item,
   subtitle,
   priceLabel,
-  children
+  children,
+  onImageClick
 }: {
   item: { nome: string; status: keyof typeof statusColorMap; fotoCapaUrl?: string | null };
   subtitle: string;
   priceLabel?: string;
   children?: ReactNode;
+  onImageClick?: () => void;
 }) => {
   const [imageBroken, setImageBroken] = useState(false);
   const hasImage = Boolean(item.fotoCapaUrl) && !imageBroken;
+  const image = hasImage ? (
+    <img
+      src={item.fotoCapaUrl ?? undefined}
+      alt={`Foto da peça ${item.nome}`}
+      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+      loading="lazy"
+      onError={() => setImageBroken(true)}
+    />
+  ) : (
+    <div className="flex h-full w-full items-center justify-center text-xs font-bold text-outline">Sem foto</div>
+  );
 
   return (
     <article className="group">
       <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low">
-        {hasImage ? (
-          <img
-            src={item.fotoCapaUrl ?? undefined}
-            alt={`Foto da peça ${item.nome}`}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-            loading="lazy"
-            onError={() => setImageBroken(true)}
-          />
+        {onImageClick && hasImage ? (
+          <button type="button" onClick={onImageClick} className="block h-full w-full cursor-zoom-in p-0">
+            {image}
+          </button>
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs font-bold text-outline">Sem foto</div>
+          image
         )}
         <div className="absolute left-3 top-3">
           <ItemStatusTone status={item.status} />
@@ -307,6 +316,78 @@ export const ProductCard = ({
       {priceLabel && <p className="text-sm font-bold text-on-background">{priceLabel}</p>}
       {children}
     </article>
+  );
+};
+
+export const PhotoLightbox = ({
+  photos,
+  initialIndex,
+  title,
+  onClose
+}: {
+  photos: Array<{ id: string; url: string; alt?: string }>;
+  initialIndex: number;
+  title: string;
+  onClose: () => void;
+}) => {
+  const [index, setIndex] = useState(initialIndex);
+  const total = photos.length;
+  const photo = photos[index];
+
+  if (!photo) {
+    return null;
+  }
+
+  const goTo = (nextIndex: number) => {
+    setIndex((nextIndex + total) % total);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex flex-col bg-black/90 p-4 text-white"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <strong className="block text-sm">{title}</strong>
+          <span className="text-xs text-white/70">
+            {index + 1} de {total}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white"
+        >
+          Fechar
+        </button>
+      </div>
+      <div className="flex min-h-0 flex-1 items-center justify-center gap-2">
+        {total > 1 && (
+          <button
+            type="button"
+            onClick={() => goTo(index - 1)}
+            className="rounded-full bg-white/10 px-3 py-3 text-2xl font-bold"
+            aria-label="Foto anterior"
+          >
+            ‹
+          </button>
+        )}
+        <img src={photo.url} alt={photo.alt ?? title} className="max-h-full min-w-0 rounded-2xl object-contain" />
+        {total > 1 && (
+          <button
+            type="button"
+            onClick={() => goTo(index + 1)}
+            className="rounded-full bg-white/10 px-3 py-3 text-2xl font-bold"
+            aria-label="Próxima foto"
+          >
+            ›
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 

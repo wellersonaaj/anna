@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { searchClients } from "../api/clients";
-import { getItem, reserveItem } from "../api/items";
+import { getItem, joinItemFila } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
 const reserveFormSchema = z.object({
@@ -63,7 +63,7 @@ export const ReservePage = () => {
             if (!itemId) {
                 throw new Error("Peça não informada.");
             }
-            return reserveItem(brechoId, itemId, {
+            return joinItemFila(brechoId, itemId, {
                 cliente: {
                     nome: data.nome.trim(),
                     whatsapp: data.whatsapp?.trim() || undefined,
@@ -78,7 +78,9 @@ export const ReservePage = () => {
         }
     });
     const item = itemQuery.data;
-    return (_jsxs(AppShell, { children: [_jsxs("header", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }, children: [_jsx(Link, { to: "/", style: { color: "#5a4042", textDecoration: "none" }, children: "\u2190 Voltar" }), _jsx("h1", { style: { margin: 0, fontSize: "1.25rem" }, children: "Reserva" })] }), _jsx("p", { style: { marginTop: 0, color: "#5a4042", maxWidth: 360 }, children: "Busque um cliente ou cadastre um novo" }), _jsxs(Section, { title: "Buscar cliente existente", children: [_jsx("div", { style: { position: "relative" }, children: _jsx(Input, { placeholder: "Buscar cliente existente...", value: searchDraft, onChange: (event) => setSearchDraft(event.target.value), style: { paddingLeft: 12 } }) }), clientsQuery.data && clientsQuery.data.length > 0 && (_jsx("ul", { style: {
+    const itemPhoto = item?.fotos?.[0]?.url ?? item?.fotoCapaUrl ?? null;
+    const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
+    return (_jsxs(AppShell, { children: [_jsxs("header", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }, children: [_jsx(Link, { to: "/", style: { color: "#5a4042", textDecoration: "none" }, children: "\u2190 Voltar" }), _jsx("h1", { style: { margin: 0, fontSize: "1.25rem" }, children: item?.status === "RESERVADO" ? "Adicionar à fila" : "Reserva" })] }), _jsx("p", { style: { marginTop: 0, color: "#5a4042", maxWidth: 360 }, children: "Busque um cliente ou cadastre um novo" }), _jsxs(Section, { title: "Buscar cliente existente", children: [_jsx("div", { style: { position: "relative" }, children: _jsx(Input, { placeholder: "Buscar cliente existente...", value: searchDraft, onChange: (event) => setSearchDraft(event.target.value), style: { paddingLeft: 12 } }) }), clientsQuery.data && clientsQuery.data.length > 0 && (_jsx("ul", { style: {
                             listStyle: "none",
                             margin: "12px 0 0",
                             padding: 0,
@@ -114,7 +116,7 @@ export const ReservePage = () => {
                                     background: "#fee1e3",
                                     borderRadius: 16,
                                     marginTop: 8
-                                }, children: [_jsx("div", { style: {
+                                }, children: [itemPhoto ? (_jsx("img", { src: itemPhoto, alt: `Foto da peça ${item.nome}`, style: { width: 80, height: 96, borderRadius: 12, objectFit: "cover", flexShrink: 0 } })) : (_jsx("div", { style: {
                                             width: 80,
                                             height: 96,
                                             borderRadius: 12,
@@ -125,7 +127,11 @@ export const ReservePage = () => {
                                             justifyContent: "center",
                                             fontSize: 11,
                                             color: "#5a4042"
-                                        }, children: "Foto" }), _jsxs("div", { children: [_jsx("div", { style: { fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", color: "#b60e3d" }, children: "RESERVANDO ITEM" }), _jsx("h3", { style: { margin: "4px 0", fontSize: "1.1rem" }, children: item.nome }), _jsx("div", { style: { fontSize: 13, fontWeight: 700 }, children: formatPreco(item.precoVenda) })] })] })), _jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }, children: [_jsx(Button, { type: "submit", disabled: reserveMutation.isPending || !item, children: reserveMutation.isPending ? "Confirmando..." : "Confirmar reserva" }), _jsx("button", { type: "button", onClick: () => navigate(-1), style: {
+                                        }, children: "Foto" })), _jsxs("div", { children: [_jsx("div", { style: { fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", color: "#b60e3d" }, children: item.status === "RESERVADO" ? "ADICIONANDO À FILA" : "RESERVANDO ITEM" }), _jsx("h3", { style: { margin: "4px 0", fontSize: "1.1rem" }, children: item.nome }), _jsx("div", { style: { fontSize: 13, fontWeight: 700 }, children: formatPreco(item.precoVenda) })] })] })), _jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }, children: [_jsx(Button, { type: "submit", disabled: reserveMutation.isPending || !item || !canQueue, children: reserveMutation.isPending
+                                            ? "Confirmando..."
+                                            : item?.status === "RESERVADO"
+                                                ? "Adicionar à fila"
+                                                : "Confirmar reserva" }), _jsx("button", { type: "button", onClick: () => navigate(-1), style: {
                                             height: 40,
                                             borderRadius: 10,
                                             border: "1px solid #e2bec0",

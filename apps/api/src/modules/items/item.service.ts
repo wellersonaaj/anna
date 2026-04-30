@@ -301,6 +301,8 @@ export const itemService = {
         criadoEm: row.criadoEm,
         cor: row.cor,
         tamanho: row.tamanho,
+        estampa: row.estampa,
+        condicao: row.condicao,
         acervoTipo: row.acervoTipo,
         acervoNome: row.acervoNome,
         precoVenda: row.precoVenda,
@@ -401,6 +403,89 @@ export const itemService = {
       ...item,
       fotos: signedFotos
     };
+  },
+
+  async update(
+    prisma: PrismaClient,
+    brechoId: string,
+    itemId: string,
+    payload: {
+      nome?: string;
+      categoria?: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
+      subcategoria?: string;
+      cor?: string;
+      estampa?: boolean;
+      condicao?: "OTIMO" | "BOM" | "REGULAR";
+      tamanho?: string;
+      marca?: string;
+      precoVenda?: number | null;
+      acervoTipo?: "PROPRIO" | "CONSIGNACAO";
+      acervoNome?: string | null;
+    }
+  ) {
+    const item = await prisma.peca.findFirst({
+      where: { id: itemId, brechoId },
+      select: { id: true }
+    });
+
+    if (!item) {
+      throw new Error("Item not found.");
+    }
+
+    return prisma.peca.update({
+      where: { id: itemId },
+      data: {
+        ...(payload.nome !== undefined ? { nome: payload.nome.trim() } : {}),
+        ...(payload.categoria !== undefined ? { categoria: payload.categoria } : {}),
+        ...(payload.subcategoria !== undefined ? { subcategoria: payload.subcategoria.trim() } : {}),
+        ...(payload.cor !== undefined ? { cor: payload.cor.trim() } : {}),
+        ...(payload.estampa !== undefined ? { estampa: payload.estampa } : {}),
+        ...(payload.condicao !== undefined ? { condicao: payload.condicao } : {}),
+        ...(payload.tamanho !== undefined ? { tamanho: payload.tamanho.trim() } : {}),
+        ...(payload.marca !== undefined ? { marca: payload.marca.trim() || null } : {}),
+        ...(payload.precoVenda !== undefined ? { precoVenda: payload.precoVenda } : {}),
+        ...(payload.acervoTipo !== undefined ? { acervoTipo: payload.acervoTipo } : {}),
+        ...(payload.acervoNome !== undefined ? { acervoNome: payload.acervoNome?.trim() || null } : {})
+      }
+    });
+  },
+
+  async updateStatus(prisma: PrismaClient, brechoId: string, itemId: string, status: StatusPeca) {
+    return prisma.$transaction(async (tx) => {
+      const item = await tx.peca.findFirst({
+        where: { id: itemId, brechoId }
+      });
+
+      if (!item) {
+        throw new Error("Item not found.");
+      }
+
+      if (item.status === status) {
+        return item;
+      }
+
+      ensureTransition(item.status, status);
+
+      const updatedItem = await tx.peca.update({
+        where: { id: itemId },
+        data: { status }
+      });
+
+      if (status === itemStatus.DISPONIVEL || status === itemStatus.INDISPONIVEL) {
+        await tx.filaInteressado.deleteMany({
+          where: { pecaId: itemId }
+        });
+      }
+
+      await tx.pecaStatusHistorico.create({
+        data: {
+          pecaId: itemId,
+          status
+        }
+      });
+
+      return updatedItem;
+    });
   },
 
   async addFoto(
@@ -1039,7 +1124,7 @@ export const itemService = {
         throw new Error("Item not found.");
       }
 
-      if (item.status !== itemStatus.DISPONIVEL) {
+      if (item.status !== itemStatus.DISPONIVEL && item.status !== itemStatus.RESERVADO) {
         throw new Error("Item not available for queue.");
       }
 
@@ -1062,7 +1147,7 @@ export const itemService = {
       });
       const posicao = (agg._max.posicao ?? -1) + 1;
 
-      return tx.filaInteressado.create({
+      const entry = await tx.filaInteressado.create({
         data: {
           pecaId: itemId,
           clienteId: cliente.id,
@@ -1072,24 +1157,89 @@ export const itemService = {
           cliente: true
         }
       });
+
+      if (posicao === 0 && item.status === itemStatus.DISPONIVEL) {
+        await tx.peca.update({
+          where: { id: itemId },
+          data: { status: itemStatus.RESERVADO }
+        });
+        await tx.pecaStatusHistorico.create({
+          data: {
+            pecaId: itemId,
+            clienteId: cliente.id,
+            status: itemStatus.RESERVADO
+          }
+        });
+      }
+
+      return entry;
     });
   },
 
   async removeFilaEntry(prisma: PrismaClient, brechoId: string, itemId: string, entradaId: string) {
-    const row = await prisma.filaInteressado.findFirst({
-      where: {
-        id: entradaId,
-        pecaId: itemId,
-        peca: { brechoId }
+    await prisma.$transaction(async (tx) => {
+      const row = await tx.filaInteressado.findFirst({
+        where: {
+          id: entradaId,
+          pecaId: itemId,
+          peca: { brechoId }
+        },
+        include: {
+          peca: true
+        }
+      });
+
+      if (!row) {
+        throw new Error("Queue entry not found.");
       }
-    });
 
-    if (!row) {
-      throw new Error("Queue entry not found.");
-    }
+      await tx.filaInteressado.delete({
+        where: { id: entradaId }
+      });
 
-    await prisma.filaInteressado.delete({
-      where: { id: entradaId }
+      const remaining = await tx.filaInteressado.findMany({
+        where: { pecaId: itemId },
+        orderBy: { posicao: "asc" },
+        include: { cliente: true }
+      });
+
+      for (const [index, entry] of remaining.entries()) {
+        if (entry.posicao !== index) {
+          await tx.filaInteressado.update({
+            where: { id: entry.id },
+            data: { posicao: index }
+          });
+        }
+      }
+
+      if (row.peca.status !== itemStatus.RESERVADO) {
+        return;
+      }
+
+      const nextReserved = remaining[0];
+      if (nextReserved) {
+        if (row.posicao === 0) {
+          await tx.pecaStatusHistorico.create({
+            data: {
+              pecaId: itemId,
+              clienteId: nextReserved.clienteId,
+              status: itemStatus.RESERVADO
+            }
+          });
+        }
+        return;
+      }
+
+      await tx.peca.update({
+        where: { id: itemId },
+        data: { status: itemStatus.DISPONIVEL }
+      });
+      await tx.pecaStatusHistorico.create({
+        data: {
+          pecaId: itemId,
+          status: itemStatus.DISPONIVEL
+        }
+      });
     });
   },
 
@@ -1108,14 +1258,48 @@ export const itemService = {
         throw new Error("Item not found.");
       }
 
-      ensureTransition(item.status, itemStatus.RESERVADO);
+      if (item.status !== itemStatus.DISPONIVEL && item.status !== itemStatus.RESERVADO) {
+        throw new Error("Item not available for queue.");
+      }
 
       const cliente = await clientService.findOrCreateCliente(tx, brechoId, clienteInput);
 
-      const updatedItem = await tx.peca.update({
-        where: { id: itemId },
-        data: { status: itemStatus.RESERVADO }
+      const existing = await tx.filaInteressado.findFirst({
+        where: {
+          pecaId: itemId,
+          clienteId: cliente.id
+        }
       });
+
+      if (existing) {
+        throw new Error("Already in queue.");
+      }
+
+      const agg = await tx.filaInteressado.aggregate({
+        where: { pecaId: itemId },
+        _max: { posicao: true }
+      });
+      const posicao = (agg._max.posicao ?? -1) + 1;
+
+      await tx.filaInteressado.create({
+        data: {
+          pecaId: itemId,
+          clienteId: cliente.id,
+          posicao
+        }
+      });
+
+      if (posicao !== 0) {
+        return item;
+      }
+
+      const updatedItem =
+        item.status === itemStatus.DISPONIVEL
+          ? await tx.peca.update({
+              where: { id: itemId },
+              data: { status: itemStatus.RESERVADO }
+            })
+          : item;
 
       await tx.pecaStatusHistorico.create({
         data: {

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { searchClients } from "../api/clients";
-import { getItem, reserveItem } from "../api/items";
+import { getItem, joinItemFila } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
 
@@ -75,7 +75,7 @@ export const ReservePage = () => {
         throw new Error("Peça não informada.");
       }
 
-      return reserveItem(brechoId, itemId, {
+      return joinItemFila(brechoId, itemId, {
         cliente: {
           nome: data.nome.trim(),
           whatsapp: data.whatsapp?.trim() || undefined,
@@ -91,6 +91,8 @@ export const ReservePage = () => {
   });
 
   const item = itemQuery.data;
+  const itemPhoto = item?.fotos?.[0]?.url ?? item?.fotoCapaUrl ?? null;
+  const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
 
   return (
     <AppShell>
@@ -98,7 +100,9 @@ export const ReservePage = () => {
         <Link to="/" style={{ color: "#5a4042", textDecoration: "none" }}>
           ← Voltar
         </Link>
-        <h1 style={{ margin: 0, fontSize: "1.25rem" }}>Reserva</h1>
+        <h1 style={{ margin: 0, fontSize: "1.25rem" }}>
+          {item?.status === "RESERVADO" ? "Adicionar à fila" : "Reserva"}
+        </h1>
       </header>
 
       <p style={{ marginTop: 0, color: "#5a4042", maxWidth: 360 }}>
@@ -206,25 +210,33 @@ export const ReservePage = () => {
                 marginTop: 8
               }}
             >
-              <div
-                style={{
-                  width: 80,
-                  height: 96,
-                  borderRadius: 12,
-                  background: "#fff",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 11,
-                  color: "#5a4042"
-                }}
-              >
-                Foto
-              </div>
+              {itemPhoto ? (
+                <img
+                  src={itemPhoto}
+                  alt={`Foto da peça ${item.nome}`}
+                  style={{ width: 80, height: 96, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 80,
+                    height: 96,
+                    borderRadius: 12,
+                    background: "#fff",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    color: "#5a4042"
+                  }}
+                >
+                  Foto
+                </div>
+              )}
               <div>
                 <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", color: "#b60e3d" }}>
-                  RESERVANDO ITEM
+                  {item.status === "RESERVADO" ? "ADICIONANDO À FILA" : "RESERVANDO ITEM"}
                 </div>
                 <h3 style={{ margin: "4px 0", fontSize: "1.1rem" }}>{item.nome}</h3>
                 <div style={{ fontSize: 13, fontWeight: 700 }}>{formatPreco(item.precoVenda)}</div>
@@ -233,8 +245,12 @@ export const ReservePage = () => {
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
-            <Button type="submit" disabled={reserveMutation.isPending || !item}>
-              {reserveMutation.isPending ? "Confirmando..." : "Confirmar reserva"}
+            <Button type="submit" disabled={reserveMutation.isPending || !item || !canQueue}>
+              {reserveMutation.isPending
+                ? "Confirmando..."
+                : item?.status === "RESERVADO"
+                  ? "Adicionar à fila"
+                  : "Confirmar reserva"}
             </Button>
             <button
               type="button"

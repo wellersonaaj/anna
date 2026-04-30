@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -68,15 +68,6 @@ const sellFormSchema = z
 
 type SellFormData = z.infer<typeof sellFormSchema>;
 
-const getReservedCliente = (item: ItemDetail | undefined) => {
-  if (!item?.historicoStatus?.length) {
-    return undefined;
-  }
-
-  const entry = item.historicoStatus.find((h) => h.status === "RESERVADO" && h.cliente);
-  return entry?.cliente ?? undefined;
-};
-
 const formatMoney = (value: number): string =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -85,6 +76,8 @@ export const SellPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [saleMode, setSaleMode] = useState<"queue" | "manual">("manual");
+  const [selectedQueueEntryId, setSelectedQueueEntryId] = useState<string | null>(null);
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
@@ -93,7 +86,10 @@ export const SellPage = () => {
   });
 
   const item = itemQuery.data;
-  const reservedCliente = useMemo(() => getReservedCliente(item), [item]);
+  const queueEntries = item?.filaInteressados ?? [];
+  const selectedQueueEntry = queueEntries.find((entry) => entry.id === selectedQueueEntryId) ?? queueEntries[0];
+  const selectedCliente = saleMode === "queue" ? selectedQueueEntry?.cliente : undefined;
+  const itemPhoto = item?.fotos?.[0]?.url ?? item?.fotoCapaUrl ?? null;
 
   const { register, handleSubmit, reset, control } = useForm<SellFormData>({
     resolver: zodResolver(sellFormSchema),
@@ -117,11 +113,11 @@ export const SellPage = () => {
     const preco = parseDecimalBr(item.precoVenda);
     const nextPreco = Number.isNaN(preco) || preco <= 0 ? 0 : preco;
 
-    if (reservedCliente) {
+    if (selectedCliente) {
       reset({
-        clienteNome: reservedCliente.nome,
-        clienteWhatsapp: reservedCliente.whatsapp ?? "",
-        clienteInstagram: reservedCliente.instagram ?? "",
+        clienteNome: selectedCliente.nome,
+        clienteWhatsapp: selectedCliente.whatsapp ?? "",
+        clienteInstagram: selectedCliente.instagram ?? "",
         precoVenda: nextPreco,
         freteTexto: ""
       });
@@ -135,7 +131,21 @@ export const SellPage = () => {
       precoVenda: nextPreco,
       freteTexto: ""
     });
-  }, [item, reservedCliente, reset]);
+  }, [item, selectedCliente, reset]);
+
+  useEffect(() => {
+    if (!item) {
+      return;
+    }
+    const firstEntry = item.filaInteressados?.[0];
+    if (firstEntry) {
+      setSaleMode("queue");
+      setSelectedQueueEntryId(firstEntry.id);
+      return;
+    }
+    setSaleMode("manual");
+    setSelectedQueueEntryId(null);
+  }, [item]);
 
   const freteValor = useMemo(() => parseFreteFromText(freteTexto), [freteTexto]);
   const totalVenda = useMemo(() => {
@@ -200,22 +210,30 @@ export const SellPage = () => {
             boxShadow: "0 12px 40px rgba(186, 19, 64, 0.06)"
           }}
         >
-          <div
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 12,
-              background: "#fff0f0",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              color: "#5a4042"
-            }}
-          >
-            Foto
-          </div>
+          {itemPhoto ? (
+            <img
+              src={itemPhoto}
+              alt={`Foto da peça ${item.nome}`}
+              style={{ width: 120, height: 120, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 120,
+                height: 120,
+                borderRadius: 12,
+                background: "#fff0f0",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                color: "#5a4042"
+              }}
+            >
+              Foto
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <h3 style={{ margin: 0, fontSize: "1.35rem" }}>{item.nome}</h3>
           </div>
@@ -224,7 +242,62 @@ export const SellPage = () => {
 
       <Section title="Valores">
         <form className="stack" style={{ gap: 20 }} onSubmit={handleSubmit((data) => sellMutation.mutate(data))}>
-          {!reservedCliente && (
+          {queueEntries.length > 0 && (
+            <div style={{ padding: 12, background: "#fff0f0", borderRadius: 12, fontSize: 14 }}>
+              <strong>Há fila para esta peça.</strong>
+              <p style={{ margin: "4px 0 12px", color: "#5a4042" }}>
+                Escolha vender para a primeira pessoa, outra pessoa da fila ou uma venda manual.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {queueEntries.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => {
+                      setSaleMode("queue");
+                      setSelectedQueueEntryId(entry.id);
+                    }}
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: selectedQueueEntryId === entry.id && saleMode === "queue" ? "2px solid #b60e3d" : "1px solid #e2bec0",
+                      background: "#fff",
+                      textAlign: "left",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <strong>
+                      {entry.posicao + 1}º da fila: {entry.cliente.nome}
+                    </strong>
+                    {entry.posicao === 0 ? " · primeira pessoa" : null}
+                    <div style={{ fontSize: 12, color: "#5a4042" }}>
+                      {[entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato"}
+                    </div>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSaleMode("manual");
+                    setSelectedQueueEntryId(null);
+                  }}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: saleMode === "manual" ? "2px solid #b60e3d" : "1px solid #e2bec0",
+                    background: "#fff",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontWeight: 700
+                  }}
+                >
+                  Vender para outra pessoa
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!selectedCliente && (
             <>
               <Field label="Nome completo">
                 <Input {...register("clienteNome")} />
@@ -240,13 +313,13 @@ export const SellPage = () => {
             </>
           )}
 
-          {reservedCliente && (
+          {selectedCliente && (
             <div style={{ padding: 12, background: "#fff0f0", borderRadius: 12, fontSize: 14 }}>
-              <strong>Cliente da reserva:</strong> {reservedCliente.nome}
+              <strong>Cliente selecionado:</strong> {selectedCliente.nome}
               <div style={{ fontSize: 12, color: "#5a4042", marginTop: 4 }}>
-                {reservedCliente.whatsapp ? `WhatsApp: ${reservedCliente.whatsapp}` : null}
-                {reservedCliente.whatsapp && reservedCliente.instagram ? " · " : null}
-                {reservedCliente.instagram ? `Instagram: @${reservedCliente.instagram}` : null}
+                {selectedCliente.whatsapp ? `WhatsApp: ${selectedCliente.whatsapp}` : null}
+                {selectedCliente.whatsapp && selectedCliente.instagram ? " · " : null}
+                {selectedCliente.instagram ? `Instagram: @${selectedCliente.instagram}` : null}
               </div>
               <input type="hidden" {...register("clienteNome")} />
               <input type="hidden" {...register("clienteWhatsapp")} />

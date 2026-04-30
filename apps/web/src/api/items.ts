@@ -1,23 +1,27 @@
 import { request } from "./client";
 
 export type ItemCategoria = "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
+export type ItemStatus = "DISPONIVEL" | "RESERVADO" | "VENDIDO" | "ENTREGUE" | "INDISPONIVEL";
+export type ItemCondicao = "OTIMO" | "BOM" | "REGULAR";
 
 export type Item = {
   id: string;
   nome: string;
-  categoria: string;
+  categoria: ItemCategoria;
   subcategoria: string;
-  status: "DISPONIVEL" | "RESERVADO" | "VENDIDO" | "ENTREGUE" | "INDISPONIVEL";
+  status: ItemStatus;
   criadoEm: string;
   cor: string;
   tamanho: string;
+  estampa: boolean;
+  condicao: ItemCondicao;
   acervoTipo: "PROPRIO" | "CONSIGNACAO";
   acervoNome?: string | null;
   precoVenda?: string | number | null;
   marca?: string | null;
   fotoCapaUrl?: string | null;
   ultimoStatus?: {
-    status: "DISPONIVEL" | "RESERVADO" | "VENDIDO" | "ENTREGUE" | "INDISPONIVEL";
+    status: ItemStatus;
     criadoEm: string;
     cliente?: {
       id: string;
@@ -241,6 +245,20 @@ export type ListItemsFilters = {
   search?: string;
 };
 
+export type UpdateItemPayload = Partial<{
+  nome: string;
+  categoria: ItemCategoria;
+  subcategoria: string;
+  cor: string;
+  estampa: boolean;
+  condicao: ItemCondicao;
+  tamanho: string;
+  marca: string;
+  precoVenda: number | null;
+  acervoTipo: "PROPRIO" | "CONSIGNACAO";
+  acervoNome: string | null;
+}>;
+
 export const listItems = async (brechoId: string, filters?: ListItemsFilters): Promise<Item[]> => {
   const params = new URLSearchParams();
   if (filters?.status) {
@@ -258,6 +276,30 @@ export const listItems = async (brechoId: string, filters?: ListItemsFilters): P
 
 export const getItem = async (brechoId: string, itemId: string): Promise<ItemDetail> => {
   return request<ItemDetail>(`/items/${itemId}`, { brechoId });
+};
+
+export const updateItem = async (
+  brechoId: string,
+  itemId: string,
+  payload: UpdateItemPayload
+): Promise<Item> => {
+  return request<Item>(`/items/${itemId}`, {
+    method: "PATCH",
+    brechoId,
+    body: payload
+  });
+};
+
+export const updateItemStatus = async (
+  brechoId: string,
+  itemId: string,
+  status: "DISPONIVEL" | "INDISPONIVEL"
+): Promise<Item> => {
+  return request<Item>(`/items/${itemId}/status`, {
+    method: "POST",
+    brechoId,
+    body: { status }
+  });
 };
 
 export const addItemFoto = async (

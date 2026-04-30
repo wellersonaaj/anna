@@ -15,6 +15,33 @@ export const createItemSchema = z.object({
   acervoNome: z.string().trim().min(2).max(80).optional()
 });
 
+export const updateItemSchema = z
+  .object({
+    nome: z.string().trim().min(2).optional(),
+    categoria: z.enum(["ROUPA_FEMININA", "ROUPA_MASCULINA", "CALCADO", "ACESSORIO"]).optional(),
+    subcategoria: z.string().trim().min(2).optional(),
+    cor: z.string().trim().min(2).optional(),
+    estampa: z.boolean().optional(),
+    condicao: z.enum(["OTIMO", "BOM", "REGULAR"]).optional(),
+    tamanho: z.string().trim().min(1).optional(),
+    marca: z.string().trim().max(80).optional(),
+    precoVenda: z.coerce.number().nonnegative().nullable().optional(),
+    acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]).optional(),
+    acervoNome: z.string().trim().max(80).nullable().optional()
+  })
+  .superRefine((data, ctx) => {
+    if (Object.keys(data).length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Informe ao menos um campo para atualizar."
+      });
+    }
+  });
+
+export const updateItemStatusSchema = z.object({
+  status: z.enum(["DISPONIVEL", "INDISPONIVEL"])
+});
+
 export const reserveItemSchema = z.object({
   cliente: clienteContatoSchema
 });
