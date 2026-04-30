@@ -91,10 +91,10 @@ export const ImportacaoRascunhoDetailPage = () => {
       publicarImportacaoRascunho(brechoId, loteId!, rascunhoId!, {
         helpfulness: "SIM"
       }),
-    onSuccess: (data) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["importacao", brechoId, loteId] });
       void queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
-      void navigate(`/items/${data.itemId}`);
+      void navigate(`/importacoes/${loteId}/rascunhos`);
     }
   });
 
@@ -200,7 +200,7 @@ export const ImportacaoRascunhoDetailPage = () => {
               disabled={pubMutation.isPending}
               onClick={() => pubMutation.mutate()}
             >
-              {pubMutation.isPending ? "Publicando…" : "Publicar no estoque"}
+              {pubMutation.isPending ? "Publicando…" : "Publicar e revisar próxima"}
             </Button>
           </div>
           {pubMutation.isError ? (
