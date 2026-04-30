@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
 import { addItemFoto, analisarItemFoto, deleteItemFoto, getItem, joinItemFila, leaveItemFila, updateItem, updateItemStatus } from "../api/items";
+import { ClientPicker } from "../components/client-picker";
 import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
 import { useSessionStore } from "../store/session.store";
@@ -111,6 +112,16 @@ export const ItemDetailPage = () => {
     })), [item?.fotos, item?.nome]);
     const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
     const canSell = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
+    const filaContact = {
+        nome: filaForm.watch("nome") ?? "",
+        whatsapp: filaForm.watch("whatsapp") ?? "",
+        instagram: filaForm.watch("instagram") ?? ""
+    };
+    const fillFilaContact = (cliente) => {
+        filaForm.setValue("nome", cliente.nome, { shouldValidate: true, shouldDirty: true });
+        filaForm.setValue("whatsapp", cliente.whatsapp ?? "", { shouldValidate: true, shouldDirty: true });
+        filaForm.setValue("instagram", cliente.instagram ?? "", { shouldValidate: true, shouldDirty: true });
+    };
     useEffect(() => {
         if (!item) {
             return;
@@ -202,7 +213,7 @@ export const ItemDetailPage = () => {
                                                                     : "Sugerir com IA" })), _jsx(Button, { type: "button", className: "bg-zinc-700", onClick: () => deleteFotoMutation.mutate(foto.id), disabled: deleteFotoMutation.isPending, children: "Remover" })] })] }), analyzeFotoMutation.isError && analyzeFotoMutation.variables === foto.id && (_jsx("small", { style: { color: "#b60e3d" }, children: analyzeFotoMutation.error instanceof ApiError
                                                     ? analyzeFotoMutation.error.message
                                                     : "Não foi possível analisar a foto." })), latestAi && _jsx(FotoAiSuggestionsCard, { analysis: latestAi })] }, foto.id));
-                                })) })] }), _jsxs(Section, { title: "Fila de interessados", children: [canQueue ? (_jsxs("form", { className: "grid cols-2", style: { marginBottom: 16 }, onSubmit: filaForm.handleSubmit((data) => joinFilaMutation.mutate(data)), children: [_jsx(Field, { label: "Nome", children: _jsx(Input, { ...filaForm.register("nome") }) }), _jsx(Field, { label: "WhatsApp", children: _jsx(Input, { ...filaForm.register("whatsapp") }) }), _jsx(Field, { label: "Instagram", children: _jsx(Input, { ...filaForm.register("instagram"), placeholder: "@usuario" }) }), _jsx("div", { className: "stack", style: { justifyContent: "end" }, children: _jsx(Button, { type: "submit", disabled: joinFilaMutation.isPending, children: joinFilaMutation.isPending
+                                })) })] }), _jsxs(Section, { title: "Fila de interessados", children: [canQueue ? (_jsxs("form", { className: "grid cols-2", style: { marginBottom: 16 }, onSubmit: filaForm.handleSubmit((data) => joinFilaMutation.mutate(data)), children: [_jsx("div", { style: { gridColumn: "1 / -1" }, children: _jsx(ClientPicker, { brechoId: brechoId, selectedContact: filaContact, onSelect: fillFilaContact, onCreateNew: fillFilaContact, onClear: () => fillFilaContact({ nome: "", whatsapp: "", instagram: "" }), title: "Interessado" }) }), _jsx(Field, { label: "Nome", children: _jsx(Input, { ...filaForm.register("nome") }) }), _jsx(Field, { label: "WhatsApp", children: _jsx(Input, { ...filaForm.register("whatsapp") }) }), _jsx(Field, { label: "Instagram", children: _jsx(Input, { ...filaForm.register("instagram"), placeholder: "@usuario" }) }), _jsx("div", { className: "stack", style: { justifyContent: "end" }, children: _jsx(Button, { type: "submit", disabled: joinFilaMutation.isPending, children: joinFilaMutation.isPending
                                                 ? "Entrando..."
                                                 : item.status === "RESERVADO"
                                                     ? "Adicionar à fila"

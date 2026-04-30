@@ -16,8 +16,8 @@ export const ClientsPage = () => {
   const [search, setSearch] = useState("");
 
   const clientsQuery = useQuery({
-    queryKey: ["clients-search", brechoId, search],
-    queryFn: () => searchClients(brechoId, search)
+    queryKey: ["clients-search", brechoId, search, 30],
+    queryFn: () => searchClients(brechoId, search, { limit: 30 })
   });
 
   return (
@@ -31,7 +31,7 @@ export const ClientsPage = () => {
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por nome..."
+            placeholder="Buscar por nome, WhatsApp ou Instagram..."
             className="h-14 rounded-2xl border-none bg-white pl-12 shadow-sm focus:ring-2 focus:ring-rose-200"
           />
         </div>
@@ -55,12 +55,9 @@ export const ClientsPage = () => {
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-gray-900">{client.nome}</h3>
-              <div className="mt-1 flex items-center gap-3">
-                {client.whatsapp && <span className="material-symbols-outlined text-lg text-[#25D366]">chat</span>}
-                {client.instagram && <span className="material-symbols-outlined text-lg text-[#833AB4]">photo_camera</span>}
-                {!client.whatsapp && !client.instagram && (
-                  <span className="text-xs font-semibold text-gray-400">Sem contato salvo</span>
-                )}
+              <div className="mt-1 grid gap-0.5 text-xs font-semibold text-gray-500">
+                <span>WhatsApp {client.whatsapp || "não informado"}</span>
+                <span>Instagram {client.instagram ? `@${client.instagram}` : "não informado"}</span>
               </div>
             </div>
             <span className="material-symbols-outlined text-xl text-gray-300">chevron_right</span>

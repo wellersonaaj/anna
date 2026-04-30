@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import type { ItemDetail } from "../api/items";
 import { getItem, sellItem } from "../api/items";
+import { ClientPicker } from "../components/client-picker";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
 
@@ -91,7 +92,7 @@ export const SellPage = () => {
   const selectedCliente = saleMode === "queue" ? selectedQueueEntry?.cliente : undefined;
   const itemPhoto = item?.fotos?.[0]?.url ?? item?.fotoCapaUrl ?? null;
 
-  const { register, handleSubmit, reset, control } = useForm<SellFormData>({
+  const { register, handleSubmit, reset, control, setValue, watch } = useForm<SellFormData>({
     resolver: zodResolver(sellFormSchema),
     defaultValues: {
       clienteNome: "",
@@ -104,6 +105,16 @@ export const SellPage = () => {
 
   const precoVenda = useWatch({ control, name: "precoVenda" });
   const freteTexto = useWatch({ control, name: "freteTexto" });
+  const manualContact = {
+    nome: watch("clienteNome") ?? "",
+    whatsapp: watch("clienteWhatsapp") ?? "",
+    instagram: watch("clienteInstagram") ?? ""
+  };
+  const fillManualContact = (cliente: { nome: string; whatsapp: string; instagram: string }) => {
+    setValue("clienteNome", cliente.nome, { shouldValidate: true, shouldDirty: true });
+    setValue("clienteWhatsapp", cliente.whatsapp, { shouldValidate: true, shouldDirty: true });
+    setValue("clienteInstagram", cliente.instagram, { shouldValidate: true, shouldDirty: true });
+  };
 
   useEffect(() => {
     if (!item) {
@@ -299,6 +310,13 @@ export const SellPage = () => {
 
           {!selectedCliente && (
             <>
+              <ClientPicker
+                brechoId={brechoId}
+                selectedContact={manualContact}
+                onSelect={fillManualContact}
+                onCreateNew={fillManualContact}
+                onClear={() => fillManualContact({ nome: "", whatsapp: "", instagram: "" })}
+              />
               <Field label="Nome completo">
                 <Input {...register("clienteNome")} />
               </Field>

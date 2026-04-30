@@ -1,10 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
-import { searchClients } from "../api/clients";
+import { ClientPicker } from "../components/client-picker";
 import { getItem, joinItemFila } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
@@ -52,15 +51,7 @@ export const ReservePage = () => {
     enabled: Boolean(itemId)
   });
 
-  const [searchDraft, setSearchDraft] = useState("");
-
-  const clientsQuery = useQuery({
-    queryKey: ["clients-search", brechoId, searchDraft],
-    queryFn: () => searchClients(brechoId, searchDraft),
-    enabled: searchDraft.trim().length >= 2
-  });
-
-  const { register, handleSubmit, setValue, formState } = useForm<ReserveFormData>({
+  const { register, handleSubmit, setValue, formState, watch } = useForm<ReserveFormData>({
     resolver: zodResolver(reserveFormSchema),
     defaultValues: {
       nome: "",
@@ -93,6 +84,16 @@ export const ReservePage = () => {
   const item = itemQuery.data;
   const itemPhoto = item?.fotos?.[0]?.url ?? item?.fotoCapaUrl ?? null;
   const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
+  const selectedContact = {
+    nome: watch("nome") ?? "",
+    whatsapp: watch("whatsapp") ?? "",
+    instagram: watch("instagram") ?? ""
+  };
+  const fillClient = (cliente: ReserveFormData) => {
+    setValue("nome", cliente.nome, { shouldValidate: true, shouldDirty: true });
+    setValue("whatsapp", cliente.whatsapp ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("instagram", cliente.instagram ?? "", { shouldValidate: true, shouldDirty: true });
+  };
 
   return (
     <AppShell>
@@ -109,75 +110,15 @@ export const ReservePage = () => {
         Busque um cliente ou cadastre um novo
       </p>
 
-      <Section title="Buscar cliente existente">
-        <div style={{ position: "relative" }}>
-          <Input
-            placeholder="Buscar cliente existente..."
-            value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-            style={{ paddingLeft: 12 }}
-          />
-        </div>
-        {clientsQuery.data && clientsQuery.data.length > 0 && (
-          <ul
-            style={{
-              listStyle: "none",
-              margin: "12px 0 0",
-              padding: 0,
-              border: "1px solid #e2bec0",
-              borderRadius: 12,
-              overflow: "hidden"
-            }}
-          >
-            {clientsQuery.data.map((c) => (
-              <li key={c.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setValue("nome", c.nome, { shouldValidate: true });
-                    setValue("whatsapp", c.whatsapp ?? "", { shouldValidate: true });
-                    setValue("instagram", c.instagram ?? "", { shouldValidate: true });
-                    setSearchDraft("");
-                  }}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "12px 14px",
-                    border: 0,
-                    borderBottom: "1px solid #f2d5d7",
-                    background: "#fff",
-                    cursor: "pointer"
-                  }}
-                >
-                  <strong>{c.nome}</strong>
-                  <div style={{ fontSize: 12, color: "#5a4042" }}>
-                    {c.whatsapp ? `WhatsApp: ${c.whatsapp}` : null}
-                    {c.whatsapp && c.instagram ? " · " : null}
-                    {c.instagram ? `Instagram: @${c.instagram}` : null}
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+      <Section title="Buscar ou cadastrar cliente">
+        <ClientPicker
+          brechoId={brechoId}
+          selectedContact={selectedContact}
+          onSelect={fillClient}
+          onCreateNew={fillClient}
+          onClear={() => fillClient({ nome: "", whatsapp: "", instagram: "" })}
+        />
       </Section>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          margin: "20px 0",
-          color: "#8e6f71",
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: "0.2em"
-        }}
-      >
-        <div style={{ flex: 1, height: 1, background: "#e2bec0" }} />
-        OU
-        <div style={{ flex: 1, height: 1, background: "#e2bec0" }} />
-      </div>
 
       <Section title="Perfil do Cliente">
         <form className="stack" onSubmit={handleSubmit((data) => reserveMutation.mutate(data))}>

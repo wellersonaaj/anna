@@ -16,6 +16,7 @@ import {
   type ItemCategoria,
   type ItemCondicao
 } from "../api/items";
+import { ClientPicker } from "../components/client-picker";
 import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
 import { useSessionStore } from "../store/session.store";
@@ -142,6 +143,16 @@ export const ItemDetailPage = () => {
   );
   const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
   const canSell = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
+  const filaContact = {
+    nome: filaForm.watch("nome") ?? "",
+    whatsapp: filaForm.watch("whatsapp") ?? "",
+    instagram: filaForm.watch("instagram") ?? ""
+  };
+  const fillFilaContact = (cliente: FilaFormData) => {
+    filaForm.setValue("nome", cliente.nome, { shouldValidate: true, shouldDirty: true });
+    filaForm.setValue("whatsapp", cliente.whatsapp ?? "", { shouldValidate: true, shouldDirty: true });
+    filaForm.setValue("instagram", cliente.instagram ?? "", { shouldValidate: true, shouldDirty: true });
+  };
 
   useEffect(() => {
     if (!item) {
@@ -512,6 +523,16 @@ export const ItemDetailPage = () => {
                 style={{ marginBottom: 16 }}
                 onSubmit={filaForm.handleSubmit((data) => joinFilaMutation.mutate(data))}
               >
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <ClientPicker
+                    brechoId={brechoId}
+                    selectedContact={filaContact}
+                    onSelect={fillFilaContact}
+                    onCreateNew={fillFilaContact}
+                    onClear={() => fillFilaContact({ nome: "", whatsapp: "", instagram: "" })}
+                    title="Interessado"
+                  />
+                </div>
                 <Field label="Nome">
                   <Input {...filaForm.register("nome")} />
                 </Field>

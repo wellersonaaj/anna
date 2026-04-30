@@ -1,11 +1,10 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
-import { searchClients } from "../api/clients";
+import { ClientPicker } from "../components/client-picker";
 import { getItem, joinItemFila } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
@@ -44,13 +43,7 @@ export const ReservePage = () => {
         queryFn: () => getItem(brechoId, itemId),
         enabled: Boolean(itemId)
     });
-    const [searchDraft, setSearchDraft] = useState("");
-    const clientsQuery = useQuery({
-        queryKey: ["clients-search", brechoId, searchDraft],
-        queryFn: () => searchClients(brechoId, searchDraft),
-        enabled: searchDraft.trim().length >= 2
-    });
-    const { register, handleSubmit, setValue, formState } = useForm({
+    const { register, handleSubmit, setValue, formState, watch } = useForm({
         resolver: zodResolver(reserveFormSchema),
         defaultValues: {
             nome: "",
@@ -80,36 +73,17 @@ export const ReservePage = () => {
     const item = itemQuery.data;
     const itemPhoto = item?.fotos?.[0]?.url ?? item?.fotoCapaUrl ?? null;
     const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
-    return (_jsxs(AppShell, { children: [_jsxs("header", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }, children: [_jsx(Link, { to: "/", style: { color: "#5a4042", textDecoration: "none" }, children: "\u2190 Voltar" }), _jsx("h1", { style: { margin: 0, fontSize: "1.25rem" }, children: item?.status === "RESERVADO" ? "Adicionar à fila" : "Reserva" })] }), _jsx("p", { style: { marginTop: 0, color: "#5a4042", maxWidth: 360 }, children: "Busque um cliente ou cadastre um novo" }), _jsxs(Section, { title: "Buscar cliente existente", children: [_jsx("div", { style: { position: "relative" }, children: _jsx(Input, { placeholder: "Buscar cliente existente...", value: searchDraft, onChange: (event) => setSearchDraft(event.target.value), style: { paddingLeft: 12 } }) }), clientsQuery.data && clientsQuery.data.length > 0 && (_jsx("ul", { style: {
-                            listStyle: "none",
-                            margin: "12px 0 0",
-                            padding: 0,
-                            border: "1px solid #e2bec0",
-                            borderRadius: 12,
-                            overflow: "hidden"
-                        }, children: clientsQuery.data.map((c) => (_jsx("li", { children: _jsxs("button", { type: "button", onClick: () => {
-                                    setValue("nome", c.nome, { shouldValidate: true });
-                                    setValue("whatsapp", c.whatsapp ?? "", { shouldValidate: true });
-                                    setValue("instagram", c.instagram ?? "", { shouldValidate: true });
-                                    setSearchDraft("");
-                                }, style: {
-                                    width: "100%",
-                                    textAlign: "left",
-                                    padding: "12px 14px",
-                                    border: 0,
-                                    borderBottom: "1px solid #f2d5d7",
-                                    background: "#fff",
-                                    cursor: "pointer"
-                                }, children: [_jsx("strong", { children: c.nome }), _jsxs("div", { style: { fontSize: 12, color: "#5a4042" }, children: [c.whatsapp ? `WhatsApp: ${c.whatsapp}` : null, c.whatsapp && c.instagram ? " · " : null, c.instagram ? `Instagram: @${c.instagram}` : null] })] }) }, c.id))) }))] }), _jsxs("div", { style: {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    margin: "20px 0",
-                    color: "#8e6f71",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: "0.2em"
-                }, children: [_jsx("div", { style: { flex: 1, height: 1, background: "#e2bec0" } }), "OU", _jsx("div", { style: { flex: 1, height: 1, background: "#e2bec0" } })] }), _jsxs(Section, { title: "Perfil do Cliente", children: [_jsxs("form", { className: "stack", onSubmit: handleSubmit((data) => reserveMutation.mutate(data)), children: [_jsx(Field, { label: "Nome completo", children: _jsx(Input, { ...register("nome"), placeholder: "ex: Elena Rossi" }) }), _jsxs("div", { className: "grid cols-2", children: [_jsx(Field, { label: "WhatsApp", children: _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [_jsx("span", { style: { color: "#8e6f71" }, children: "+" }), _jsx(Input, { ...register("whatsapp"), placeholder: "55 11 99999-9999", type: "tel" })] }) }), _jsx(Field, { label: "Instagram", children: _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [_jsx("span", { style: { color: "#8e6f71" }, children: "@" }), _jsx(Input, { ...register("instagram"), placeholder: "usuario" })] }) })] }), item && (_jsxs("div", { style: {
+    const selectedContact = {
+        nome: watch("nome") ?? "",
+        whatsapp: watch("whatsapp") ?? "",
+        instagram: watch("instagram") ?? ""
+    };
+    const fillClient = (cliente) => {
+        setValue("nome", cliente.nome, { shouldValidate: true, shouldDirty: true });
+        setValue("whatsapp", cliente.whatsapp ?? "", { shouldValidate: true, shouldDirty: true });
+        setValue("instagram", cliente.instagram ?? "", { shouldValidate: true, shouldDirty: true });
+    };
+    return (_jsxs(AppShell, { children: [_jsxs("header", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }, children: [_jsx(Link, { to: "/", style: { color: "#5a4042", textDecoration: "none" }, children: "\u2190 Voltar" }), _jsx("h1", { style: { margin: 0, fontSize: "1.25rem" }, children: item?.status === "RESERVADO" ? "Adicionar à fila" : "Reserva" })] }), _jsx("p", { style: { marginTop: 0, color: "#5a4042", maxWidth: 360 }, children: "Busque um cliente ou cadastre um novo" }), _jsx(Section, { title: "Buscar ou cadastrar cliente", children: _jsx(ClientPicker, { brechoId: brechoId, selectedContact: selectedContact, onSelect: fillClient, onCreateNew: fillClient, onClear: () => fillClient({ nome: "", whatsapp: "", instagram: "" }) }) }), _jsxs(Section, { title: "Perfil do Cliente", children: [_jsxs("form", { className: "stack", onSubmit: handleSubmit((data) => reserveMutation.mutate(data)), children: [_jsx(Field, { label: "Nome completo", children: _jsx(Input, { ...register("nome"), placeholder: "ex: Elena Rossi" }) }), _jsxs("div", { className: "grid cols-2", children: [_jsx(Field, { label: "WhatsApp", children: _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [_jsx("span", { style: { color: "#8e6f71" }, children: "+" }), _jsx(Input, { ...register("whatsapp"), placeholder: "55 11 99999-9999", type: "tel" })] }) }), _jsx(Field, { label: "Instagram", children: _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [_jsx("span", { style: { color: "#8e6f71" }, children: "@" }), _jsx(Input, { ...register("instagram"), placeholder: "usuario" })] }) })] }), item && (_jsxs("div", { style: {
                                     display: "flex",
                                     gap: 16,
                                     padding: 16,

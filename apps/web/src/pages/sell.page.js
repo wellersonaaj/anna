@@ -6,6 +6,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { getItem, sellItem } from "../api/items";
+import { ClientPicker } from "../components/client-picker";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
 const parseDecimalBr = (value) => {
@@ -74,7 +75,7 @@ export const SellPage = () => {
     const selectedQueueEntry = queueEntries.find((entry) => entry.id === selectedQueueEntryId) ?? queueEntries[0];
     const selectedCliente = saleMode === "queue" ? selectedQueueEntry?.cliente : undefined;
     const itemPhoto = item?.fotos?.[0]?.url ?? item?.fotoCapaUrl ?? null;
-    const { register, handleSubmit, reset, control } = useForm({
+    const { register, handleSubmit, reset, control, setValue, watch } = useForm({
         resolver: zodResolver(sellFormSchema),
         defaultValues: {
             clienteNome: "",
@@ -86,6 +87,16 @@ export const SellPage = () => {
     });
     const precoVenda = useWatch({ control, name: "precoVenda" });
     const freteTexto = useWatch({ control, name: "freteTexto" });
+    const manualContact = {
+        nome: watch("clienteNome") ?? "",
+        whatsapp: watch("clienteWhatsapp") ?? "",
+        instagram: watch("clienteInstagram") ?? ""
+    };
+    const fillManualContact = (cliente) => {
+        setValue("clienteNome", cliente.nome, { shouldValidate: true, shouldDirty: true });
+        setValue("clienteWhatsapp", cliente.whatsapp, { shouldValidate: true, shouldDirty: true });
+        setValue("clienteInstagram", cliente.instagram, { shouldValidate: true, shouldDirty: true });
+    };
     useEffect(() => {
         if (!item) {
             return;
@@ -194,7 +205,7 @@ export const SellPage = () => {
                                                 textAlign: "left",
                                                 cursor: "pointer",
                                                 fontWeight: 700
-                                            }, children: "Vender para outra pessoa" })] })] })), !selectedCliente && (_jsxs(_Fragment, { children: [_jsx(Field, { label: "Nome completo", children: _jsx(Input, { ...register("clienteNome") }) }), _jsxs("div", { className: "grid cols-2", children: [_jsx(Field, { label: "WhatsApp", children: _jsx(Input, { ...register("clienteWhatsapp"), type: "tel", placeholder: "55 11 99999-9999" }) }), _jsx(Field, { label: "Instagram", children: _jsx(Input, { ...register("clienteInstagram"), placeholder: "@usuario" }) })] })] })), selectedCliente && (_jsxs("div", { style: { padding: 12, background: "#fff0f0", borderRadius: 12, fontSize: 14 }, children: [_jsx("strong", { children: "Cliente selecionado:" }), " ", selectedCliente.nome, _jsxs("div", { style: { fontSize: 12, color: "#5a4042", marginTop: 4 }, children: [selectedCliente.whatsapp ? `WhatsApp: ${selectedCliente.whatsapp}` : null, selectedCliente.whatsapp && selectedCliente.instagram ? " · " : null, selectedCliente.instagram ? `Instagram: @${selectedCliente.instagram}` : null] }), _jsx("input", { type: "hidden", ...register("clienteNome") }), _jsx("input", { type: "hidden", ...register("clienteWhatsapp") }), _jsx("input", { type: "hidden", ...register("clienteInstagram") })] })), _jsxs(Field, { label: "Pre\u00E7o da pe\u00E7a (R$)", children: [_jsx(Input, { type: "number", step: "0.01", min: 0, ...register("precoVenda", { valueAsNumber: true }) }), _jsx("small", { style: { color: "#5a4042" }, children: "Pr\u00E9-preenchido com o pre\u00E7o de an\u00FAncio. Toque para editar." })] }), _jsxs(Field, { label: "Informa\u00E7\u00F5es de envio", children: [_jsx(Input, { ...register("freteTexto"), placeholder: "ex: Correios R$15 ou Correios 15,50" }), _jsx("small", { style: { color: "#5a4042" }, children: "O valor num\u00E9rico do frete \u00E9 somado ao pre\u00E7o da pe\u00E7a." })] }), _jsxs("div", { style: {
+                                            }, children: "Vender para outra pessoa" })] })] })), !selectedCliente && (_jsxs(_Fragment, { children: [_jsx(ClientPicker, { brechoId: brechoId, selectedContact: manualContact, onSelect: fillManualContact, onCreateNew: fillManualContact, onClear: () => fillManualContact({ nome: "", whatsapp: "", instagram: "" }) }), _jsx(Field, { label: "Nome completo", children: _jsx(Input, { ...register("clienteNome") }) }), _jsxs("div", { className: "grid cols-2", children: [_jsx(Field, { label: "WhatsApp", children: _jsx(Input, { ...register("clienteWhatsapp"), type: "tel", placeholder: "55 11 99999-9999" }) }), _jsx(Field, { label: "Instagram", children: _jsx(Input, { ...register("clienteInstagram"), placeholder: "@usuario" }) })] })] })), selectedCliente && (_jsxs("div", { style: { padding: 12, background: "#fff0f0", borderRadius: 12, fontSize: 14 }, children: [_jsx("strong", { children: "Cliente selecionado:" }), " ", selectedCliente.nome, _jsxs("div", { style: { fontSize: 12, color: "#5a4042", marginTop: 4 }, children: [selectedCliente.whatsapp ? `WhatsApp: ${selectedCliente.whatsapp}` : null, selectedCliente.whatsapp && selectedCliente.instagram ? " · " : null, selectedCliente.instagram ? `Instagram: @${selectedCliente.instagram}` : null] }), _jsx("input", { type: "hidden", ...register("clienteNome") }), _jsx("input", { type: "hidden", ...register("clienteWhatsapp") }), _jsx("input", { type: "hidden", ...register("clienteInstagram") })] })), _jsxs(Field, { label: "Pre\u00E7o da pe\u00E7a (R$)", children: [_jsx(Input, { type: "number", step: "0.01", min: 0, ...register("precoVenda", { valueAsNumber: true }) }), _jsx("small", { style: { color: "#5a4042" }, children: "Pr\u00E9-preenchido com o pre\u00E7o de an\u00FAncio. Toque para editar." })] }), _jsxs(Field, { label: "Informa\u00E7\u00F5es de envio", children: [_jsx(Input, { ...register("freteTexto"), placeholder: "ex: Correios R$15 ou Correios 15,50" }), _jsx("small", { style: { color: "#5a4042" }, children: "O valor num\u00E9rico do frete \u00E9 somado ao pre\u00E7o da pe\u00E7a." })] }), _jsxs("div", { style: {
                                 padding: 24,
                                 background: "#fff0f0",
                                 borderRadius: "2rem",
