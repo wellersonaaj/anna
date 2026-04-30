@@ -69,6 +69,17 @@ const sellFormSchema = z
 
 type SellFormData = z.infer<typeof sellFormSchema>;
 
+const needsAdjustFieldsForSell = (data: {
+  nome: string;
+  whatsapp: string;
+  instagram: string;
+}): boolean => {
+  const nomeOk = data.nome.trim().length >= 2;
+  const w = data.whatsapp?.replace(/\s/g, "") ?? "";
+  const i = data.instagram?.replace(/^@+/, "").trim() ?? "";
+  return !nomeOk || (!w && !i);
+};
+
 const formatMoney = (value: number): string =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -79,6 +90,7 @@ export const SellPage = () => {
   const navigate = useNavigate();
   const [saleMode, setSaleMode] = useState<"queue" | "manual">("manual");
   const [selectedQueueEntryId, setSelectedQueueEntryId] = useState<string | null>(null);
+  const [showAdjustManualCliente, setShowAdjustManualCliente] = useState(false);
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
@@ -115,6 +127,11 @@ export const SellPage = () => {
     setValue("clienteWhatsapp", cliente.whatsapp, { shouldValidate: true, shouldDirty: true });
     setValue("clienteInstagram", cliente.instagram, { shouldValidate: true, shouldDirty: true });
   };
+
+  const hasManualContact =
+    Boolean(manualContact.nome.trim()) ||
+    Boolean(manualContact.whatsapp.trim()) ||
+    Boolean(manualContact.instagram.trim());
 
   useEffect(() => {
     if (!item) {
@@ -267,6 +284,7 @@ export const SellPage = () => {
                     onClick={() => {
                       setSaleMode("queue");
                       setSelectedQueueEntryId(entry.id);
+                      setShowAdjustManualCliente(false);
                     }}
                     style={{
                       padding: "10px 12px",
@@ -291,6 +309,7 @@ export const SellPage = () => {
                   onClick={() => {
                     setSaleMode("manual");
                     setSelectedQueueEntryId(null);
+                    setShowAdjustManualCliente(false);
                   }}
                   style={{
                     padding: "10px 12px",
@@ -313,20 +332,53 @@ export const SellPage = () => {
               <ClientPicker
                 brechoId={brechoId}
                 selectedContact={manualContact}
-                onSelect={fillManualContact}
-                onCreateNew={fillManualContact}
-                onClear={() => fillManualContact({ nome: "", whatsapp: "", instagram: "" })}
+                onSelect={(cliente) => {
+                  fillManualContact(cliente);
+                  setShowAdjustManualCliente(needsAdjustFieldsForSell(cliente));
+                }}
+                onCreateNew={(cliente) => {
+                  fillManualContact(cliente);
+                  setShowAdjustManualCliente(needsAdjustFieldsForSell(cliente));
+                }}
+                onClear={() => {
+                  fillManualContact({ nome: "", whatsapp: "", instagram: "" });
+                  setShowAdjustManualCliente(false);
+                }}
               />
-              <Field label="Nome completo">
-                <Input {...register("clienteNome")} />
-              </Field>
-              <div className="grid cols-2">
-                <Field label="WhatsApp">
-                  <Input {...register("clienteWhatsapp")} type="tel" placeholder="55 11 99999-9999" />
+              {hasManualContact && !showAdjustManualCliente && (
+                <button
+                  type="button"
+                  className="w-full rounded-xl border border-rose-100 bg-white py-3 text-sm font-bold text-primary"
+                  onClick={() => setShowAdjustManualCliente(true)}
+                >
+                  Ajustar nome, WhatsApp ou Instagram
+                </button>
+              )}
+              {hasManualContact && showAdjustManualCliente && (
+                <button
+                  type="button"
+                  className="text-sm font-bold text-on-surface-variant underline"
+                  onClick={() => setShowAdjustManualCliente(false)}
+                >
+                  Ocultar campos
+                </button>
+              )}
+              <div
+                className={hasManualContact && showAdjustManualCliente ? "stack" : "hidden"}
+                style={{ gap: 12 }}
+                aria-hidden={!(hasManualContact && showAdjustManualCliente)}
+              >
+                <Field label="Nome completo">
+                  <Input {...register("clienteNome")} />
                 </Field>
-                <Field label="Instagram">
-                  <Input {...register("clienteInstagram")} placeholder="@usuario" />
-                </Field>
+                <div className="grid cols-2">
+                  <Field label="WhatsApp">
+                    <Input {...register("clienteWhatsapp")} type="tel" placeholder="55 11 99999-9999" />
+                  </Field>
+                  <Field label="Instagram">
+                    <Input {...register("clienteInstagram")} placeholder="@usuario" />
+                  </Field>
+                </div>
               </div>
             </>
           )}

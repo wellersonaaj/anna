@@ -57,6 +57,12 @@ const sellFormSchema = z
         });
     }
 });
+const needsAdjustFieldsForSell = (data) => {
+    const nomeOk = data.nome.trim().length >= 2;
+    const w = data.whatsapp?.replace(/\s/g, "") ?? "";
+    const i = data.instagram?.replace(/^@+/, "").trim() ?? "";
+    return !nomeOk || (!w && !i);
+};
 const formatMoney = (value) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export const SellPage = () => {
     const { itemId } = useParams();
@@ -65,6 +71,7 @@ export const SellPage = () => {
     const navigate = useNavigate();
     const [saleMode, setSaleMode] = useState("manual");
     const [selectedQueueEntryId, setSelectedQueueEntryId] = useState(null);
+    const [showAdjustManualCliente, setShowAdjustManualCliente] = useState(false);
     const itemQuery = useQuery({
         queryKey: ["item", brechoId, itemId],
         queryFn: () => getItem(brechoId, itemId),
@@ -97,6 +104,9 @@ export const SellPage = () => {
         setValue("clienteWhatsapp", cliente.whatsapp, { shouldValidate: true, shouldDirty: true });
         setValue("clienteInstagram", cliente.instagram, { shouldValidate: true, shouldDirty: true });
     };
+    const hasManualContact = Boolean(manualContact.nome.trim()) ||
+        Boolean(manualContact.whatsapp.trim()) ||
+        Boolean(manualContact.instagram.trim());
     useEffect(() => {
         if (!item) {
             return;
@@ -187,6 +197,7 @@ export const SellPage = () => {
                         }, children: "Foto" })), _jsx("div", { style: { display: "flex", flexDirection: "column", justifyContent: "center" }, children: _jsx("h3", { style: { margin: 0, fontSize: "1.35rem" }, children: item.nome }) })] })), _jsx(Section, { title: "Valores", children: _jsxs("form", { className: "stack", style: { gap: 20 }, onSubmit: handleSubmit((data) => sellMutation.mutate(data)), children: [queueEntries.length > 0 && (_jsxs("div", { style: { padding: 12, background: "#fff0f0", borderRadius: 12, fontSize: 14 }, children: [_jsx("strong", { children: "H\u00E1 fila para esta pe\u00E7a." }), _jsx("p", { style: { margin: "4px 0 12px", color: "#5a4042" }, children: "Escolha vender para a primeira pessoa, outra pessoa da fila ou uma venda manual." }), _jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [queueEntries.map((entry) => (_jsxs("button", { type: "button", onClick: () => {
                                                 setSaleMode("queue");
                                                 setSelectedQueueEntryId(entry.id);
+                                                setShowAdjustManualCliente(false);
                                             }, style: {
                                                 padding: "10px 12px",
                                                 borderRadius: 12,
@@ -197,6 +208,7 @@ export const SellPage = () => {
                                             }, children: [_jsxs("strong", { children: [entry.posicao + 1, "\u00BA da fila: ", entry.cliente.nome] }), entry.posicao === 0 ? " · primeira pessoa" : null, _jsx("div", { style: { fontSize: 12, color: "#5a4042" }, children: [entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato" })] }, entry.id))), _jsx("button", { type: "button", onClick: () => {
                                                 setSaleMode("manual");
                                                 setSelectedQueueEntryId(null);
+                                                setShowAdjustManualCliente(false);
                                             }, style: {
                                                 padding: "10px 12px",
                                                 borderRadius: 12,
@@ -205,7 +217,16 @@ export const SellPage = () => {
                                                 textAlign: "left",
                                                 cursor: "pointer",
                                                 fontWeight: 700
-                                            }, children: "Vender para outra pessoa" })] })] })), !selectedCliente && (_jsxs(_Fragment, { children: [_jsx(ClientPicker, { brechoId: brechoId, selectedContact: manualContact, onSelect: fillManualContact, onCreateNew: fillManualContact, onClear: () => fillManualContact({ nome: "", whatsapp: "", instagram: "" }) }), _jsx(Field, { label: "Nome completo", children: _jsx(Input, { ...register("clienteNome") }) }), _jsxs("div", { className: "grid cols-2", children: [_jsx(Field, { label: "WhatsApp", children: _jsx(Input, { ...register("clienteWhatsapp"), type: "tel", placeholder: "55 11 99999-9999" }) }), _jsx(Field, { label: "Instagram", children: _jsx(Input, { ...register("clienteInstagram"), placeholder: "@usuario" }) })] })] })), selectedCliente && (_jsxs("div", { style: { padding: 12, background: "#fff0f0", borderRadius: 12, fontSize: 14 }, children: [_jsx("strong", { children: "Cliente selecionado:" }), " ", selectedCliente.nome, _jsxs("div", { style: { fontSize: 12, color: "#5a4042", marginTop: 4 }, children: [selectedCliente.whatsapp ? `WhatsApp: ${selectedCliente.whatsapp}` : null, selectedCliente.whatsapp && selectedCliente.instagram ? " · " : null, selectedCliente.instagram ? `Instagram: @${selectedCliente.instagram}` : null] }), _jsx("input", { type: "hidden", ...register("clienteNome") }), _jsx("input", { type: "hidden", ...register("clienteWhatsapp") }), _jsx("input", { type: "hidden", ...register("clienteInstagram") })] })), _jsxs(Field, { label: "Pre\u00E7o da pe\u00E7a (R$)", children: [_jsx(Input, { type: "number", step: "0.01", min: 0, ...register("precoVenda", { valueAsNumber: true }) }), _jsx("small", { style: { color: "#5a4042" }, children: "Pr\u00E9-preenchido com o pre\u00E7o de an\u00FAncio. Toque para editar." })] }), _jsxs(Field, { label: "Informa\u00E7\u00F5es de envio", children: [_jsx(Input, { ...register("freteTexto"), placeholder: "ex: Correios R$15 ou Correios 15,50" }), _jsx("small", { style: { color: "#5a4042" }, children: "O valor num\u00E9rico do frete \u00E9 somado ao pre\u00E7o da pe\u00E7a." })] }), _jsxs("div", { style: {
+                                            }, children: "Vender para outra pessoa" })] })] })), !selectedCliente && (_jsxs(_Fragment, { children: [_jsx(ClientPicker, { brechoId: brechoId, selectedContact: manualContact, onSelect: (cliente) => {
+                                        fillManualContact(cliente);
+                                        setShowAdjustManualCliente(needsAdjustFieldsForSell(cliente));
+                                    }, onCreateNew: (cliente) => {
+                                        fillManualContact(cliente);
+                                        setShowAdjustManualCliente(needsAdjustFieldsForSell(cliente));
+                                    }, onClear: () => {
+                                        fillManualContact({ nome: "", whatsapp: "", instagram: "" });
+                                        setShowAdjustManualCliente(false);
+                                    } }), hasManualContact && !showAdjustManualCliente && (_jsx("button", { type: "button", className: "w-full rounded-xl border border-rose-100 bg-white py-3 text-sm font-bold text-primary", onClick: () => setShowAdjustManualCliente(true), children: "Ajustar nome, WhatsApp ou Instagram" })), hasManualContact && showAdjustManualCliente && (_jsx("button", { type: "button", className: "text-sm font-bold text-on-surface-variant underline", onClick: () => setShowAdjustManualCliente(false), children: "Ocultar campos" })), _jsxs("div", { className: hasManualContact && showAdjustManualCliente ? "stack" : "hidden", style: { gap: 12 }, "aria-hidden": !(hasManualContact && showAdjustManualCliente), children: [_jsx(Field, { label: "Nome completo", children: _jsx(Input, { ...register("clienteNome") }) }), _jsxs("div", { className: "grid cols-2", children: [_jsx(Field, { label: "WhatsApp", children: _jsx(Input, { ...register("clienteWhatsapp"), type: "tel", placeholder: "55 11 99999-9999" }) }), _jsx(Field, { label: "Instagram", children: _jsx(Input, { ...register("clienteInstagram"), placeholder: "@usuario" }) })] })] })] })), selectedCliente && (_jsxs("div", { style: { padding: 12, background: "#fff0f0", borderRadius: 12, fontSize: 14 }, children: [_jsx("strong", { children: "Cliente selecionado:" }), " ", selectedCliente.nome, _jsxs("div", { style: { fontSize: 12, color: "#5a4042", marginTop: 4 }, children: [selectedCliente.whatsapp ? `WhatsApp: ${selectedCliente.whatsapp}` : null, selectedCliente.whatsapp && selectedCliente.instagram ? " · " : null, selectedCliente.instagram ? `Instagram: @${selectedCliente.instagram}` : null] }), _jsx("input", { type: "hidden", ...register("clienteNome") }), _jsx("input", { type: "hidden", ...register("clienteWhatsapp") }), _jsx("input", { type: "hidden", ...register("clienteInstagram") })] })), _jsxs(Field, { label: "Pre\u00E7o da pe\u00E7a (R$)", children: [_jsx(Input, { type: "number", step: "0.01", min: 0, ...register("precoVenda", { valueAsNumber: true }) }), _jsx("small", { style: { color: "#5a4042" }, children: "Pr\u00E9-preenchido com o pre\u00E7o de an\u00FAncio. Toque para editar." })] }), _jsxs(Field, { label: "Informa\u00E7\u00F5es de envio", children: [_jsx(Input, { ...register("freteTexto"), placeholder: "ex: Correios R$15 ou Correios 15,50" }), _jsx("small", { style: { color: "#5a4042" }, children: "O valor num\u00E9rico do frete \u00E9 somado ao pre\u00E7o da pe\u00E7a." })] }), _jsxs("div", { style: {
                                 padding: 24,
                                 background: "#fff0f0",
                                 borderRadius: "2rem",

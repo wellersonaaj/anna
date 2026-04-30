@@ -44,6 +44,12 @@ const editFormSchema = z.object({
     acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
     acervoNome: z.string().optional()
 });
+const needsAdjustFieldsForFila = (data) => {
+    const nomeOk = data.nome.trim().length >= 2;
+    const w = data.whatsapp?.replace(/\s/g, "") ?? "";
+    const i = data.instagram?.replace(/^@+/, "").trim() ?? "";
+    return !nomeOk || (!w && !i);
+};
 const categoriaLabels = {
     ROUPA_FEMININA: "Roupa feminina",
     ROUPA_MASCULINA: "Roupa masculina",
@@ -75,6 +81,7 @@ export const ItemDetailPage = () => {
     const queryClient = useQueryClient();
     const [editing, setEditing] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(null);
+    const [showAdjustFilaFields, setShowAdjustFilaFields] = useState(false);
     const itemQuery = useQuery({
         queryKey: ["item", brechoId, itemId],
         queryFn: () => getItem(brechoId, itemId),
@@ -122,6 +129,9 @@ export const ItemDetailPage = () => {
         filaForm.setValue("whatsapp", cliente.whatsapp ?? "", { shouldValidate: true, shouldDirty: true });
         filaForm.setValue("instagram", cliente.instagram ?? "", { shouldValidate: true, shouldDirty: true });
     };
+    const hasFilaContact = Boolean(filaContact.nome.trim()) ||
+        Boolean(filaContact.whatsapp.trim()) ||
+        Boolean(filaContact.instagram.trim());
     useEffect(() => {
         if (!item) {
             return;
@@ -170,6 +180,7 @@ export const ItemDetailPage = () => {
         onSuccess: async () => {
             await invalidateItem();
             filaForm.reset();
+            setShowAdjustFilaFields(false);
         }
     });
     const leaveFilaMutation = useMutation({
@@ -213,11 +224,20 @@ export const ItemDetailPage = () => {
                                                                     : "Sugerir com IA" })), _jsx(Button, { type: "button", className: "bg-zinc-700", onClick: () => deleteFotoMutation.mutate(foto.id), disabled: deleteFotoMutation.isPending, children: "Remover" })] })] }), analyzeFotoMutation.isError && analyzeFotoMutation.variables === foto.id && (_jsx("small", { style: { color: "#b60e3d" }, children: analyzeFotoMutation.error instanceof ApiError
                                                     ? analyzeFotoMutation.error.message
                                                     : "Não foi possível analisar a foto." })), latestAi && _jsx(FotoAiSuggestionsCard, { analysis: latestAi })] }, foto.id));
-                                })) })] }), _jsxs(Section, { title: "Fila de interessados", children: [canQueue ? (_jsxs("form", { className: "grid cols-2", style: { marginBottom: 16 }, onSubmit: filaForm.handleSubmit((data) => joinFilaMutation.mutate(data)), children: [_jsx("div", { style: { gridColumn: "1 / -1" }, children: _jsx(ClientPicker, { brechoId: brechoId, selectedContact: filaContact, onSelect: fillFilaContact, onCreateNew: fillFilaContact, onClear: () => fillFilaContact({ nome: "", whatsapp: "", instagram: "" }), title: "Interessado" }) }), _jsx(Field, { label: "Nome", children: _jsx(Input, { ...filaForm.register("nome") }) }), _jsx(Field, { label: "WhatsApp", children: _jsx(Input, { ...filaForm.register("whatsapp") }) }), _jsx(Field, { label: "Instagram", children: _jsx(Input, { ...filaForm.register("instagram"), placeholder: "@usuario" }) }), _jsx("div", { className: "stack", style: { justifyContent: "end" }, children: _jsx(Button, { type: "submit", disabled: joinFilaMutation.isPending, children: joinFilaMutation.isPending
-                                                ? "Entrando..."
-                                                : item.status === "RESERVADO"
-                                                    ? "Adicionar à fila"
-                                                    : "Reservar" }) }), (filaForm.formState.errors.whatsapp || filaForm.formState.errors.root) && (_jsx("small", { style: { color: "#b60e3d", gridColumn: "1 / -1" }, children: filaForm.formState.errors.whatsapp?.message })), joinFilaMutation.isError && (_jsx("small", { style: { color: "#b60e3d", gridColumn: "1 / -1" }, children: joinFilaMutation.error instanceof ApiError
+                                })) })] }), _jsxs(Section, { title: "Fila de interessados", children: [canQueue ? (_jsxs("form", { className: "grid grid-cols-1 gap-3", style: { marginBottom: 16 }, onSubmit: filaForm.handleSubmit((data) => joinFilaMutation.mutate(data)), children: [_jsx(ClientPicker, { brechoId: brechoId, selectedContact: filaContact, onSelect: (cliente) => {
+                                            fillFilaContact(cliente);
+                                            setShowAdjustFilaFields(needsAdjustFieldsForFila(cliente));
+                                        }, onCreateNew: (cliente) => {
+                                            fillFilaContact(cliente);
+                                            setShowAdjustFilaFields(needsAdjustFieldsForFila(cliente));
+                                        }, onClear: () => {
+                                            fillFilaContact({ nome: "", whatsapp: "", instagram: "" });
+                                            setShowAdjustFilaFields(false);
+                                        }, title: "Interessado" }), hasFilaContact && !showAdjustFilaFields && (_jsx("button", { type: "button", className: "w-full rounded-xl border border-rose-100 bg-white py-3 text-sm font-bold text-primary", onClick: () => setShowAdjustFilaFields(true), children: "Ajustar nome, WhatsApp ou Instagram" })), hasFilaContact && showAdjustFilaFields && (_jsx("button", { type: "button", className: "text-sm font-bold text-on-surface-variant underline", onClick: () => setShowAdjustFilaFields(false), children: "Ocultar campos" })), _jsxs("div", { className: hasFilaContact && showAdjustFilaFields ? "grid gap-3" : "hidden", children: [_jsx(Field, { label: "Nome", children: _jsx(Input, { ...filaForm.register("nome") }) }), _jsxs("div", { className: "grid grid-cols-1 gap-3 md:grid-cols-2", children: [_jsx(Field, { label: "WhatsApp", children: _jsx(Input, { ...filaForm.register("whatsapp") }) }), _jsx(Field, { label: "Instagram", children: _jsx(Input, { ...filaForm.register("instagram"), placeholder: "@usuario" }) })] })] }), _jsx(Button, { type: "submit", disabled: joinFilaMutation.isPending, children: joinFilaMutation.isPending
+                                            ? "Entrando..."
+                                            : item.status === "RESERVADO"
+                                                ? "Adicionar à fila"
+                                                : "Reservar" }), (filaForm.formState.errors.whatsapp || filaForm.formState.errors.root) && (_jsx("small", { style: { color: "#b60e3d" }, children: filaForm.formState.errors.whatsapp?.message })), joinFilaMutation.isError && (_jsx("small", { style: { color: "#b60e3d" }, children: joinFilaMutation.error instanceof ApiError
                                             ? joinFilaMutation.error.message
                                             : "Não foi possível entrar na fila." }))] })) : (_jsx("p", { style: { opacity: 0.85 }, children: "A fila s\u00F3 pode ser gerenciada em pe\u00E7as dispon\u00EDveis ou reservadas." })), _jsx("div", { className: "stack", style: { gap: 8 }, children: (item.filaInteressados ?? []).length === 0 ? (_jsx("p", { style: { opacity: 0.8 }, children: "Ningu\u00E9m na fila." })) : ((item.filaInteressados ?? []).map((e) => (_jsxs("div", { className: "card", style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [_jsxs("div", { children: [_jsxs("strong", { children: [e.posicao + 1, "\u00BA \u2014 ", e.cliente.nome] }), e.posicao === 0 && item.status === "RESERVADO" && (_jsx("span", { className: "ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700", children: "Reserva ativa" })), _jsx("div", { style: { fontSize: 13, opacity: 0.85 }, children: [e.cliente.whatsapp, e.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato" })] }), _jsx(Button, { type: "button", onClick: () => leaveFilaMutation.mutate(e.id), disabled: leaveFilaMutation.isPending, children: "Remover" })] }, e.id)))) })] })] })), lightboxIndex !== null && photos.length > 0 && (_jsx(PhotoLightbox, { photos: photos, initialIndex: lightboxIndex, title: item?.nome ?? "Fotos da peça", onClose: () => setLightboxIndex(null) }))] }));
 };

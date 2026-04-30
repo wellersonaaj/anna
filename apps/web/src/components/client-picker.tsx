@@ -130,8 +130,7 @@ export const ClientPicker = ({
               className="rounded-2xl border border-rose-100 bg-white p-4 text-left shadow-sm transition-transform active:scale-[0.98]"
             >
               <strong className="block text-base text-gray-900">{client.nome}</strong>
-              <span className="mt-2 block text-sm text-on-surface-variant">Nome {client.nome}</span>
-              <span className="block text-sm text-on-surface-variant">{displayWhatsapp(client.whatsapp)}</span>
+              <span className="mt-2 block text-sm text-on-surface-variant">{displayWhatsapp(client.whatsapp)}</span>
               <span className="block text-sm text-on-surface-variant">{displayInstagram(client.instagram)}</span>
               <span className="mt-3 inline-flex rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-primary">
                 Selecionar cliente

@@ -1,6 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -23,6 +24,12 @@ const reserveFormSchema = z.object({
         });
     }
 });
+const needsAdjustFieldsForReserve = (data) => {
+    const nomeOk = data.nome.trim().length >= 2;
+    const w = data.whatsapp?.replace(/\s/g, "") ?? "";
+    const i = data.instagram?.replace(/^@+/, "").trim() ?? "";
+    return !nomeOk || (!w && !i);
+};
 const formatPreco = (value) => {
     if (value === null || value === undefined || value === "") {
         return "—";
@@ -38,6 +45,7 @@ export const ReservePage = () => {
     const brechoId = useSessionStore((state) => state.brechoId);
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [showAdjustFields, setShowAdjustFields] = useState(false);
     const itemQuery = useQuery({
         queryKey: ["item", brechoId, itemId],
         queryFn: () => getItem(brechoId, itemId),
@@ -83,35 +91,47 @@ export const ReservePage = () => {
         setValue("whatsapp", cliente.whatsapp ?? "", { shouldValidate: true, shouldDirty: true });
         setValue("instagram", cliente.instagram ?? "", { shouldValidate: true, shouldDirty: true });
     };
-    return (_jsxs(AppShell, { children: [_jsxs("header", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }, children: [_jsx(Link, { to: "/", style: { color: "#5a4042", textDecoration: "none" }, children: "\u2190 Voltar" }), _jsx("h1", { style: { margin: 0, fontSize: "1.25rem" }, children: item?.status === "RESERVADO" ? "Adicionar à fila" : "Reserva" })] }), _jsx("p", { style: { marginTop: 0, color: "#5a4042", maxWidth: 360 }, children: "Busque um cliente ou cadastre um novo" }), _jsx(Section, { title: "Buscar ou cadastrar cliente", children: _jsx(ClientPicker, { brechoId: brechoId, selectedContact: selectedContact, onSelect: fillClient, onCreateNew: fillClient, onClear: () => fillClient({ nome: "", whatsapp: "", instagram: "" }) }) }), _jsxs(Section, { title: "Perfil do Cliente", children: [_jsxs("form", { className: "stack", onSubmit: handleSubmit((data) => reserveMutation.mutate(data)), children: [_jsx(Field, { label: "Nome completo", children: _jsx(Input, { ...register("nome"), placeholder: "ex: Elena Rossi" }) }), _jsxs("div", { className: "grid cols-2", children: [_jsx(Field, { label: "WhatsApp", children: _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [_jsx("span", { style: { color: "#8e6f71" }, children: "+" }), _jsx(Input, { ...register("whatsapp"), placeholder: "55 11 99999-9999", type: "tel" })] }) }), _jsx(Field, { label: "Instagram", children: _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [_jsx("span", { style: { color: "#8e6f71" }, children: "@" }), _jsx(Input, { ...register("instagram"), placeholder: "usuario" })] }) })] }), item && (_jsxs("div", { style: {
-                                    display: "flex",
-                                    gap: 16,
-                                    padding: 16,
-                                    background: "#fee1e3",
-                                    borderRadius: 16,
-                                    marginTop: 8
-                                }, children: [itemPhoto ? (_jsx("img", { src: itemPhoto, alt: `Foto da peça ${item.nome}`, style: { width: 80, height: 96, borderRadius: 12, objectFit: "cover", flexShrink: 0 } })) : (_jsx("div", { style: {
-                                            width: 80,
-                                            height: 96,
-                                            borderRadius: 12,
-                                            background: "#fff",
-                                            flexShrink: 0,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            fontSize: 11,
-                                            color: "#5a4042"
-                                        }, children: "Foto" })), _jsxs("div", { children: [_jsx("div", { style: { fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", color: "#b60e3d" }, children: item.status === "RESERVADO" ? "ADICIONANDO À FILA" : "RESERVANDO ITEM" }), _jsx("h3", { style: { margin: "4px 0", fontSize: "1.1rem" }, children: item.nome }), _jsx("div", { style: { fontSize: 13, fontWeight: 700 }, children: formatPreco(item.precoVenda) })] })] })), _jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }, children: [_jsx(Button, { type: "submit", disabled: reserveMutation.isPending || !item || !canQueue, children: reserveMutation.isPending
-                                            ? "Confirmando..."
-                                            : item?.status === "RESERVADO"
-                                                ? "Adicionar à fila"
-                                                : "Confirmar reserva" }), _jsx("button", { type: "button", onClick: () => navigate(-1), style: {
-                                            height: 40,
-                                            borderRadius: 10,
-                                            border: "1px solid #e2bec0",
-                                            background: "transparent",
-                                            color: "#5a4042",
-                                            cursor: "pointer",
-                                            fontWeight: 600
-                                        }, children: "Descartar rascunho" })] })] }), formState.errors.root && _jsx("small", { children: formState.errors.root.message })] })] }));
+    const hasContact = Boolean(selectedContact.nome.trim()) ||
+        Boolean(selectedContact.whatsapp.trim()) ||
+        Boolean(selectedContact.instagram.trim());
+    return (_jsxs(AppShell, { children: [_jsxs("header", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }, children: [_jsx(Link, { to: "/", style: { color: "#5a4042", textDecoration: "none" }, children: "\u2190 Voltar" }), _jsx("h1", { style: { margin: 0, fontSize: "1.25rem" }, children: item?.status === "RESERVADO" ? "Adicionar à fila" : "Reserva" })] }), _jsx("p", { style: { marginTop: 0, color: "#5a4042", maxWidth: 360 }, children: "Escolha quem reserva: busque quem j\u00E1 est\u00E1 cadastrado ou cadastre algu\u00E9m novo." }), _jsx(Section, { title: "Cliente", children: _jsxs("form", { className: "stack", onSubmit: handleSubmit((data) => reserveMutation.mutate(data)), children: [_jsx(ClientPicker, { brechoId: brechoId, selectedContact: selectedContact, onSelect: (cliente) => {
+                                fillClient(cliente);
+                                setShowAdjustFields(needsAdjustFieldsForReserve(cliente));
+                            }, onCreateNew: (cliente) => {
+                                fillClient(cliente);
+                                setShowAdjustFields(needsAdjustFieldsForReserve(cliente));
+                            }, onClear: () => {
+                                fillClient({ nome: "", whatsapp: "", instagram: "" });
+                                setShowAdjustFields(false);
+                            } }), hasContact && !showAdjustFields && (_jsx("button", { type: "button", className: "w-full rounded-xl border border-rose-100 bg-white py-3 text-sm font-bold text-primary", onClick: () => setShowAdjustFields(true), children: "Ajustar nome, WhatsApp ou Instagram" })), hasContact && showAdjustFields && (_jsx("button", { type: "button", className: "text-sm font-bold text-on-surface-variant underline", onClick: () => setShowAdjustFields(false), children: "Ocultar campos" })), _jsxs("div", { className: hasContact && showAdjustFields ? "grid gap-3" : "hidden", "aria-hidden": !(hasContact && showAdjustFields), children: [_jsx(Field, { label: "Nome completo", children: _jsx(Input, { ...register("nome"), placeholder: "ex: Elena Rossi" }) }), _jsxs("div", { className: "grid cols-2", children: [_jsx(Field, { label: "WhatsApp", children: _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [_jsx("span", { style: { color: "#8e6f71" }, children: "+" }), _jsx(Input, { ...register("whatsapp"), placeholder: "55 11 99999-9999", type: "tel" })] }) }), _jsx(Field, { label: "Instagram", children: _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [_jsx("span", { style: { color: "#8e6f71" }, children: "@" }), _jsx(Input, { ...register("instagram"), placeholder: "usuario" })] }) })] })] }), item && (_jsxs("div", { style: {
+                                display: "flex",
+                                gap: 16,
+                                padding: 16,
+                                background: "#fee1e3",
+                                borderRadius: 16,
+                                marginTop: 8
+                            }, children: [itemPhoto ? (_jsx("img", { src: itemPhoto, alt: `Foto da peça ${item.nome}`, style: { width: 80, height: 96, borderRadius: 12, objectFit: "cover", flexShrink: 0 } })) : (_jsx("div", { style: {
+                                        width: 80,
+                                        height: 96,
+                                        borderRadius: 12,
+                                        background: "#fff",
+                                        flexShrink: 0,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: 11,
+                                        color: "#5a4042"
+                                    }, children: "Foto" })), _jsxs("div", { children: [_jsx("div", { style: { fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", color: "#b60e3d" }, children: item.status === "RESERVADO" ? "ADICIONANDO À FILA" : "RESERVANDO ITEM" }), _jsx("h3", { style: { margin: "4px 0", fontSize: "1.1rem" }, children: item.nome }), _jsx("div", { style: { fontSize: 13, fontWeight: 700 }, children: formatPreco(item.precoVenda) })] })] })), _jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }, children: [_jsx(Button, { type: "submit", disabled: reserveMutation.isPending || !item || !canQueue, children: reserveMutation.isPending
+                                        ? "Confirmando..."
+                                        : item?.status === "RESERVADO"
+                                            ? "Adicionar à fila"
+                                            : "Confirmar reserva" }), _jsx("button", { type: "button", onClick: () => navigate(-1), style: {
+                                        height: 40,
+                                        borderRadius: 10,
+                                        border: "1px solid #e2bec0",
+                                        background: "transparent",
+                                        color: "#5a4042",
+                                        cursor: "pointer",
+                                        fontWeight: 600
+                                    }, children: "Descartar rascunho" })] }), formState.errors.root && _jsx("small", { children: formState.errors.root.message })] }) })] }));
 };

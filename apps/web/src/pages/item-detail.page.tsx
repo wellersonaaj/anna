@@ -62,6 +62,13 @@ type FotoFormData = z.infer<typeof fotoFormSchema>;
 type FilaFormData = z.infer<typeof filaFormSchema>;
 type EditFormData = z.infer<typeof editFormSchema>;
 
+const needsAdjustFieldsForFila = (data: FilaFormData): boolean => {
+  const nomeOk = data.nome.trim().length >= 2;
+  const w = data.whatsapp?.replace(/\s/g, "") ?? "";
+  const i = data.instagram?.replace(/^@+/, "").trim() ?? "";
+  return !nomeOk || (!w && !i);
+};
+
 const categoriaLabels: Record<ItemCategoria, string> = {
   ROUPA_FEMININA: "Roupa feminina",
   ROUPA_MASCULINA: "Roupa masculina",
@@ -97,6 +104,7 @@ export const ItemDetailPage = () => {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [showAdjustFilaFields, setShowAdjustFilaFields] = useState(false);
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
@@ -154,6 +162,11 @@ export const ItemDetailPage = () => {
     filaForm.setValue("instagram", cliente.instagram ?? "", { shouldValidate: true, shouldDirty: true });
   };
 
+  const hasFilaContact =
+    Boolean(filaContact.nome.trim()) ||
+    Boolean(filaContact.whatsapp.trim()) ||
+    Boolean(filaContact.instagram.trim());
+
   useEffect(() => {
     if (!item) {
       return;
@@ -208,6 +221,7 @@ export const ItemDetailPage = () => {
     onSuccess: async () => {
       await invalidateItem();
       filaForm.reset();
+      setShowAdjustFilaFields(false);
     }
   });
 
@@ -519,45 +533,70 @@ export const ItemDetailPage = () => {
           <Section title="Fila de interessados">
             {canQueue ? (
               <form
-                className="grid cols-2"
+                className="grid grid-cols-1 gap-3"
                 style={{ marginBottom: 16 }}
                 onSubmit={filaForm.handleSubmit((data) => joinFilaMutation.mutate(data))}
               >
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <ClientPicker
-                    brechoId={brechoId}
-                    selectedContact={filaContact}
-                    onSelect={fillFilaContact}
-                    onCreateNew={fillFilaContact}
-                    onClear={() => fillFilaContact({ nome: "", whatsapp: "", instagram: "" })}
-                    title="Interessado"
-                  />
+                <ClientPicker
+                  brechoId={brechoId}
+                  selectedContact={filaContact}
+                  onSelect={(cliente) => {
+                    fillFilaContact(cliente);
+                    setShowAdjustFilaFields(needsAdjustFieldsForFila(cliente));
+                  }}
+                  onCreateNew={(cliente) => {
+                    fillFilaContact(cliente);
+                    setShowAdjustFilaFields(needsAdjustFieldsForFila(cliente));
+                  }}
+                  onClear={() => {
+                    fillFilaContact({ nome: "", whatsapp: "", instagram: "" });
+                    setShowAdjustFilaFields(false);
+                  }}
+                  title="Interessado"
+                />
+                {hasFilaContact && !showAdjustFilaFields && (
+                  <button
+                    type="button"
+                    className="w-full rounded-xl border border-rose-100 bg-white py-3 text-sm font-bold text-primary"
+                    onClick={() => setShowAdjustFilaFields(true)}
+                  >
+                    Ajustar nome, WhatsApp ou Instagram
+                  </button>
+                )}
+                {hasFilaContact && showAdjustFilaFields && (
+                  <button
+                    type="button"
+                    className="text-sm font-bold text-on-surface-variant underline"
+                    onClick={() => setShowAdjustFilaFields(false)}
+                  >
+                    Ocultar campos
+                  </button>
+                )}
+                <div className={hasFilaContact && showAdjustFilaFields ? "grid gap-3" : "hidden"}>
+                  <Field label="Nome">
+                    <Input {...filaForm.register("nome")} />
+                  </Field>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <Field label="WhatsApp">
+                      <Input {...filaForm.register("whatsapp")} />
+                    </Field>
+                    <Field label="Instagram">
+                      <Input {...filaForm.register("instagram")} placeholder="@usuario" />
+                    </Field>
+                  </div>
                 </div>
-                <Field label="Nome">
-                  <Input {...filaForm.register("nome")} />
-                </Field>
-                <Field label="WhatsApp">
-                  <Input {...filaForm.register("whatsapp")} />
-                </Field>
-                <Field label="Instagram">
-                  <Input {...filaForm.register("instagram")} placeholder="@usuario" />
-                </Field>
-                <div className="stack" style={{ justifyContent: "end" }}>
-                  <Button type="submit" disabled={joinFilaMutation.isPending}>
-                    {joinFilaMutation.isPending
-                      ? "Entrando..."
-                      : item.status === "RESERVADO"
-                        ? "Adicionar à fila"
-                        : "Reservar"}
-                  </Button>
-                </div>
+                <Button type="submit" disabled={joinFilaMutation.isPending}>
+                  {joinFilaMutation.isPending
+                    ? "Entrando..."
+                    : item.status === "RESERVADO"
+                      ? "Adicionar à fila"
+                      : "Reservar"}
+                </Button>
                 {(filaForm.formState.errors.whatsapp || filaForm.formState.errors.root) && (
-                  <small style={{ color: "#b60e3d", gridColumn: "1 / -1" }}>
-                    {filaForm.formState.errors.whatsapp?.message}
-                  </small>
+                  <small style={{ color: "#b60e3d" }}>{filaForm.formState.errors.whatsapp?.message}</small>
                 )}
                 {joinFilaMutation.isError && (
-                  <small style={{ color: "#b60e3d", gridColumn: "1 / -1" }}>
+                  <small style={{ color: "#b60e3d" }}>
                     {joinFilaMutation.error instanceof ApiError
                       ? joinFilaMutation.error.message
                       : "Não foi possível entrar na fila."}

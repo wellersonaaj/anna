@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -26,6 +27,13 @@ const reserveFormSchema = z.object({
 
 type ReserveFormData = z.infer<typeof reserveFormSchema>;
 
+const needsAdjustFieldsForReserve = (data: ReserveFormData): boolean => {
+  const nomeOk = data.nome.trim().length >= 2;
+  const w = data.whatsapp?.replace(/\s/g, "") ?? "";
+  const i = data.instagram?.replace(/^@+/, "").trim() ?? "";
+  return !nomeOk || (!w && !i);
+};
+
 const formatPreco = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined || value === "") {
     return "—";
@@ -44,6 +52,7 @@ export const ReservePage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showAdjustFields, setShowAdjustFields] = useState(false);
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
@@ -95,6 +104,11 @@ export const ReservePage = () => {
     setValue("instagram", cliente.instagram ?? "", { shouldValidate: true, shouldDirty: true });
   };
 
+  const hasContact =
+    Boolean(selectedContact.nome.trim()) ||
+    Boolean(selectedContact.whatsapp.trim()) ||
+    Boolean(selectedContact.instagram.trim());
+
   return (
     <AppShell>
       <header style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -107,37 +121,69 @@ export const ReservePage = () => {
       </header>
 
       <p style={{ marginTop: 0, color: "#5a4042", maxWidth: 360 }}>
-        Busque um cliente ou cadastre um novo
+        Escolha quem reserva: busque quem já está cadastrado ou cadastre alguém novo.
       </p>
 
-      <Section title="Buscar ou cadastrar cliente">
-        <ClientPicker
-          brechoId={brechoId}
-          selectedContact={selectedContact}
-          onSelect={fillClient}
-          onCreateNew={fillClient}
-          onClear={() => fillClient({ nome: "", whatsapp: "", instagram: "" })}
-        />
-      </Section>
-
-      <Section title="Perfil do Cliente">
+      <Section title="Cliente">
         <form className="stack" onSubmit={handleSubmit((data) => reserveMutation.mutate(data))}>
-          <Field label="Nome completo">
-            <Input {...register("nome")} placeholder="ex: Elena Rossi" />
-          </Field>
-          <div className="grid cols-2">
-            <Field label="WhatsApp">
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: "#8e6f71" }}>+</span>
-                <Input {...register("whatsapp")} placeholder="55 11 99999-9999" type="tel" />
-              </div>
+          <ClientPicker
+            brechoId={brechoId}
+            selectedContact={selectedContact}
+            onSelect={(cliente) => {
+              fillClient(cliente);
+              setShowAdjustFields(needsAdjustFieldsForReserve(cliente));
+            }}
+            onCreateNew={(cliente) => {
+              fillClient(cliente);
+              setShowAdjustFields(needsAdjustFieldsForReserve(cliente));
+            }}
+            onClear={() => {
+              fillClient({ nome: "", whatsapp: "", instagram: "" });
+              setShowAdjustFields(false);
+            }}
+          />
+
+          {hasContact && !showAdjustFields && (
+            <button
+              type="button"
+              className="w-full rounded-xl border border-rose-100 bg-white py-3 text-sm font-bold text-primary"
+              onClick={() => setShowAdjustFields(true)}
+            >
+              Ajustar nome, WhatsApp ou Instagram
+            </button>
+          )}
+
+          {hasContact && showAdjustFields && (
+            <button
+              type="button"
+              className="text-sm font-bold text-on-surface-variant underline"
+              onClick={() => setShowAdjustFields(false)}
+            >
+              Ocultar campos
+            </button>
+          )}
+
+          <div
+            className={hasContact && showAdjustFields ? "grid gap-3" : "hidden"}
+            aria-hidden={!(hasContact && showAdjustFields)}
+          >
+            <Field label="Nome completo">
+              <Input {...register("nome")} placeholder="ex: Elena Rossi" />
             </Field>
-            <Field label="Instagram">
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: "#8e6f71" }}>@</span>
-                <Input {...register("instagram")} placeholder="usuario" />
-              </div>
-            </Field>
+            <div className="grid cols-2">
+              <Field label="WhatsApp">
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: "#8e6f71" }}>+</span>
+                  <Input {...register("whatsapp")} placeholder="55 11 99999-9999" type="tel" />
+                </div>
+              </Field>
+              <Field label="Instagram">
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: "#8e6f71" }}>@</span>
+                  <Input {...register("instagram")} placeholder="usuario" />
+                </div>
+              </Field>
+            </div>
           </div>
 
           {item && (
@@ -209,8 +255,8 @@ export const ReservePage = () => {
               Descartar rascunho
             </button>
           </div>
+          {formState.errors.root && <small>{formState.errors.root.message}</small>}
         </form>
-        {formState.errors.root && <small>{formState.errors.root.message}</small>}
       </Section>
     </AppShell>
   );
