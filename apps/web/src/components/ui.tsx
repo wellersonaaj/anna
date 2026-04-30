@@ -59,7 +59,7 @@ export const AppShell = ({
   );
 };
 
-export const Section = ({ title, children }: PropsWithChildren<{ title: string }>) => {
+export const Section = ({ title, children }: PropsWithChildren<{ title: ReactNode }>) => {
   return (
     <section className="rounded-3xl border border-rose-100 bg-white p-4 shadow-sm">
       <h2 className="m-0 mb-3 font-headline text-lg font-extrabold tracking-tight">{title}</h2>

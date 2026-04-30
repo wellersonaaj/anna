@@ -96,18 +96,18 @@ export const ImportacaoGruposPage = () => {
   }
 
   return (
-    <AppShell showTopBar showBottomNav activeTab="estoque" topBarTitle="Grupos" fabLink="/items/new">
+    <AppShell showTopBar showBottomNav activeTab="estoque" topBarTitle="Peças" fabLink="/items/new">
       <section>
-        <h1 className="font-headline text-3xl font-extrabold tracking-tighter">Revisar grupos</h1>
+        <h1 className="font-headline text-3xl font-extrabold tracking-tighter">Revisar peças</h1>
         <p className="mt-1 text-sm text-on-surface-variant">
-          Cada grupo deve ser uma peça. Mova fotos entre grupos se precisar, salve e confirme.
+          Cada peça deve ter suas próprias fotos. Ajuste se necessário; ao confirmar, a IA vai preencher os dados das peças.
         </p>
       </section>
 
       {detailQuery.isLoading ? (
         <p className="text-sm">Carregando…</p>
       ) : grupos.length === 0 ? (
-        <Section title="Sem grupos">
+        <Section title="Sem peças">
           <p className="mb-3 text-sm">Volte e envie fotos, ou rode a IA de novo.</p>
           <Link to={`/importacoes/${loteId}/criar`} className="font-bold text-primary underline">
             Voltar às fotos
@@ -117,7 +117,7 @@ export const ImportacaoGruposPage = () => {
         <>
           <div className="flex flex-wrap gap-2">
             <Button type="button" onClick={() => saveMutation.mutate(grupos)} disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando…" : "Salvar grupos"}
+              {saveMutation.isPending ? "Aplicando…" : "Aplicar ajustes"}
             </Button>
             <Button
               type="button"
@@ -133,44 +133,67 @@ export const ImportacaoGruposPage = () => {
               disabled={confirmMutation.isPending || saveMutation.isPending}
               onClick={() => confirmMutation.mutate()}
             >
-              {confirmMutation.isPending ? "Confirmando…" : "Confirmar grupos e continuar"}
+              {confirmMutation.isPending ? "Confirmando…" : "Confirmar peças e gerar dados"}
             </Button>
           </div>
 
           <div className="stack gap-4" style={{ marginTop: 16 }}>
-            {grupos.map((g, gi) => (
-              <Section key={g.id} title={`Grupo ${gi + 1} · fotos ${g.fotos.length}`}>
-                {g.motivoRevisao ? <p className="mb-2 text-xs text-[#8a6d00]">{g.motivoRevisao}</p> : null}
-                <div className="flex flex-wrap gap-2">
-                  {g.fotos.map((f) => (
-                    <div key={f.id} className="w-[100px]">
-                      <img
-                        src={f.thumbnailUrl ?? f.url}
-                        alt=""
-                        loading="lazy"
-                        width={100}
-                        height={112}
-                        className="h-28 w-full rounded-lg object-cover"
-                      />
-                      <label className="mt-1 block text-[10px] font-bold uppercase text-on-surface-variant">
-                        Mover para
-                      </label>
-                      <select
-                        className="mt-0.5 w-full rounded-lg border border-[#d9b9bc] bg-white px-1 py-1 text-[11px]"
-                        value={gi}
-                        onChange={(e) => moveFoto(f.id, gi, Number(e.target.value))}
-                      >
-                        {grupos.map((_, ti) => (
-                          <option key={ti} value={ti}>
-                            Grupo {ti + 1}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            ))}
+            {grupos.map((g, gi) => {
+              const fotoPrincipal = g.fotos[0];
+
+              return (
+                <Section
+                  key={g.id}
+                  title={
+                    <span className="flex items-center gap-3">
+                      {fotoPrincipal ? (
+                        <img
+                          src={fotoPrincipal.thumbnailUrl ?? fotoPrincipal.url}
+                          alt=""
+                          loading="lazy"
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 rounded-lg object-cover"
+                        />
+                      ) : null}
+                      <span>
+                        Peça {gi + 1} · {g.fotos.length} {g.fotos.length === 1 ? "foto" : "fotos"}
+                      </span>
+                    </span>
+                  }
+                >
+                  {g.motivoRevisao ? <p className="mb-2 text-xs text-[#8a6d00]">{g.motivoRevisao}</p> : null}
+                  <div className="flex flex-wrap gap-2">
+                    {g.fotos.map((f) => (
+                      <div key={f.id} className="w-[100px]">
+                        <img
+                          src={f.thumbnailUrl ?? f.url}
+                          alt=""
+                          loading="lazy"
+                          width={100}
+                          height={112}
+                          className="h-28 w-full rounded-lg object-cover"
+                        />
+                        <label className="mt-1 block text-[10px] font-bold uppercase text-on-surface-variant">
+                          Mover para
+                        </label>
+                        <select
+                          className="mt-0.5 w-full rounded-lg border border-[#d9b9bc] bg-white px-1 py-1 text-[11px]"
+                          value={gi}
+                          onChange={(e) => moveFoto(f.id, gi, Number(e.target.value))}
+                        >
+                          {grupos.map((_, ti) => (
+                            <option key={ti} value={ti}>
+                              Peça {ti + 1}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              );
+            })}
           </div>
         </>
       )}
