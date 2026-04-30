@@ -308,9 +308,9 @@ export const ItemFotoUploadPage = () => {
                                                         flexWrap: "wrap",
                                                         gap: 12,
                                                         alignItems: "flex-start"
-                                                    }, children: [_jsx("img", { src: foto.url, alt: "", style: { width: 88, height: 88, objectFit: "cover", borderRadius: 8 } }), _jsxs("div", { className: "stack", style: { flex: 1, minWidth: 0, gap: 8 }, children: [_jsxs("small", { style: { opacity: 0.75 }, children: ["Ordem ", foto.ordem] }), _jsx(Button, { type: "button", onClick: () => analyzeMutation.mutate(foto.id), disabled: analyzeMutation.isPending, children: analyzeMutation.isPending && analyzeMutation.variables === foto.id
+                                                    }, children: [_jsx("img", { src: foto.url, alt: "", style: { width: 88, height: 88, objectFit: "cover", borderRadius: 8 } }), _jsxs("div", { className: "stack", style: { flex: 1, minWidth: 0, gap: 8 }, children: [_jsxs("small", { style: { opacity: 0.75 }, children: ["Ordem ", foto.ordem] }), !latest && (_jsx(Button, { type: "button", onClick: () => analyzeMutation.mutate(foto.id), disabled: analyzeMutation.isPending, children: analyzeMutation.isPending && analyzeMutation.variables === foto.id
                                                                         ? "Analisando..."
-                                                                        : "Sugerir com IA" }), latest && _jsx(FotoAiSuggestionsCard, { analysis: latest })] })] }, foto.id));
+                                                                        : "Sugerir com IA" })), latest && _jsx(FotoAiSuggestionsCard, { analysis: latest })] })] }, foto.id));
                                             }))] })] }), _jsx(Button, { type: "button", onClick: () => navigate(`/items/${itemId}`), children: "Concluir" })] }))] })), cameraOpen && (_jsxs("div", { style: {
                     position: "fixed",
                     inset: 0,
