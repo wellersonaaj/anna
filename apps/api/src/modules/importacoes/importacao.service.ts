@@ -201,6 +201,7 @@ export const importacaoService = {
         id: f.id,
         ordemOriginal: f.ordemOriginal,
         url: (await resolveDisplayImageUrl(f.url)) ?? f.url,
+        thumbnailUrl: f.thumbnailUrl ? ((await resolveDisplayImageUrl(f.thumbnailUrl)) ?? f.thumbnailUrl) : null,
         mime: f.mime,
         statusUpload: f.statusUpload,
         ignorada: f.ignorada,
@@ -224,6 +225,9 @@ export const importacaoService = {
             ordemNoGrupo: link.ordemNoGrupo,
             ordemOriginal: link.foto.ordemOriginal,
             url: (await resolveDisplayImageUrl(link.foto.url)) ?? link.foto.url,
+            thumbnailUrl: link.foto.thumbnailUrl
+              ? ((await resolveDisplayImageUrl(link.foto.thumbnailUrl)) ?? link.foto.thumbnailUrl)
+              : null,
             mime: link.foto.mime
           }))
         ),
@@ -293,8 +297,12 @@ export const importacaoService = {
     input: {
       ordemOriginal: number;
       url: string;
+      thumbnailUrl?: string;
       mime: string;
       tamanhoBytes?: number;
+      thumbnailTamanhoBytes?: number;
+      largura?: number;
+      altura?: number;
       nomeArquivo?: string;
       source?: string;
     }
@@ -312,16 +320,24 @@ export const importacaoService = {
         loteId,
         ordemOriginal: input.ordemOriginal,
         url: input.url.trim(),
+        thumbnailUrl: input.thumbnailUrl?.trim() || null,
         mime: primaryMime(input.mime),
         tamanhoBytes: input.tamanhoBytes ?? null,
+        thumbnailTamanhoBytes: input.thumbnailTamanhoBytes ?? null,
+        largura: input.largura ?? null,
+        altura: input.altura ?? null,
         nomeArquivo: input.nomeArquivo?.trim() || null,
         source: input.source?.trim() || null,
         statusUpload: "ENVIADA"
       },
       update: {
         url: input.url.trim(),
+        thumbnailUrl: input.thumbnailUrl?.trim() || null,
         mime: primaryMime(input.mime),
         tamanhoBytes: input.tamanhoBytes ?? null,
+        thumbnailTamanhoBytes: input.thumbnailTamanhoBytes ?? null,
+        largura: input.largura ?? null,
+        altura: input.altura ?? null,
         nomeArquivo: input.nomeArquivo?.trim() || null,
         source: input.source?.trim() || null,
         statusUpload: "ENVIADA"
@@ -333,6 +349,7 @@ export const importacaoService = {
   },
 
   async agrupar(prisma: PrismaClient, brechoId: string, loteId: string) {
+    const startedAt = Date.now();
     await assertLote(prisma, brechoId, loteId);
 
     const fotos = await prisma.importacaoFoto.findMany({
@@ -361,6 +378,9 @@ export const importacaoService = {
     let confidences: number[];
     let motivos: (string | null)[];
     let temFlags: boolean[];
+    let downloadElapsedMs = 0;
+    let openAiElapsedMs = 0;
+    let approxBytes = 0;
 
     if (fotos.length > MAX_GROUPING_LLM) {
       gruposIndices = fotos.map((_, i) => [i]);
@@ -378,7 +398,7 @@ export const importacaoService = {
       const model = env.OPENAI_VISION_MODEL?.trim() || "gpt-4o-mini";
 
       const photosPayload: Array<{ indice: number; imageBase64: string; imageMime: string }> = [];
-      let approxBytes = 0;
+      const downloadStartedAt = Date.now();
       for (let i = 0; i < fotos.length; i++) {
         const foto = fotos[i]!;
         const { bytes, mime } = await downloadImageForAnalysis(storageEnv, foto.url);
@@ -391,12 +411,15 @@ export const importacaoService = {
           mime === "image/png" || mime === "image/webp" || mime === "image/jpeg" ? mime : "image/jpeg";
         photosPayload.push({ indice: i, imageBase64: b64, imageMime });
       }
+      downloadElapsedMs = Date.now() - downloadStartedAt;
 
+      const openAiStartedAt = Date.now();
       const result = await groupImportPhotosWithOpenAI({
         apiKey,
         model,
         photos: photosPayload
       });
+      openAiElapsedMs = Date.now() - openAiStartedAt;
 
       gruposIndices = result.grupos;
       confidences = gruposIndices.map((_, idx) =>
@@ -455,6 +478,16 @@ export const importacaoService = {
     await prisma.importacaoLote.update({
       where: { id: loteId },
       data: { status: ImportacaoLoteStatus.REVISAR_GRUPOS }
+    });
+
+    console.info("[importacao] agrupar", {
+      loteId,
+      fotos: fotos.length,
+      grupos: gruposIndices.length,
+      approxBytes,
+      downloadElapsedMs,
+      openAiElapsedMs,
+      totalElapsedMs: Date.now() - startedAt
     });
 
     return importacaoService.getLoteDetail(prisma, brechoId, loteId);

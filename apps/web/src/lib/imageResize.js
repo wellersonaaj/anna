@@ -1,7 +1,6 @@
-/** Redimensiona para largura máxima e exporta JPEG (PRD: ~800px, qualidade ~85%). */
-export const resizeImageToJpeg = async (input, maxWidth = 800, quality = 0.85) => {
+export const resizeImageDetailed = async (input, { maxSide = 800, quality = 0.85, mime = "image/jpeg" } = {}) => {
     const bitmap = await createImageBitmap(input);
-    const scale = Math.min(1, maxWidth / bitmap.width);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
     const canvas = document.createElement("canvas");
@@ -13,7 +12,7 @@ export const resizeImageToJpeg = async (input, maxWidth = 800, quality = 0.85) =
     }
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
-    return new Promise((resolve, reject) => {
+    const blob = await new Promise((resolve, reject) => {
         canvas.toBlob((blob) => {
             if (blob) {
                 resolve(blob);
@@ -21,6 +20,12 @@ export const resizeImageToJpeg = async (input, maxWidth = 800, quality = 0.85) =
             else {
                 reject(new Error("Falha ao gerar JPEG."));
             }
-        }, "image/jpeg", quality);
+        }, mime, quality);
     });
+    return { blob, width, height, mime };
+};
+/** Redimensiona para largura máxima e exporta JPEG (PRD: ~800px, qualidade ~85%). */
+export const resizeImageToJpeg = async (input, maxWidth = 800, quality = 0.85) => {
+    const resized = await resizeImageDetailed(input, { maxSide: maxWidth, quality, mime: "image/jpeg" });
+    return resized.blob;
 };

@@ -14,6 +14,7 @@ export type ImportacaoFotoDto = {
   id: string;
   ordemOriginal: number;
   url: string;
+  thumbnailUrl: string | null;
   mime: string;
   statusUpload: string;
   ignorada: boolean;
@@ -29,7 +30,14 @@ export type ImportacaoGrupoDto = {
   ordemInicio: number;
   ordemFim: number;
   temFotosNaoContiguas: boolean;
-  fotos: Array<{ id: string; ordemNoGrupo: number; ordemOriginal: number; url: string; mime: string }>;
+  fotos: Array<{
+    id: string;
+    ordemNoGrupo: number;
+    ordemOriginal: number;
+    url: string;
+    thumbnailUrl: string | null;
+    mime: string;
+  }>;
   rascunho: {
     id: string;
     status: string;
@@ -86,8 +94,12 @@ export const registerImportFoto = async (
   body: {
     ordemOriginal: number;
     url: string;
+    thumbnailUrl?: string;
     mime: string;
     tamanhoBytes?: number;
+    thumbnailTamanhoBytes?: number;
+    largura?: number;
+    altura?: number;
     nomeArquivo?: string;
     source?: string;
   }

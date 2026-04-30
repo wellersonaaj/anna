@@ -10,8 +10,12 @@ export const presignImportFotoSchema = z.object({
 export const registerImportFotoSchema = z.object({
   ordemOriginal: z.coerce.number().int().min(0),
   url: z.string().trim().url(),
+  thumbnailUrl: z.string().trim().url().optional(),
   mime: z.string().trim().min(3).max(120),
   tamanhoBytes: z.coerce.number().int().min(1).optional(),
+  thumbnailTamanhoBytes: z.coerce.number().int().min(1).optional(),
+  largura: z.coerce.number().int().min(1).optional(),
+  altura: z.coerce.number().int().min(1).optional(),
   nomeArquivo: z.string().trim().max(500).optional(),
   source: z.string().trim().max(40).optional()
 });

@@ -144,7 +144,14 @@ export const ImportacaoGruposPage = () => {
                 <div className="flex flex-wrap gap-2">
                   {g.fotos.map((f) => (
                     <div key={f.id} className="w-[100px]">
-                      <img src={f.url} alt="" className="h-28 w-full rounded-lg object-cover" />
+                      <img
+                        src={f.thumbnailUrl ?? f.url}
+                        alt=""
+                        loading="lazy"
+                        width={100}
+                        height={112}
+                        className="h-28 w-full rounded-lg object-cover"
+                      />
                       <label className="mt-1 block text-[10px] font-bold uppercase text-on-surface-variant">
                         Mover para
                       </label>

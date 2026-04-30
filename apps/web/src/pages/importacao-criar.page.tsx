@@ -11,12 +11,20 @@ import {
 } from "../api/importacoes";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Section } from "../components/ui";
+import { resizeImageDetailed } from "../lib/imageResize";
 
 type RowStatus = "pendente" | "enviando" | "ok" | "erro";
 
 type FilaRow = {
   ordemOriginal: number;
   file: File;
+  uploadBlob: Blob;
+  uploadMime: string;
+  uploadName: string;
+  uploadWidth?: number;
+  uploadHeight?: number;
+  thumbnailBlob?: Blob;
+  thumbnailMime?: string;
   previewUrl: string;
   status: RowStatus;
   error?: string;
@@ -44,6 +52,50 @@ const extFromMime = (mime: string): string => {
   return "jpg";
 };
 
+const UPLOAD_CONCURRENCY = 3;
+
+const runWithConcurrency = async <T,>(items: T[], limit: number, worker: (item: T) => Promise<void>) => {
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const item = items[nextIndex];
+      nextIndex++;
+      if (item) {
+        await worker(item);
+      }
+    }
+  });
+  await Promise.all(workers);
+};
+
+const prepareImportFile = async (file: File) => {
+  try {
+    const [upload, thumbnail] = await Promise.all([
+      resizeImageDetailed(file, { maxSide: 1600, quality: 0.78, mime: "image/jpeg" }),
+      resizeImageDetailed(file, { maxSide: 360, quality: 0.72, mime: "image/jpeg" })
+    ]);
+
+    return {
+      uploadBlob: upload.blob,
+      uploadMime: upload.mime,
+      uploadName: file.name.replace(/\.[^.]+$/, "") + ".jpg",
+      uploadWidth: upload.width,
+      uploadHeight: upload.height,
+      thumbnailBlob: thumbnail.blob,
+      thumbnailMime: thumbnail.mime,
+      previewUrl: URL.createObjectURL(thumbnail.blob)
+    };
+  } catch {
+    const mime = file.type.split(";")[0]?.trim() || "image/jpeg";
+    return {
+      uploadBlob: file,
+      uploadMime: mime,
+      uploadName: file.name,
+      previewUrl: URL.createObjectURL(file)
+    };
+  }
+};
+
 export const ImportacaoCriarPage = () => {
   const { loteId: loteIdParam } = useParams<{ loteId: string }>();
   const brechoId = useSessionStore((s) => s.brechoId);
@@ -51,6 +103,7 @@ export const ImportacaoCriarPage = () => {
   const queryClient = useQueryClient();
   const [loteId, setLoteId] = useState<string | null>(loteIdParam ?? null);
   const [fila, setFila] = useState<FilaRow[]>([]);
+  const [preparandoFotos, setPreparandoFotos] = useState(false);
 
   useEffect(() => {
     if (loteIdParam) {
@@ -73,27 +126,43 @@ export const ImportacaoCriarPage = () => {
   }, [detailQuery.data?.fotos, fila]);
 
   const onPickFiles = useCallback(
-    (list: FileList | null) => {
+    async (list: FileList | null) => {
       if (!list?.length) {
         return;
       }
       let o = nextOrdem;
-      const added: FilaRow[] = [];
-      for (let i = 0; i < list.length; i++) {
-        const file = list.item(i);
-        if (!file || !file.type.startsWith("image/")) {
-          continue;
+      const selected: Array<{ ordemOriginal: number; file: File }> = [];
+      for (const file of Array.from(list)) {
+        if (file.type.startsWith("image/")) {
+          selected.push({ ordemOriginal: o, file });
+          o++;
         }
-        added.push({
-          ordemOriginal: o,
-          file,
-          previewUrl: URL.createObjectURL(file),
-          status: "pendente"
-        });
-        o++;
       }
-      if (added.length) {
+
+      if (selected.length === 0) {
+        return;
+      }
+
+      setPreparandoFotos(true);
+      try {
+        const startedAt = performance.now();
+        const added = await Promise.all(
+          selected.map(async ({ ordemOriginal, file }) => ({
+            ordemOriginal,
+            file,
+            ...(await prepareImportFile(file)),
+            status: "pendente" as const
+          }))
+        );
         setFila((prev) => [...prev, ...added]);
+        console.info("[importacao] fotos preparadas", {
+          total: added.length,
+          originalBytes: added.reduce((sum, r) => sum + r.file.size, 0),
+          uploadBytes: added.reduce((sum, r) => sum + r.uploadBlob.size, 0),
+          elapsedMs: Math.round(performance.now() - startedAt)
+        });
+      } finally {
+        setPreparandoFotos(false);
       }
     },
     [nextOrdem]
@@ -111,28 +180,46 @@ export const ImportacaoCriarPage = () => {
         void navigate(`/importacoes/${lote.id}/criar`, { replace: true });
       }
       const uploadLoteId = activeLoteId;
+      const uploadStartedAt = performance.now();
 
       const uploadOneRow = async (row: FilaRow) => {
-        const mime = row.file.type.split(";")[0]?.trim() || "image/jpeg";
+        const mime = row.uploadMime;
         const ext = extFromMime(mime);
         const signed = await presignImportFoto(bid, uploadLoteId, {
           contentType: mime,
           extensao: ext,
           ordemOriginal: row.ordemOriginal,
-          tamanhoBytes: row.file.size
+          tamanhoBytes: row.uploadBlob.size
         });
-        await putToPresignedUrl(signed.uploadUrl, row.file, mime);
+        await putToPresignedUrl(signed.uploadUrl, row.uploadBlob, mime);
+
+        let thumbnailUrl: string | undefined;
+        if (row.thumbnailBlob && row.thumbnailMime) {
+          const thumbSigned = await presignImportFoto(bid, uploadLoteId, {
+            contentType: row.thumbnailMime,
+            extensao: extFromMime(row.thumbnailMime),
+            ordemOriginal: row.ordemOriginal,
+            tamanhoBytes: row.thumbnailBlob.size
+          });
+          await putToPresignedUrl(thumbSigned.uploadUrl, row.thumbnailBlob, row.thumbnailMime);
+          thumbnailUrl = thumbSigned.publicUrl;
+        }
+
         await registerImportFoto(bid, uploadLoteId, {
           ordemOriginal: row.ordemOriginal,
           url: signed.publicUrl,
           mime,
-          tamanhoBytes: row.file.size,
-          nomeArquivo: row.file.name,
-          source: "galeria"
+          tamanhoBytes: row.uploadBlob.size,
+          nomeArquivo: row.uploadName,
+          source: "galeria",
+          thumbnailUrl,
+          thumbnailTamanhoBytes: row.thumbnailBlob?.size,
+          largura: row.uploadWidth,
+          altura: row.uploadHeight
         });
       };
 
-      for (const row of pend) {
+      await runWithConcurrency(pend, UPLOAD_CONCURRENCY, async (row) => {
         setFila((prev) =>
           prev.map((r) => (r.ordemOriginal === row.ordemOriginal ? { ...r, status: "enviando" as const } : r))
         );
@@ -150,10 +237,16 @@ export const ImportacaoCriarPage = () => {
             )
           );
         }
-      }
+      });
       await queryClient.invalidateQueries({ queryKey: ["importacao", bid, uploadLoteId] });
       await queryClient.invalidateQueries({ queryKey: ["importacoes", bid] });
       await queryClient.invalidateQueries({ queryKey: ["importacoes-pendentes", bid] });
+      console.info("[importacao] upload concluido", {
+        loteId: uploadLoteId,
+        total: pend.length,
+        fail,
+        elapsedMs: Math.round(performance.now() - uploadStartedAt)
+      });
       return { brechoId: bid, loteId: uploadLoteId, fail };
     },
     onSuccess: (result) => {
@@ -165,7 +258,15 @@ export const ImportacaoCriarPage = () => {
 
   const agruparMutation = useMutation({
     mutationFn: async ({ brechoId: bid, loteId: lid }: ImportacaoMutationVars) => {
-      return agruparImportacaoLote(bid, lid);
+      const startedAt = performance.now();
+      const detail = await agruparImportacaoLote(bid, lid);
+      console.info("[importacao] agrupamento concluido", {
+        loteId: lid,
+        fotos: detail.fotos.length,
+        grupos: detail.grupos.length,
+        elapsedMs: Math.round(performance.now() - startedAt)
+      });
+      return detail;
     },
     onSuccess: async (_detail, vars) => {
       await queryClient.invalidateQueries({ queryKey: ["importacao", vars.brechoId, vars.loteId] });
@@ -203,7 +304,7 @@ export const ImportacaoCriarPage = () => {
             multiple
             className="sr-only"
             onChange={(e) => {
-              onPickFiles(e.target.files);
+              void onPickFiles(e.target.files);
               e.target.value = "";
             }}
           />
@@ -212,6 +313,7 @@ export const ImportacaoCriarPage = () => {
           <Button
             type="button"
             disabled={
+              preparandoFotos ||
               (!filaPendente && !fila.some((f) => f.status === "erro")) ||
               filaEmProcessamento
             }
@@ -223,7 +325,9 @@ export const ImportacaoCriarPage = () => {
               uploadMutation.mutate({ brechoId, loteId, pend });
             }}
           >
-            {uploadMutation.isPending
+            {preparandoFotos
+              ? "Preparando fotos…"
+              : uploadMutation.isPending
               ? "Enviando…"
               : agruparMutation.isPending
                 ? "Organizando…"

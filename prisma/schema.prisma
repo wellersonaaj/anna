@@ -315,8 +315,12 @@ model ImportacaoFoto {
   loteId         String
   ordemOriginal  Int
   url            String
+  thumbnailUrl   String?
   mime           String
   tamanhoBytes   Int?
+  thumbnailTamanhoBytes Int?
+  largura        Int?
+  altura         Int?
   nomeArquivo    String?
   source         String?
   statusUpload   ImportacaoFotoUploadStatus @default(PENDENTE)
