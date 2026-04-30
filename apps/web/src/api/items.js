@@ -111,6 +111,12 @@ export const deleteItemFoto = async (brechoId, itemId, fotoId) => {
         brechoId
     });
 };
+export const setItemCoverFoto = async (brechoId, itemId, fotoId) => {
+    return request(`/items/${itemId}/fotos/${fotoId}/capa`, {
+        method: "POST",
+        brechoId
+    });
+};
 export const joinItemFila = async (brechoId, itemId, payload) => {
     return request(`/items/${itemId}/fila`, {
         method: "POST",

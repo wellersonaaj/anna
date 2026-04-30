@@ -35,6 +35,7 @@ export const pecaAiJsonSchema = z.object({
   confianca: z.coerce.number().min(0).max(1).optional().default(0.5),
   ambiente_foto: ambientePrd.nullable().optional(),
   qualidade_foto: qualidadePrd.nullable().optional(),
+  cover_score: z.coerce.number().min(0).max(1).optional().default(0.5),
   multiplas_pecas: z.boolean().optional().default(false),
   observacoes: z.string().nullable().optional(),
   field_confidence: fieldConfidenceSchema.optional().default({
@@ -68,6 +69,7 @@ Regras:
 
 Obrigatorio:
 - confianca (0..1)
+- cover_score (0..1) para qualidade como foto de capa: nota alta quando a peca principal aparece inteira ou bem representada, nitida, bem iluminada, centralizada e sem muita obstrucao.
 - estampado (boolean)
 - multiplas_pecas (boolean)
 - field_confidence com valores 0..1 para:
@@ -119,6 +121,9 @@ const buildUserPrompt = (ctx: {
   parts.push("- se houver estampa, detalhe em descricao_estampa.");
   parts.push("- use etiqueta/composicao para inferir tamanho e marca quando legivel.");
   parts.push("- use material/composicao para enriquecer nome_sugerido quando util.");
+  parts.push("- cover_score: avalie somente se esta imagem funciona bem como capa do anuncio.");
+  parts.push("- capa boa: peca principal clara, centralizada, com bom enquadramento, boa luz, nitidez e pouca distracao.");
+  parts.push("- reduza cover_score se houver multiplas pecas, corte importante, baixa nitidez, pouca luz, peca dobrada de forma confusa ou fundo muito poluido.");
   parts.push('- nao retorne campo "material"; mantenha apenas os campos do schema.');
   parts.push("", "Retorne o JSON com a analise completa.");
   return parts.join("\n");

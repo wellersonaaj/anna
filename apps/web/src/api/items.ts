@@ -95,6 +95,7 @@ export type ItemFoto = {
   aiConfianca?: number | null;
   aiPredicaoJson?: unknown;
   aiAnalyses?: ItemAiAnalysis[];
+  isCover?: boolean;
 };
 
 export type FotoAnaliseResponse = {
@@ -458,6 +459,13 @@ export const putToPresignedUrl = async (
 export const deleteItemFoto = async (brechoId: string, itemId: string, fotoId: string): Promise<void> => {
   return request<void>(`/items/${itemId}/fotos/${fotoId}`, {
     method: "DELETE",
+    brechoId
+  });
+};
+
+export const setItemCoverFoto = async (brechoId: string, itemId: string, fotoId: string): Promise<ItemFoto> => {
+  return request<ItemFoto>(`/items/${itemId}/fotos/${fotoId}/capa`, {
+    method: "POST",
     brechoId
   });
 };

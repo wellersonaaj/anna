@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
-import { addItemFoto, analisarItemFoto, deleteItemFoto, getItem, joinItemFila, leaveItemFila, updateItem, updateItemStatus } from "../api/items";
+import { addItemFoto, analisarItemFoto, deleteItemFoto, getItem, joinItemFila, leaveItemFila, setItemCoverFoto, updateItem, updateItemStatus } from "../api/items";
 import { ClientPicker } from "../components/client-picker";
 import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
@@ -119,6 +119,7 @@ export const ItemDetailPage = () => {
     })), [item?.fotos, item?.nome]);
     const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
     const canSell = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
+    const coverPhotoId = item?.fotos?.find((foto) => foto.isCover)?.id ?? null;
     const filaContact = {
         nome: filaForm.watch("nome") ?? "",
         whatsapp: filaForm.watch("whatsapp") ?? "",
@@ -163,6 +164,10 @@ export const ItemDetailPage = () => {
     });
     const deleteFotoMutation = useMutation({
         mutationFn: (fotoId) => deleteItemFoto(brechoId, itemId, fotoId),
+        onSuccess: invalidateItem
+    });
+    const setCoverMutation = useMutation({
+        mutationFn: (fotoId) => setItemCoverFoto(brechoId, itemId, fotoId),
         onSuccess: invalidateItem
     });
     const analyzeFotoMutation = useMutation({
@@ -219,7 +224,7 @@ export const ItemDetailPage = () => {
                                             ? addFotoMutation.error.message
                                             : "Não foi possível adicionar a foto." }))] }), _jsx("div", { className: "grid gap-3", children: (item.fotos ?? []).length === 0 ? (_jsx("p", { style: { opacity: 0.8 }, children: "Nenhuma foto ainda." })) : ((item.fotos ?? []).map((foto, index) => {
                                     const latestAi = foto.aiAnalyses?.[0];
-                                    return (_jsxs("div", { className: "rounded-2xl border border-rose-100 bg-white p-3", children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("button", { type: "button", onClick: () => setLightboxIndex(index), className: "cursor-zoom-in overflow-hidden rounded-xl p-0", "aria-label": "Ampliar foto", children: _jsx("img", { src: foto.url, alt: `Foto da peça ${item.nome}`, className: "h-24 w-24 object-cover" }) }), _jsxs("div", { className: "min-w-0 flex-1 text-sm", children: [_jsx("a", { href: foto.url, target: "_blank", rel: "noreferrer", children: "Abrir original" }), _jsxs("div", { className: "text-on-surface-variant", children: ["Ordem ", foto.ordem] })] }), _jsxs("div", { className: "flex flex-col gap-2", children: [!latestAi && (_jsx(Button, { type: "button", onClick: () => analyzeFotoMutation.mutate(foto.id), disabled: analyzeFotoMutation.isPending, children: analyzeFotoMutation.isPending && analyzeFotoMutation.variables === foto.id
+                                    return (_jsxs("div", { className: "rounded-2xl border border-rose-100 bg-white p-3", children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsxs("div", { className: "relative", children: [_jsx("button", { type: "button", onClick: () => setLightboxIndex(index), className: "cursor-zoom-in overflow-hidden rounded-xl p-0", "aria-label": "Ampliar foto", children: _jsx("img", { src: foto.url, alt: `Foto da peça ${item.nome}`, className: "h-24 w-24 object-cover" }) }), foto.isCover && (_jsx("span", { className: "absolute left-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-primary shadow-sm", children: "Capa" }))] }), _jsxs("div", { className: "min-w-0 flex-1 text-sm", children: [_jsx("a", { href: foto.url, target: "_blank", rel: "noreferrer", children: "Abrir original" }), _jsxs("div", { className: "text-on-surface-variant", children: ["Ordem ", foto.ordem] }), !foto.isCover && (_jsx("button", { type: "button", className: "mt-1 text-xs font-bold text-primary underline disabled:opacity-60", disabled: setCoverMutation.isPending, onClick: () => setCoverMutation.mutate(foto.id), children: "Definir como capa" }))] }), _jsxs("div", { className: "flex flex-col gap-2", children: [!latestAi && (_jsx(Button, { type: "button", onClick: () => analyzeFotoMutation.mutate(foto.id), disabled: analyzeFotoMutation.isPending, children: analyzeFotoMutation.isPending && analyzeFotoMutation.variables === foto.id
                                                                     ? "Analisando..."
                                                                     : "Sugerir com IA" })), _jsx(Button, { type: "button", className: "bg-zinc-700", onClick: () => deleteFotoMutation.mutate(foto.id), disabled: deleteFotoMutation.isPending, children: "Remover" })] })] }), analyzeFotoMutation.isError && analyzeFotoMutation.variables === foto.id && (_jsx("small", { style: { color: "#b60e3d" }, children: analyzeFotoMutation.error instanceof ApiError
                                                     ? analyzeFotoMutation.error.message
@@ -239,5 +244,5 @@ export const ItemDetailPage = () => {
                                                 ? "Adicionar à fila"
                                                 : "Reservar" }), (filaForm.formState.errors.whatsapp || filaForm.formState.errors.root) && (_jsx("small", { style: { color: "#b60e3d" }, children: filaForm.formState.errors.whatsapp?.message })), joinFilaMutation.isError && (_jsx("small", { style: { color: "#b60e3d" }, children: joinFilaMutation.error instanceof ApiError
                                             ? joinFilaMutation.error.message
-                                            : "Não foi possível entrar na fila." }))] })) : (_jsx("p", { style: { opacity: 0.85 }, children: "A fila s\u00F3 pode ser gerenciada em pe\u00E7as dispon\u00EDveis ou reservadas." })), _jsx("div", { className: "stack", style: { gap: 8 }, children: (item.filaInteressados ?? []).length === 0 ? (_jsx("p", { style: { opacity: 0.8 }, children: "Ningu\u00E9m na fila." })) : ((item.filaInteressados ?? []).map((e) => (_jsxs("div", { className: "card", style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [_jsxs("div", { children: [_jsxs("strong", { children: [e.posicao + 1, "\u00BA \u2014 ", e.cliente.nome] }), e.posicao === 0 && item.status === "RESERVADO" && (_jsx("span", { className: "ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700", children: "Reserva ativa" })), _jsx("div", { style: { fontSize: 13, opacity: 0.85 }, children: [e.cliente.whatsapp, e.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato" })] }), _jsx(Button, { type: "button", onClick: () => leaveFilaMutation.mutate(e.id), disabled: leaveFilaMutation.isPending, children: "Remover" })] }, e.id)))) })] })] })), lightboxIndex !== null && photos.length > 0 && (_jsx(PhotoLightbox, { photos: photos, initialIndex: lightboxIndex, title: item?.nome ?? "Fotos da peça", onClose: () => setLightboxIndex(null) }))] }));
+                                            : "Não foi possível entrar na fila." }))] })) : (_jsx("p", { style: { opacity: 0.85 }, children: "A fila s\u00F3 pode ser gerenciada em pe\u00E7as dispon\u00EDveis ou reservadas." })), _jsx("div", { className: "stack", style: { gap: 8 }, children: (item.filaInteressados ?? []).length === 0 ? (_jsx("p", { style: { opacity: 0.8 }, children: "Ningu\u00E9m na fila." })) : ((item.filaInteressados ?? []).map((e) => (_jsxs("div", { className: "card", style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [_jsxs("div", { children: [_jsxs("strong", { children: [e.posicao + 1, "\u00BA \u2014 ", e.cliente.nome] }), e.posicao === 0 && item.status === "RESERVADO" && (_jsx("span", { className: "ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700", children: "Reserva ativa" })), _jsx("div", { style: { fontSize: 13, opacity: 0.85 }, children: [e.cliente.whatsapp, e.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato" })] }), _jsx(Button, { type: "button", onClick: () => leaveFilaMutation.mutate(e.id), disabled: leaveFilaMutation.isPending, children: "Remover" })] }, e.id)))) })] })] })), lightboxIndex !== null && photos.length > 0 && (_jsx(PhotoLightbox, { photos: photos, initialIndex: lightboxIndex, title: item?.nome ?? "Fotos da peça", coverPhotoId: coverPhotoId, onSetCover: (photoId) => setCoverMutation.mutate(photoId), setCoverPending: setCoverMutation.isPending, onClose: () => setLightboxIndex(null) }))] }));
 };

@@ -11,6 +11,7 @@ import {
   getItem,
   joinItemFila,
   leaveItemFila,
+  setItemCoverFoto,
   updateItem,
   updateItemStatus,
   type ItemCategoria,
@@ -151,6 +152,7 @@ export const ItemDetailPage = () => {
   );
   const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
   const canSell = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
+  const coverPhotoId = item?.fotos?.find((foto) => foto.isCover)?.id ?? null;
   const filaContact = {
     nome: filaForm.watch("nome") ?? "",
     whatsapp: filaForm.watch("whatsapp") ?? "",
@@ -201,6 +203,11 @@ export const ItemDetailPage = () => {
 
   const deleteFotoMutation = useMutation({
     mutationFn: (fotoId: string) => deleteItemFoto(brechoId, itemId!, fotoId),
+    onSuccess: invalidateItem
+  });
+
+  const setCoverMutation = useMutation({
+    mutationFn: (fotoId: string) => setItemCoverFoto(brechoId, itemId!, fotoId),
     onSuccess: invalidateItem
   });
 
@@ -475,23 +482,40 @@ export const ItemDetailPage = () => {
                   return (
                     <div key={foto.id} className="rounded-2xl border border-rose-100 bg-white p-3">
                       <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setLightboxIndex(index)}
-                          className="cursor-zoom-in overflow-hidden rounded-xl p-0"
-                          aria-label="Ampliar foto"
-                        >
-                          <img
-                            src={foto.url}
-                            alt={`Foto da peça ${item.nome}`}
-                            className="h-24 w-24 object-cover"
-                          />
-                        </button>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setLightboxIndex(index)}
+                            className="cursor-zoom-in overflow-hidden rounded-xl p-0"
+                            aria-label="Ampliar foto"
+                          >
+                            <img
+                              src={foto.url}
+                              alt={`Foto da peça ${item.nome}`}
+                              className="h-24 w-24 object-cover"
+                            />
+                          </button>
+                          {foto.isCover && (
+                            <span className="absolute left-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-primary shadow-sm">
+                              Capa
+                            </span>
+                          )}
+                        </div>
                         <div className="min-w-0 flex-1 text-sm">
                           <a href={foto.url} target="_blank" rel="noreferrer">
                             Abrir original
                           </a>
                           <div className="text-on-surface-variant">Ordem {foto.ordem}</div>
+                          {!foto.isCover && (
+                            <button
+                              type="button"
+                              className="mt-1 text-xs font-bold text-primary underline disabled:opacity-60"
+                              disabled={setCoverMutation.isPending}
+                              onClick={() => setCoverMutation.mutate(foto.id)}
+                            >
+                              Definir como capa
+                            </button>
+                          )}
                         </div>
                         <div className="flex flex-col gap-2">
                           {!latestAi && (
@@ -648,6 +672,9 @@ export const ItemDetailPage = () => {
           photos={photos}
           initialIndex={lightboxIndex}
           title={item?.nome ?? "Fotos da peça"}
+          coverPhotoId={coverPhotoId}
+          onSetCover={(photoId) => setCoverMutation.mutate(photoId)}
+          setCoverPending={setCoverMutation.isPending}
           onClose={() => setLightboxIndex(null)}
         />
       )}

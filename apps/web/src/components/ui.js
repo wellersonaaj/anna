@@ -1,9 +1,20 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "../api/auth";
+import { useSessionStore } from "../store/session.store";
 const cx = (...parts) => parts.filter(Boolean).join(" ");
 export const AppShell = ({ children, showTopBar = false, topBarTitle = "Agente", topBarAction, showBottomNav = false, activeTab = "estoque", fabLink = "/items/new", maxWidthClass = "max-w-5xl" }) => {
-    return (_jsxs("div", { className: "min-h-screen bg-background text-on-background", children: [showTopBar && (_jsx("header", { className: "fixed inset-x-0 top-0 z-40 border-b border-rose-100 bg-[#fff8f7]/90 backdrop-blur-md", children: _jsxs("div", { className: cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass), children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("div", { className: "h-9 w-9 overflow-hidden rounded-full bg-surface-container-high" }), _jsx("span", { className: "font-headline text-lg font-bold text-primary", children: topBarTitle })] }), _jsx("div", { children: topBarAction })] }) })), _jsx("div", { className: cx("mx-auto px-4 pb-8 pt-6", maxWidthClass, showTopBar && "pt-24", showBottomNav && "pb-36"), children: _jsx("div", { className: "flex flex-col gap-4", children: children }) }), showBottomNav && _jsx(BottomNav, { activeTab: activeTab, fabLink: fabLink })] }));
+    const navigate = useNavigate();
+    const activeBrecho = useSessionStore((state) => state.activeBrecho);
+    const clearSession = useSessionStore((state) => state.clearSession);
+    const title = topBarTitle.startsWith("Agente") ? activeBrecho?.nome ?? topBarTitle : topBarTitle;
+    const onLogout = async () => {
+        await logout().catch(() => undefined);
+        clearSession();
+        navigate("/login", { replace: true });
+    };
+    return (_jsxs("div", { className: "min-h-screen bg-background text-on-background", children: [showTopBar && (_jsx("header", { className: "fixed inset-x-0 top-0 z-40 border-b border-rose-100 bg-[#fff8f7]/90 backdrop-blur-md", children: _jsxs("div", { className: cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass), children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("div", { className: "h-9 w-9 overflow-hidden rounded-full bg-surface-container-high" }), _jsx("span", { className: "font-headline text-lg font-bold text-primary", children: title })] }), _jsxs("div", { className: "flex items-center gap-3", children: [topBarAction, _jsx("button", { type: "button", onClick: onLogout, className: "text-xs font-bold text-on-surface-variant underline", children: "Sair" })] })] }) })), _jsx("div", { className: cx("mx-auto px-4 pb-8 pt-6", maxWidthClass, showTopBar && "pt-24", showBottomNav && "pb-36"), children: _jsx("div", { className: "flex flex-col gap-4", children: children }) }), showBottomNav && _jsx(BottomNav, { activeTab: activeTab, fabLink: fabLink })] }));
 };
 export const Section = ({ title, children }) => {
     return (_jsxs("section", { className: "rounded-3xl border border-rose-100 bg-white p-4 shadow-sm", children: [_jsx("h2", { className: "m-0 mb-3 font-headline text-lg font-extrabold tracking-tight", children: title }), children] }));
@@ -65,7 +76,7 @@ export const ProductCard = ({ item, subtitle, priceLabel, children, onImageClick
     const image = hasImage ? (_jsx("img", { src: item.fotoCapaUrl ?? undefined, alt: `Foto da peça ${item.nome}`, className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105", loading: "lazy", onError: () => setImageBroken(true) })) : (_jsx("div", { className: "flex h-full w-full items-center justify-center text-xs font-bold text-outline", children: "Sem foto" }));
     return (_jsxs("article", { className: "group", children: [_jsxs("div", { className: "relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low", children: [onImageClick && hasImage ? (_jsx("button", { type: "button", onClick: onImageClick, className: "block h-full w-full cursor-zoom-in p-0", children: image })) : (image), _jsx("div", { className: "absolute left-3 top-3", children: _jsx(ItemStatusTone, { status: item.status }) })] }), _jsx("p", { className: "mb-1 text-[9px] font-bold uppercase tracking-widest text-outline", children: subtitle }), _jsx("h3", { className: "mb-1 text-sm font-bold leading-tight tracking-tight text-on-background", children: item.nome }), priceLabel && _jsx("p", { className: "text-sm font-bold text-on-background", children: priceLabel }), children] }));
 };
-export const PhotoLightbox = ({ photos, initialIndex, title, onClose }) => {
+export const PhotoLightbox = ({ photos, initialIndex, title, onClose, coverPhotoId, onSetCover, setCoverPending = false }) => {
     const [index, setIndex] = useState(initialIndex);
     const total = photos.length;
     const photo = photos[index];
@@ -75,7 +86,8 @@ export const PhotoLightbox = ({ photos, initialIndex, title, onClose }) => {
     const goTo = (nextIndex) => {
         setIndex((nextIndex + total) % total);
     };
-    return (_jsxs("div", { className: "fixed inset-0 z-[80] flex flex-col bg-black/90 p-4 text-white", role: "dialog", "aria-modal": "true", "aria-label": title, children: [_jsxs("div", { className: "mb-3 flex items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("strong", { className: "block text-sm", children: title }), _jsxs("span", { className: "text-xs text-white/70", children: [index + 1, " de ", total] })] }), _jsx("button", { type: "button", onClick: onClose, className: "rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white", children: "Fechar" })] }), _jsxs("div", { className: "flex min-h-0 flex-1 items-center justify-center gap-2", children: [total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index - 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Foto anterior", children: "\u2039" })), _jsx("img", { src: photo.url, alt: photo.alt ?? title, className: "max-h-full min-w-0 rounded-2xl object-contain" }), total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index + 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Pr\u00F3xima foto", children: "\u203A" }))] })] }));
+    return (_jsxs("div", { className: "fixed inset-0 z-[80] flex flex-col bg-black/90 p-4 text-white", role: "dialog", "aria-modal": "true", "aria-label": title, children: [_jsxs("div", { className: "mb-3 flex items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("strong", { className: "block text-sm", children: title }), _jsxs("span", { className: "text-xs text-white/70", children: [index + 1, " de ", total] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [onSetCover &&
+                                (photo.id === coverPhotoId ? (_jsx("span", { className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white/80", children: "Capa" })) : (_jsx("button", { type: "button", onClick: () => onSetCover(photo.id), disabled: setCoverPending, className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white disabled:opacity-60", children: setCoverPending ? "Salvando..." : "Definir como capa" }))), _jsx("button", { type: "button", onClick: onClose, className: "rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white", children: "Fechar" })] })] }), _jsxs("div", { className: "flex min-h-0 flex-1 items-center justify-center gap-2", children: [total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index - 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Foto anterior", children: "\u2039" })), _jsx("img", { src: photo.url, alt: photo.alt ?? title, className: "max-h-full min-w-0 rounded-2xl object-contain" }), total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index + 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Pr\u00F3xima foto", children: "\u203A" }))] })] }));
 };
 export const formatCurrency = (value) => {
     if (value === null || value === undefined || value === "") {

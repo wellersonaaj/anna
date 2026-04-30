@@ -18,6 +18,110 @@ const ensureTransition = (from: StatusPeca, to: StatusPeca): void => {
   }
 };
 
+type DbClient = PrismaClient | Prisma.TransactionClient;
+
+type CoverFotoCandidate = {
+  id: string;
+  url: string;
+  ordem: number;
+  aiConfianca: number | null;
+  aiQualidade: string | null;
+  aiPredicaoJson: Prisma.JsonValue | null;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const getNumericAiValue = (prediction: Prisma.JsonValue | null, key: string): number | null => {
+  if (!isRecord(prediction)) {
+    return null;
+  }
+  const value = prediction[key];
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+  return Math.min(1, Math.max(0, value));
+};
+
+const getBooleanAiValue = (prediction: Prisma.JsonValue | null, key: string): boolean | null => {
+  if (!isRecord(prediction)) {
+    return null;
+  }
+  const value = prediction[key];
+  return typeof value === "boolean" ? value : null;
+};
+
+const coverCandidateScore = (foto: CoverFotoCandidate): number => {
+  const aiCoverScore = getNumericAiValue(foto.aiPredicaoJson, "cover_score");
+  const qualityScore = foto.aiQualidade === "alta" ? 0.18 : foto.aiQualidade === "media" ? 0.08 : 0;
+  const confidenceScore = (foto.aiConfianca ?? 0) * 0.12;
+  const multiplePenalty = getBooleanAiValue(foto.aiPredicaoJson, "multiplas_pecas") ? 0.3 : 0;
+  const orderTieBreaker = Math.max(0, 0.05 - foto.ordem * 0.001);
+  return (aiCoverScore ?? 0) + qualityScore + confidenceScore + orderTieBreaker - multiplePenalty;
+};
+
+const chooseBestCoverFoto = <T extends CoverFotoCandidate>(fotos: T[]): T | null => {
+  if (fotos.length === 0) {
+    return null;
+  }
+  return [...fotos].sort((a, b) => {
+    const scoreDiff = coverCandidateScore(b) - coverCandidateScore(a);
+    if (Math.abs(scoreDiff) > 0.0001) {
+      return scoreDiff;
+    }
+    return a.ordem - b.ordem;
+  })[0] ?? null;
+};
+
+const resolveCoverFoto = <T extends CoverFotoCandidate>(fotoCapaId: string | null | undefined, fotos: T[]): T | null => {
+  if (fotoCapaId) {
+    const manualCover = fotos.find((foto) => foto.id === fotoCapaId);
+    if (manualCover) {
+      return manualCover;
+    }
+  }
+  return chooseBestCoverFoto(fotos);
+};
+
+const refreshAutoCoverFoto = async (db: DbClient, itemId: string): Promise<CoverFotoCandidate | null> => {
+  const item = await db.peca.findUnique({
+    where: { id: itemId },
+    select: {
+      fotoCapaId: true,
+      fotoCapaManual: true,
+      fotos: {
+        orderBy: { ordem: "asc" },
+        select: {
+          id: true,
+          url: true,
+          ordem: true,
+          aiConfianca: true,
+          aiQualidade: true,
+          aiPredicaoJson: true
+        }
+      }
+    }
+  });
+
+  if (!item || item.fotoCapaManual) {
+    return null;
+  }
+
+  const cover = chooseBestCoverFoto(item.fotos);
+  const nextCoverId = cover?.id ?? null;
+  if (item.fotoCapaId !== nextCoverId) {
+    await db.peca.update({
+      where: { id: itemId },
+      data: {
+        fotoCapaId: nextCoverId,
+        fotoCapaManual: false
+      }
+    });
+  }
+
+  return cover;
+};
+
 const mapCategoriaFromAi = (
   categoria: string | null | undefined
 ): "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO" | null => {
@@ -274,9 +378,16 @@ export const itemService = {
       },
       include: {
         fotos: {
-          select: { url: true },
+          select: {
+            id: true,
+            url: true,
+            ordem: true,
+            aiConfianca: true,
+            aiQualidade: true,
+            aiPredicaoJson: true
+          },
           orderBy: { ordem: "asc" },
-          take: 1
+          take: 15
         },
         historicoStatus: {
           orderBy: { criadoEm: "desc" },
@@ -292,37 +403,40 @@ export const itemService = {
     });
 
     return Promise.all(
-      rows.map(async (row) => ({
-        id: row.id,
-        nome: row.nome,
-        categoria: row.categoria,
-        subcategoria: row.subcategoria,
-        status: row.status,
-        criadoEm: row.criadoEm,
-        cor: row.cor,
-        tamanho: row.tamanho,
-        estampa: row.estampa,
-        condicao: row.condicao,
-        acervoTipo: row.acervoTipo,
-        acervoNome: row.acervoNome,
-        precoVenda: row.precoVenda,
-        marca: row.marca,
-        fotoCapaUrl: await resolveDisplayImageUrl(row.fotos[0]?.url ?? null),
-        ultimoStatus: row.historicoStatus[0]
-          ? {
-              status: row.historicoStatus[0].status,
-              criadoEm: row.historicoStatus[0].criadoEm,
-              cliente: row.historicoStatus[0].cliente
-                ? {
-                    id: row.historicoStatus[0].cliente.id,
-                    nome: row.historicoStatus[0].cliente.nome,
-                    whatsapp: row.historicoStatus[0].cliente.whatsapp,
-                    instagram: row.historicoStatus[0].cliente.instagram
-                  }
-                : null
-            }
-          : null
-      }))
+      rows.map(async (row) => {
+        const coverFoto = resolveCoverFoto(row.fotoCapaId, row.fotos);
+        return {
+          id: row.id,
+          nome: row.nome,
+          categoria: row.categoria,
+          subcategoria: row.subcategoria,
+          status: row.status,
+          criadoEm: row.criadoEm,
+          cor: row.cor,
+          tamanho: row.tamanho,
+          estampa: row.estampa,
+          condicao: row.condicao,
+          acervoTipo: row.acervoTipo,
+          acervoNome: row.acervoNome,
+          precoVenda: row.precoVenda,
+          marca: row.marca,
+          fotoCapaUrl: await resolveDisplayImageUrl(coverFoto?.url ?? null),
+          ultimoStatus: row.historicoStatus[0]
+            ? {
+                status: row.historicoStatus[0].status,
+                criadoEm: row.historicoStatus[0].criadoEm,
+                cliente: row.historicoStatus[0].cliente
+                  ? {
+                      id: row.historicoStatus[0].cliente.id,
+                      nome: row.historicoStatus[0].cliente.nome,
+                      whatsapp: row.historicoStatus[0].cliente.whatsapp,
+                      instagram: row.historicoStatus[0].cliente.instagram
+                    }
+                  : null
+              }
+            : null
+        };
+      })
     );
   },
 
@@ -399,9 +513,14 @@ export const itemService = {
         url: (await resolveDisplayImageUrl(foto.url)) ?? foto.url
       }))
     );
+    const coverFoto = resolveCoverFoto(item.fotoCapaId, signedFotos);
     return {
       ...item,
-      fotos: signedFotos
+      fotoCapaUrl: coverFoto?.url ?? null,
+      fotos: signedFotos.map((foto) => ({
+        ...foto,
+        isCover: foto.id === coverFoto?.id
+      }))
     };
   },
 
@@ -542,7 +661,7 @@ export const itemService = {
       }
     }
 
-    return prisma.pecaFoto.create({
+    const foto = await prisma.pecaFoto.create({
       data: {
         pecaId: itemId,
         loteId: payload.loteId ?? null,
@@ -550,6 +669,10 @@ export const itemService = {
         ordem
       }
     });
+
+    await refreshAutoCoverFoto(prisma, itemId);
+
+    return foto;
   },
 
   async createFotoLote(
@@ -1079,6 +1202,8 @@ export const itemService = {
         }
       });
 
+      await refreshAutoCoverFoto(tx, itemId);
+
       return {
         analysisId: analysis.id,
         suggestions,
@@ -1107,6 +1232,32 @@ export const itemService = {
     await prisma.pecaFoto.delete({
       where: { id: fotoId }
     });
+
+    await prisma.peca.updateMany({
+      where: { id: itemId, fotoCapaId: null },
+      data: { fotoCapaManual: false }
+    });
+    await refreshAutoCoverFoto(prisma, itemId);
+  },
+
+  async setCoverFoto(prisma: PrismaClient, brechoId: string, itemId: string, fotoId: string) {
+    const foto = await prisma.pecaFoto.findFirst({
+      where: { id: fotoId, pecaId: itemId, peca: { brechoId } }
+    });
+
+    if (!foto) {
+      throw new Error("Photo not found.");
+    }
+
+    await prisma.peca.update({
+      where: { id: itemId },
+      data: {
+        fotoCapaId: fotoId,
+        fotoCapaManual: true
+      }
+    });
+
+    return foto;
   },
 
   async joinFila(

@@ -115,11 +115,14 @@ model Peca {
   acervoNome    String?
   consignanteId String?
   status        StatusPeca @default(DISPONIVEL)
+  fotoCapaId    String?    @unique
+  fotoCapaManual Boolean   @default(false)
   criadoEm      DateTime   @default(now())
   atualizadoEm  DateTime   @updatedAt
 
   brecho           Brecho                @relation(fields: [brechoId], references: [id])
   fotos            PecaFoto[]
+  fotoCapa         PecaFoto?             @relation("PecaFotoCapa", fields: [fotoCapaId], references: [id], onDelete: SetNull)
   fotoLotes        PecaFotoLote[]
   historicoStatus  PecaStatusHistorico[]
   venda            Venda?
@@ -160,6 +163,7 @@ model PecaFoto {
   criadoEm       DateTime @default(now())
 
   peca       Peca          @relation(fields: [pecaId], references: [id], onDelete: Cascade)
+  capaDePeca Peca?         @relation("PecaFotoCapa")
   lote       PecaFotoLote? @relation(fields: [loteId], references: [id], onDelete: SetNull)
   aiAnalyses AIAnalysis[]
 

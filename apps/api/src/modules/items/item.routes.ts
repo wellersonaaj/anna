@@ -290,6 +290,17 @@ export const itemRoutes = async (app: FastifyInstance): Promise<void> => {
     }
   });
 
+  app.post("/items/:id/fotos/:fotoId/capa", async (request, reply) => {
+    try {
+      const params = request.params as { id: string; fotoId: string };
+      const foto = await itemService.setCoverFoto(app.prisma, request.brechoId, params.id, params.fotoId);
+      return reply.send(foto);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
   app.delete("/items/:id/fotos/:fotoId", async (request, reply) => {
     try {
       const params = request.params as { id: string; fotoId: string };

@@ -7,7 +7,9 @@ import type {
   SelectHTMLAttributes
 } from "react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "../api/auth";
+import { useSessionStore } from "../store/session.store";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
@@ -31,6 +33,16 @@ export const AppShell = ({
   fabLink?: string;
   maxWidthClass?: string;
 }>) => {
+  const navigate = useNavigate();
+  const activeBrecho = useSessionStore((state) => state.activeBrecho);
+  const clearSession = useSessionStore((state) => state.clearSession);
+  const title = topBarTitle.startsWith("Agente") ? activeBrecho?.nome ?? topBarTitle : topBarTitle;
+  const onLogout = async () => {
+    await logout().catch(() => undefined);
+    clearSession();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-background text-on-background">
       {showTopBar && (
@@ -38,9 +50,14 @@ export const AppShell = ({
           <div className={cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass)}>
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 overflow-hidden rounded-full bg-surface-container-high" />
-              <span className="font-headline text-lg font-bold text-primary">{topBarTitle}</span>
+              <span className="font-headline text-lg font-bold text-primary">{title}</span>
             </div>
-            <div>{topBarAction}</div>
+            <div className="flex items-center gap-3">
+              {topBarAction}
+              <button type="button" onClick={onLogout} className="text-xs font-bold text-on-surface-variant underline">
+                Sair
+              </button>
+            </div>
           </div>
         </header>
       )}
@@ -323,12 +340,18 @@ export const PhotoLightbox = ({
   photos,
   initialIndex,
   title,
-  onClose
+  onClose,
+  coverPhotoId,
+  onSetCover,
+  setCoverPending = false
 }: {
   photos: Array<{ id: string; url: string; alt?: string }>;
   initialIndex: number;
   title: string;
   onClose: () => void;
+  coverPhotoId?: string | null;
+  onSetCover?: (photoId: string) => void;
+  setCoverPending?: boolean;
 }) => {
   const [index, setIndex] = useState(initialIndex);
   const total = photos.length;
@@ -356,13 +379,28 @@ export const PhotoLightbox = ({
             {index + 1} de {total}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white"
-        >
-          Fechar
-        </button>
+        <div className="flex items-center gap-2">
+          {onSetCover &&
+            (photo.id === coverPhotoId ? (
+              <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white/80">Capa</span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onSetCover(photo.id)}
+                disabled={setCoverPending}
+                className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+              >
+                {setCoverPending ? "Salvando..." : "Definir como capa"}
+              </button>
+            ))}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white"
+          >
+            Fechar
+          </button>
+        </div>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center gap-2">
         {total > 1 && (

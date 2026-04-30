@@ -1,17 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { countImportacoesPendentes } from "../api/importacoes";
-import { listItems, type Item, type ItemCategoria } from "../api/items";
+import { getItem, listItems, setItemCoverFoto, type Item, type ItemCategoria } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Input, PhotoLightbox, PillButton, ProductCard, formatCurrency } from "../components/ui";
 
 export const InventoryPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
+  const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState<"" | Item["status"]>("");
   const [filterCategoria, setFilterCategoria] = useState<"" | ItemCategoria>("");
   const [filterSearch, setFilterSearch] = useState("");
-  const [expandedItem, setExpandedItem] = useState<Item | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
   const listFilters = useMemo(
     () => ({
@@ -30,6 +31,20 @@ export const InventoryPage = () => {
   const importPendentesQuery = useQuery({
     queryKey: ["importacoes-pendentes", brechoId],
     queryFn: () => countImportacoesPendentes(brechoId)
+  });
+
+  const expandedItemQuery = useQuery({
+    queryKey: ["item", brechoId, expandedItemId],
+    queryFn: () => getItem(brechoId, expandedItemId!),
+    enabled: Boolean(expandedItemId)
+  });
+
+  const setCoverMutation = useMutation({
+    mutationFn: (vars: { itemId: string; fotoId: string }) => setItemCoverFoto(brechoId, vars.itemId, vars.fotoId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
+      await queryClient.invalidateQueries({ queryKey: ["item", brechoId, expandedItemId] });
+    }
   });
 
   const statusFilters: Array<{ key: "" | Item["status"]; label: string }> = [
@@ -133,7 +148,7 @@ export const InventoryPage = () => {
                 onImageClick={
                   item.fotoCapaUrl
                     ? () => {
-                        setExpandedItem(item);
+                        setExpandedItemId(item.id);
                       }
                     : undefined
                 }
@@ -162,12 +177,27 @@ export const InventoryPage = () => {
           Nenhuma peça encontrada com os filtros atuais.
         </p>
       )}
-      {expandedItem?.fotoCapaUrl && (
+      {expandedItemId && expandedItemQuery.isLoading && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 text-white">
+          Carregando fotos...
+        </div>
+      )}
+      {expandedItemId && expandedItemQuery.data && (expandedItemQuery.data.fotos ?? []).length > 0 && (
         <PhotoLightbox
-          photos={[{ id: expandedItem.id, url: expandedItem.fotoCapaUrl, alt: `Foto da peça ${expandedItem.nome}` }]}
-          initialIndex={0}
-          title={expandedItem.nome}
-          onClose={() => setExpandedItem(null)}
+          photos={(expandedItemQuery.data.fotos ?? []).map((foto) => ({
+            id: foto.id,
+            url: foto.url,
+            alt: `Foto da peça ${expandedItemQuery.data.nome}`
+          }))}
+          initialIndex={Math.max(
+            0,
+            (expandedItemQuery.data.fotos ?? []).findIndex((foto) => foto.isCover)
+          )}
+          title={expandedItemQuery.data.nome}
+          coverPhotoId={(expandedItemQuery.data.fotos ?? []).find((foto) => foto.isCover)?.id}
+          onSetCover={(fotoId) => setCoverMutation.mutate({ itemId: expandedItemQuery.data.id, fotoId })}
+          setCoverPending={setCoverMutation.isPending}
+          onClose={() => setExpandedItemId(null)}
         />
       )}
     </AppShell>
