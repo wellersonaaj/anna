@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getImportacaoLote, patchImportacaoRascunho, publicarImportacaoRascunho } from "../api/importacoes";
-import type { ItemCategoria } from "../api/items";
+import { listAcervoSuggestions, type ItemCategoria } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section, Select } from "../components/ui";
 
@@ -39,6 +39,7 @@ export const ImportacaoRascunhoDetailPage = () => {
   const brechoId = useSessionStore((s) => s.brechoId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const acervoSuggestionsListId = useId();
   const [form, setForm] = useState<FormValues>(emptyForm);
 
   const detailQuery = useQuery({
@@ -51,11 +52,57 @@ export const ImportacaoRascunhoDetailPage = () => {
     .map((grupo) => (grupo.rascunho ? { grupo, rascunho: grupo.rascunho } : null))
     .find((x) => x !== null && x.rascunho.id === rascunhoId);
 
+  const loteAcervoSuggestion = useMemo(() => {
+    if (!detailQuery.data?.grupos || !rascunhoId) {
+      return null;
+    }
+
+    const currentIndex = detailQuery.data.grupos.findIndex((grupo) => grupo.rascunho?.id === rascunhoId);
+    const acervosDoLote = detailQuery.data.grupos
+      .map((grupo, index) => {
+        if (grupo.rascunho?.id === rascunhoId) {
+          return null;
+        }
+
+        const raw = grupo.rascunho?.formValues as Record<string, unknown> | undefined;
+        const acervoNome = typeof raw?.acervoNome === "string" ? raw.acervoNome.trim() : "";
+        if (!acervoNome) {
+          return null;
+        }
+
+        return {
+          index,
+          acervoNome,
+          acervoTipo: raw?.acervoTipo === "CONSIGNACAO" ? "CONSIGNACAO" : "PROPRIO"
+        };
+      })
+      .filter((entry): entry is { index: number; acervoNome: string; acervoTipo: FormValues["acervoTipo"] } =>
+        Boolean(entry)
+      );
+
+    const previousAcervos = acervosDoLote.filter((entry) => currentIndex === -1 || entry.index < currentIndex);
+    return previousAcervos[previousAcervos.length - 1] ?? acervosDoLote[acervosDoLote.length - 1] ?? null;
+  }, [detailQuery.data?.grupos, rascunhoId]);
+
+  const acervoSuggestionsQuery = useQuery({
+    queryKey: ["acervo-suggestions", brechoId, form.acervoTipo, form.acervoNome],
+    queryFn: () =>
+      listAcervoSuggestions(brechoId, {
+        q: form.acervoNome.trim() || undefined,
+        acervoTipo: form.acervoTipo,
+        limit: 8
+      })
+  });
+
   useEffect(() => {
     const raw = rascunhoEntry?.rascunho.formValues as Record<string, unknown> | undefined;
     if (!raw) {
       return;
     }
+    const rawAcervoNome = typeof raw.acervoNome === "string" ? raw.acervoNome : "";
+    const rawAcervoTipo = raw.acervoTipo === "CONSIGNACAO" ? "CONSIGNACAO" : "PROPRIO";
+    const suggestedAcervo = rawAcervoNome.trim() ? null : loteAcervoSuggestion;
+
     setForm({
       nome: String(raw.nome ?? ""),
       categoria: (raw.categoria as ItemCategoria) ?? "ROUPA_FEMININA",
@@ -66,10 +113,10 @@ export const ImportacaoRascunhoDetailPage = () => {
       tamanho: String(raw.tamanho ?? ""),
       marca: String(raw.marca ?? ""),
       precoVenda: raw.precoVenda != null ? String(raw.precoVenda) : "",
-      acervoTipo: (raw.acervoTipo as FormValues["acervoTipo"]) ?? "PROPRIO",
-      acervoNome: String(raw.acervoNome ?? "")
+      acervoTipo: suggestedAcervo?.acervoTipo ?? rawAcervoTipo,
+      acervoNome: rawAcervoNome || suggestedAcervo?.acervoNome || ""
     });
-  }, [rascunhoEntry?.rascunho.formValues, rascunhoEntry?.rascunho.id]);
+  }, [loteAcervoSuggestion, rascunhoEntry?.rascunho.formValues, rascunhoEntry?.rascunho.id]);
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -187,7 +234,16 @@ export const ImportacaoRascunhoDetailPage = () => {
               </Select>
             </Field>
             <Field label="Nome do acervo (opcional)">
-              <Input value={form.acervoNome} onChange={(e) => setForm((f) => ({ ...f, acervoNome: e.target.value }))} />
+              <Input
+                list={acervoSuggestionsListId}
+                value={form.acervoNome}
+                onChange={(e) => setForm((f) => ({ ...f, acervoNome: e.target.value }))}
+              />
+              <datalist id={acervoSuggestionsListId}>
+                {acervoSuggestionsQuery.data?.map((suggestion) => (
+                  <option key={suggestion} value={suggestion} />
+                ))}
+              </datalist>
             </Field>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
