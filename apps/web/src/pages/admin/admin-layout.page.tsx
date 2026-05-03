@@ -25,9 +25,14 @@ export const AdminLayout = ({ children }: PropsWithChildren) => {
             </Link>
             <p className="text-xs font-semibold text-on-surface-variant">{user?.nome ?? user?.telefone}</p>
           </div>
-          <Button type="button" onClick={onLogout} className="h-9 bg-on-surface-variant px-3">
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/conta/senha" className="text-sm font-bold text-primary underline">
+              Trocar senha
+            </Link>
+            <Button type="button" onClick={onLogout} className="h-9 bg-on-surface-variant px-3">
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>

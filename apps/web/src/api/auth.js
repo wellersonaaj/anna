@@ -8,3 +8,7 @@ export const getMe = () => request("/me", {});
 export const logout = () => request("/auth/logout", {
     method: "POST"
 });
+export const changePassword = (payload) => request("/auth/change-password", {
+    method: "POST",
+    body: payload
+});

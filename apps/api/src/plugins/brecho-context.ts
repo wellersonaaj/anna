@@ -19,7 +19,13 @@ export const brechoContextPlugin = fp(async (app) => {
     if (!token) {
       const brechoHeader = request.headers["x-brecho-id"];
       const brechoId = Array.isArray(brechoHeader) ? brechoHeader[0] : brechoHeader;
-      if (env.NODE_ENV !== "production" && brechoId && !path.startsWith("/admin") && path !== "/me") {
+      if (
+        env.NODE_ENV !== "production" &&
+        brechoId &&
+        !path.startsWith("/admin") &&
+        path !== "/me" &&
+        path !== "/auth/change-password"
+      ) {
         request.brechoId = brechoId;
         return;
       }
@@ -57,7 +63,7 @@ export const brechoContextPlugin = fp(async (app) => {
         return;
       }
 
-      if (path === "/me" || path === "/auth/logout") {
+      if (path === "/me" || path === "/auth/logout" || path === "/auth/change-password") {
         return;
       }
 

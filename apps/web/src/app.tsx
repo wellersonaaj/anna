@@ -20,6 +20,7 @@ import { SalesHubPage } from "./pages/sales-hub.page";
 import { ClientsPage } from "./pages/clients.page";
 import { ClientDetailPage } from "./pages/client-detail.page";
 import { ReportsPage } from "./pages/reports.page";
+import { AccountChangePasswordPage } from "./pages/account-change-password.page";
 import { LoginPage } from "./pages/login.page";
 import { AdminBrechosPage } from "./pages/admin/admin-brechos.page";
 import { AdminBrechoFormPage } from "./pages/admin/admin-brecho-form.page";
@@ -53,12 +54,22 @@ const RequireFounder = ({ children }: PropsWithChildren) => {
   return <>{children}</>;
 };
 
+/** Qualquer usuário logado (dona ou fundador), sem exigir brechó ativo. */
+const RequireSession = ({ children }: PropsWithChildren) => {
+  const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
 export const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/conta/senha" element={<RequireSession><AccountChangePasswordPage /></RequireSession>} />
           <Route path="/admin" element={<Navigate to="/admin/brechos" replace />} />
           <Route path="/admin/brechos" element={<RequireFounder><AdminBrechosPage /></RequireFounder>} />
           <Route path="/admin/brechos/new" element={<RequireFounder><AdminBrechoFormPage /></RequireFounder>} />

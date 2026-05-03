@@ -166,6 +166,35 @@ export const authService = {
     if (!session || session.revogadoEm || session.expiraEm.getTime() <= Date.now()) {
       throw new Error("Invalid session.");
     }
+  },
+
+  async changePassword(
+    prisma: PrismaClient,
+    userId: string,
+    input: { currentPassword: string; newPassword: string },
+    keepSessionId: string
+  ): Promise<void> {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.ativo) {
+      throw new Error("User not found.");
+    }
+    if (!(await verifyPassword(input.currentPassword, user.passwordHash))) {
+      throw new Error("Current password is incorrect.");
+    }
+
+    const passwordHash = await hashPassword(input.newPassword);
+
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      prisma.authSession.updateMany({
+        where: {
+          userId,
+          id: { not: keepSessionId },
+          revogadoEm: null
+        },
+        data: { revogadoEm: new Date() }
+      })
+    ]);
   }
 };
 

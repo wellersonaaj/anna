@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { listItems, listSalesDelivered, listSalesPendingDelivery } from "../api/items";
-import { AppShell, formatCurrency } from "../components/ui";
+import { AppShell, Section, formatCurrency } from "../components/ui";
 import { useSessionStore } from "../store/session.store";
 
 const daysSince = (isoDate: string) => Math.floor((Date.now() - new Date(isoDate).getTime()) / (1000 * 60 * 60 * 24));
@@ -135,6 +136,15 @@ export const ReportsPage = () => {
           })}
         </div>
       </section>
+
+      <Section title="Conta e segurança">
+        <p className="mb-3 text-sm text-on-surface-variant">
+          Altere a senha do seu acesso ao app sem depender do suporte.
+        </p>
+        <Link to="/conta/senha" className="inline-flex text-sm font-bold text-primary underline">
+          Trocar senha
+        </Link>
+      </Section>
     </AppShell>
   );
 };

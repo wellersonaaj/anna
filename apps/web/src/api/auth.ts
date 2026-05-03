@@ -21,3 +21,9 @@ export const logout = () =>
   request<void>("/auth/logout", {
     method: "POST"
   });
+
+export const changePassword = (payload: { currentPassword: string; newPassword: string }) =>
+  request<void>("/auth/change-password", {
+    method: "POST",
+    body: payload
+  });
