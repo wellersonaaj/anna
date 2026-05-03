@@ -8,9 +8,16 @@ export class ApiError extends Error {
     }
 }
 export const request = async (path, options) => {
-    const headers = {
-        "x-brecho-id": options.brechoId
-    };
+    const headers = {};
+    if (options.brechoId) {
+        headers["x-brecho-id"] = options.brechoId;
+    }
+    if (options.auth !== false) {
+        const token = window.localStorage.getItem("anna.accessToken");
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+    }
     const body = options.body === undefined ? undefined : JSON.stringify(options.body);
     if (body !== undefined) {
         headers["Content-Type"] = "application/json";

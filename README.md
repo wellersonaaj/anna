@@ -47,7 +47,11 @@ Este repositório inicia o MVP v1 com foco em:
    npm run dev:api
    npm run dev:web
    ```
-6. (Opcional) Worker stub de e-mail em outro terminal:
+6. (Opcional) Crie/atualize o usuário fundador após preencher `JWT_SECRET`, `FOUNDER_BOOTSTRAP_PHONE` e `FOUNDER_BOOTSTRAP_PASSWORD`:
+   ```bash
+   npm run seed:founder -w @anna/api
+   ```
+7. (Opcional) Worker stub de e-mail em outro terminal:
    ```bash
    npm run worker:email
    ```
@@ -75,7 +79,7 @@ Este repositório inicia o MVP v1 com foco em:
 - `POST /sales/:id/deliver`
 - **Importação multipeças (inbox):** `POST /importacoes`, `GET /importacoes`, `GET /importacoes/metricas/resumo`, `GET /importacoes/pendentes/count`, `GET /importacoes/:loteId`, `POST /importacoes/:loteId/fotos/presign`, `POST /importacoes/:loteId/fotos`, `POST /importacoes/:loteId/agrupar`, `PATCH /importacoes/:loteId/grupos`, `POST /importacoes/:loteId/grupos/confirmar`, `POST /importacoes/:loteId/classificar`, `PATCH /importacoes/:loteId/rascunhos/:rascunhoId`, `POST /importacoes/:loteId/rascunhos/:rascunhoId/publicar` (header `x-brecho-id`)
 
-> Nota: no MVP técnico atual, o `brecho_id` é passado no header `x-brecho-id`.
+> Nota: o primeiro corte multitenant usa login simples com JWT. Em desenvolvimento, o header `x-brecho-id` ainda pode existir como compatibilidade temporária; em produção o acesso vem da sessão validada.
 
 ### Upload de imagens (presigned)
 

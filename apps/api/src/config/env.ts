@@ -7,6 +7,7 @@ const trimOrUndef = (s: string | undefined): string | undefined => {
 };
 
 const envSchema = z.object({
+  NODE_ENV: z.string().optional(),
   DATABASE_URL: z.string().min(1),
   /** Railway, Render, Fly, etc. expõem a porta via PORT. */
   PORT: z.coerce.number().optional(),
@@ -29,6 +30,9 @@ const envSchema = z.object({
   AWS_S3_BUCKET_NAME: z.string().optional(),
   /** Base publica opcional (CDN); alias de STORAGE_PUBLIC_BASE_URL. */
   AWS_S3_PUBLIC_BASE_URL: z.string().optional(),
+  JWT_SECRET: z.string().optional(),
+  FOUNDER_BOOTSTRAP_PHONE: z.string().optional(),
+  FOUNDER_BOOTSTRAP_PASSWORD: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   /** Modelo com visão para análise de fotos de peça (ex.: gpt-4o-mini). */
   OPENAI_VISION_MODEL: z.string().optional()

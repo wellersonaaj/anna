@@ -10,13 +10,21 @@ export class ApiError extends Error {
 type RequestOptions = {
   method?: string;
   body?: unknown;
-  brechoId: string;
+  brechoId?: string;
+  auth?: boolean;
 };
 
 export const request = async <T>(path: string, options: RequestOptions): Promise<T> => {
-  const headers: Record<string, string> = {
-    "x-brecho-id": options.brechoId
-  };
+  const headers: Record<string, string> = {};
+  if (options.brechoId) {
+    headers["x-brecho-id"] = options.brechoId;
+  }
+  if (options.auth !== false) {
+    const token = window.localStorage.getItem("anna.accessToken");
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+  }
   const body = options.body === undefined ? undefined : JSON.stringify(options.body);
 
   if (body !== undefined) {

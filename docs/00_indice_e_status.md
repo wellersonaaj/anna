@@ -7,7 +7,8 @@ Documento de entrada para **onboarding** e para **retomar contexto** em nova ses
 ## Onde paramos (resumo executivo)
 
 - **Monorepo:** `apps/api` (Fastify + Prisma), `apps/web` (React + Vite), `prisma/`, `packages/shared`.
-- **Produção típica:** API em PaaS (ex.: Railway), front com `VITE_API_URL` apontando para a API; header `x-brecho-id` em todas as chamadas autenticadas do MVP.
+- **Produção típica:** API em PaaS (ex.: Railway), front com `VITE_API_URL` apontando para a API; chamadas privadas usam `Authorization: Bearer <token>` e o `brechoId` vem da sessão validada.
+- **Multitenancy/admin:** o primeiro corte usa login simples (`telefone + senha`), JWT e painel fundador em `/admin/brechos` para criar brechós, donas/equipe e senha provisória. OTP/WebAuthn ficam em backlog.
 - **Fotos e storage:** upload via presign S3-compatible. A API aceita **`STORAGE_*`** ou **aliases `AWS_*`** (comum no Railway): ver secção [Variáveis de ambiente](#variáveis-de-ambiente) e [`apps/api/src/config/env.ts`](../apps/api/src/config/env.ts) (`storageEnv`).
 - **IA em foto:** `POST /items/:id/fotos/:fotoId/analisar` — OpenAI visão, grava `AIAnalysis` + snapshot em `PecaFoto`. Requer `OPENAI_API_KEY`; opcional `OPENAI_VISION_MODEL` (default `gpt-4o-mini`).
 - **Cadastro com IA (rascunho local):** rota web `/items/new/ai` com múltiplas fotos + texto opcional, análise em **2 estágios** (extractor + reviewer), `detail: high`, autofill com fallback, criação do item ao concluir e feedback in-app com motivos.
@@ -30,6 +31,7 @@ Pendências e próximos passos detalhados: [`03_proximos_passos.md`](03_proximos
 | [03_proximos_passos.md](03_proximos_passos.md) | Checklist Sprint 0, o que está feito / parcial / falta. |
 | [04_backlog_material.md](04_backlog_material.md) | Backlog para evoluir `material` para campo estruturado. |
 | [05_backlog_importacao_lote_multipecas.md](05_backlog_importacao_lote_multipecas.md) | Backlog: lote com várias peças — agrupar fotos, depois classificar (reuso do rascunho IA). |
+| [06_multitenancy_acesso_brechos.md](06_multitenancy_acesso_brechos.md) | Desenho de UX, banco, API e rollout para acesso segregado por brechó. |
 | [lessons.md](../lessons.md) (raiz) | Lições e convenções do time. |
 
 Este arquivo (**00**) é o **hub**: índice + status + ponteiros para código e env.
@@ -125,6 +127,8 @@ Resolução unificada em código: `storageEnv` em [`apps/api/src/config/env.ts`]
 ### Web
 
 - `VITE_API_URL` — base URL da API (ex.: `https://annaapi-production...`).
+- `JWT_SECRET` — segredo para assinar sessão JWT.
+- `FOUNDER_BOOTSTRAP_PHONE` / `FOUNDER_BOOTSTRAP_PASSWORD` — usados pelo script `npm run seed:founder -w @anna/api`.
 
 ---
 
@@ -159,6 +163,8 @@ npm run db:generate
 npm run db:migrate
 npm run dev:api    # API
 npm run dev:web    # Front
+npm run seed:founder -w @anna/api
+npm run analytics:daily -w @anna/api
 npm run worker:email
 ```
 

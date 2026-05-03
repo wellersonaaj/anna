@@ -195,7 +195,15 @@ export const ImportacaoCriarPage = () => {
     });
     const agruparMutation = useMutation({
         mutationFn: async ({ brechoId: bid, loteId: lid }) => {
-            return agruparImportacaoLote(bid, lid);
+            const startedAt = performance.now();
+            const detail = await agruparImportacaoLote(bid, lid);
+            console.info("[importacao] agrupamento concluido", {
+                loteId: lid,
+                fotos: detail.fotos.length,
+                grupos: detail.grupos.length,
+                elapsedMs: Math.round(performance.now() - startedAt)
+            });
+            return detail;
         },
         onSuccess: async (_detail, vars) => {
             await queryClient.invalidateQueries({ queryKey: ["importacao", vars.brechoId, vars.loteId] });

@@ -5,6 +5,8 @@ import { env } from "./config/env.js";
 import { brechoContextPlugin } from "./plugins/brecho-context.js";
 import { prismaPlugin } from "./plugins/prisma.js";
 import { healthRoutes } from "./modules/health/health.routes.js";
+import { authRoutes } from "./modules/auth/auth.routes.js";
+import { adminRoutes } from "./modules/admin/admin.routes.js";
 import { clientRoutes } from "./modules/clients/client.routes.js";
 import { itemRoutes } from "./modules/items/item.routes.js";
 import { salesRoutes } from "./modules/sales/sales.routes.js";
@@ -36,9 +38,11 @@ export const buildServer = () => {
 
   app.addHook("onResponse", async (request, reply) => {
     const brechoId = (request as { brechoId?: string }).brechoId;
+    const userId = (request as { user?: { id: string } }).user?.id;
     request.log.info(
       {
         reqId: request.id,
+        userId,
         brechoId,
         method: request.method,
         url: request.url,
@@ -48,6 +52,8 @@ export const buildServer = () => {
     );
   });
 
+  app.register(authRoutes);
+  app.register(adminRoutes);
   app.register(clientRoutes);
   app.register(itemRoutes);
   app.register(importacaoRoutes);

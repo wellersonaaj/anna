@@ -1,0 +1,15 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { listAdminBrechos } from "../../api/admin";
+import { Button, Input } from "../../components/ui";
+import { AdminLayout } from "./admin-layout.page";
+export const AdminBrechosPage = () => {
+    const [search, setSearch] = useState("");
+    const brechosQuery = useQuery({
+        queryKey: ["admin-brechos", search],
+        queryFn: () => listAdminBrechos({ search })
+    });
+    return (_jsxs(AdminLayout, { children: [_jsxs("div", { className: "mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between", children: [_jsxs("div", { children: [_jsx("h1", { className: "font-headline text-4xl font-extrabold tracking-tight", children: "Brech\u00F3s" }), _jsx("p", { className: "text-sm text-on-surface-variant", children: "Cadastre e acompanhe as opera\u00E7\u00F5es." })] }), _jsx(Link, { to: "/admin/brechos/new", children: _jsx(Button, { type: "button", children: "Novo brech\u00F3" }) })] }), _jsx("div", { className: "mb-5 rounded-3xl border border-rose-100 bg-white p-4", children: _jsx(Input, { value: search, onChange: (event) => setSearch(event.target.value), placeholder: "Buscar por nome, telefone ou email" }) }), brechosQuery.isLoading && _jsx("p", { children: "Carregando brech\u00F3s..." }), !brechosQuery.isLoading && !brechosQuery.data?.length && (_jsx("p", { className: "rounded-3xl border border-rose-100 bg-white p-5 text-sm text-on-surface-variant", children: "Nenhum brech\u00F3 encontrado." })), _jsx("div", { className: "grid gap-4 md:grid-cols-2", children: brechosQuery.data?.map((brecho) => (_jsxs(Link, { to: `/admin/brechos/${brecho.id}`, className: "rounded-3xl border border-rose-100 bg-white p-5 shadow-sm transition-transform active:scale-[0.99]", children: [_jsxs("div", { className: "flex items-start justify-between gap-3", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-xl font-extrabold text-gray-900", children: brecho.nome }), _jsx("p", { className: "text-sm font-semibold text-on-surface-variant", children: brecho.telefone })] }), _jsx("span", { className: "rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-primary", children: brecho.status })] }), _jsxs("div", { className: "mt-4 grid grid-cols-3 gap-2 text-center text-xs font-semibold text-on-surface-variant", children: [_jsxs("div", { className: "rounded-2xl bg-surface-container-low p-3", children: [_jsx("strong", { className: "block text-lg text-gray-900", children: brecho.resumo?.pecas ?? 0 }), "pe\u00E7as"] }), _jsxs("div", { className: "rounded-2xl bg-surface-container-low p-3", children: [_jsx("strong", { className: "block text-lg text-gray-900", children: brecho.resumo?.clientes ?? 0 }), "clientes"] }), _jsxs("div", { className: "rounded-2xl bg-surface-container-low p-3", children: [_jsx("strong", { className: "block text-lg text-gray-900", children: brecho.resumo?.usuarios ?? 0 }), "acessos"] })] })] }, brecho.id))) })] }));
+};

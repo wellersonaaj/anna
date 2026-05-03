@@ -14,6 +14,17 @@ enum Plano {
   TRIAL
 }
 
+enum BrechoStatus {
+  ATIVO
+  TRIAL
+  SUSPENSO
+}
+
+enum UserRole {
+  DONO
+  OPERADOR
+}
+
 enum StatusPeca {
   DISPONIVEL
   RESERVADO
@@ -83,51 +94,103 @@ enum ImportacaoRascunhoStatus {
 }
 
 model Brecho {
-  id            String   @id @default(cuid())
+  id            String       @id @default(cuid())
   nome          String
-  telefone      String   @unique
+  slug          String?      @unique
+  telefone      String       @unique
   email         String?
+  avatarUrl     String?
   plano         Plano
+  status        BrechoStatus @default(TRIAL)
   trialExpiraEm DateTime?
-  criadoEm      DateTime @default(now())
+  criadoEm      DateTime     @default(now())
+  atualizadoEm  DateTime     @updatedAt
 
-  pecas             Peca[]
-  clientes          Cliente[]
-  emailJobs         EmailJob[]
-  aiDraftAnalyses   AIDraftAnalysis[]
-  aiDraftFeedbacks  AIDraftFeedback[]
-  importacaoLotes   ImportacaoLote[]
+  pecas               Peca[]
+  clientes            Cliente[]
+  emailJobs           EmailJob[]
+  aiDraftAnalyses     AIDraftAnalysis[]
+  aiDraftFeedbacks    AIDraftFeedback[]
+  importacaoLotes     ImportacaoLote[]
+  memberships         BrechoMembership[]
+  analyticsDias       AnalyticsBrechoDia[]
+  analyticsCategorias AnalyticsCategoriaDia[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  telefone     String   @unique
+  nome         String?
+  email        String?
+  passwordHash String?
+  isFounder    Boolean  @default(false)
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  memberships BrechoMembership[]
+  sessions    AuthSession[]
+}
+
+model BrechoMembership {
+  id       String   @id @default(cuid())
+  userId   String
+  brechoId String
+  role     UserRole @default(DONO)
+  ativo    Boolean  @default(true)
+  criadoEm DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brecho Brecho @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, brechoId])
+  @@index([brechoId, role])
+  @@index([userId, ativo])
+}
+
+model AuthSession {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String?   @unique
+  ultimoBrechoId   String?
+  expiraEm         DateTime
+  criadoEm         DateTime  @default(now())
+  revogadoEm       DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiraEm])
 }
 
 model Peca {
-  id            String     @id @default(cuid())
-  brechoId      String
-  nome          String
-  categoria     Categoria
-  subcategoria  String
-  cor           String
-  estampa       Boolean    @default(false)
-  condicao      Condicao
-  tamanho       String
-  marca         String?
-  precoVenda    Decimal?   @db.Decimal(10, 2)
-  acervoTipo    AcervoTipo @default(PROPRIO)
-  acervoNome    String?
-  consignanteId String?
-  status        StatusPeca @default(DISPONIVEL)
-  fotoCapaId    String?    @unique
-  fotoCapaManual Boolean   @default(false)
-  criadoEm      DateTime   @default(now())
-  atualizadoEm  DateTime   @updatedAt
+  id             String     @id @default(cuid())
+  brechoId       String
+  nome           String
+  categoria      Categoria
+  subcategoria   String
+  cor            String
+  estampa        Boolean    @default(false)
+  condicao       Condicao
+  tamanho        String
+  marca          String?
+  precoVenda     Decimal?   @db.Decimal(10, 2)
+  acervoTipo     AcervoTipo @default(PROPRIO)
+  acervoNome     String?
+  consignanteId  String?
+  status         StatusPeca @default(DISPONIVEL)
+  fotoCapaId     String?    @unique
+  fotoCapaManual Boolean    @default(false)
+  criadoEm       DateTime   @default(now())
+  atualizadoEm   DateTime   @updatedAt
 
-  brecho           Brecho                @relation(fields: [brechoId], references: [id])
-  fotos            PecaFoto[]
-  fotoCapa         PecaFoto?             @relation("PecaFotoCapa", fields: [fotoCapaId], references: [id], onDelete: SetNull)
-  fotoLotes        PecaFotoLote[]
-  historicoStatus  PecaStatusHistorico[]
-  venda            Venda?
-  filaInteressados FilaInteressado[]
-  aiDraftFeedbacks AIDraftFeedback[]
+  brecho              Brecho                @relation(fields: [brechoId], references: [id])
+  fotos               PecaFoto[]
+  fotoCapa            PecaFoto?             @relation("PecaFotoCapa", fields: [fotoCapaId], references: [id], onDelete: SetNull)
+  fotoLotes           PecaFotoLote[]
+  historicoStatus     PecaStatusHistorico[]
+  venda               Venda?
+  filaInteressados    FilaInteressado[]
+  aiDraftFeedbacks    AIDraftFeedback[]
   importacaoRascunhos ImportacaoRascunho[]
 
   @@index([brechoId, status, criadoEm])
@@ -137,12 +200,12 @@ model Peca {
 
 /// Contexto opcional (texto e/ou voz) compartilhado por um batch de fotos no mesmo envio.
 model PecaFotoLote {
-  id                 String   @id @default(cuid())
-  pecaId             String
-  textoNota          String?  @db.Text
-  audioUrl           String?
-  transcricaoAudio   String?  @db.Text
-  criadoEm           DateTime @default(now())
+  id               String   @id @default(cuid())
+  pecaId           String
+  textoNota        String?  @db.Text
+  audioUrl         String?
+  transcricaoAudio String?  @db.Text
+  criadoEm         DateTime @default(now())
 
   peca  Peca       @relation(fields: [pecaId], references: [id], onDelete: Cascade)
   fotos PecaFoto[]
@@ -191,9 +254,9 @@ model Cliente {
   instagram String?
   criadoEm  DateTime @default(now())
 
-  brecho Brecho @relation(fields: [brechoId], references: [id])
-  vendas Venda[]
-  filas  FilaInteressado[]
+  brecho          Brecho                @relation(fields: [brechoId], references: [id])
+  vendas          Venda[]
+  filas           FilaInteressado[]
   historicoStatus PecaStatusHistorico[]
 
   @@index([brechoId, nome])
@@ -210,16 +273,16 @@ model Venda {
   ganhosTotal Decimal  @db.Decimal(10, 2)
   criadoEm    DateTime @default(now())
 
-  peca    Peca    @relation(fields: [pecaId], references: [id])
-  cliente Cliente @relation(fields: [clienteId], references: [id])
+  peca    Peca     @relation(fields: [pecaId], references: [id])
+  cliente Cliente  @relation(fields: [clienteId], references: [id])
   entrega Entrega?
 }
 
 model Entrega {
-  id            String   @id @default(cuid())
-  vendaId       String   @unique
+  id             String   @id @default(cuid())
+  vendaId        String   @unique
   codigoRastreio String?
-  entregueEm    DateTime
+  entregueEm     DateTime
 
   venda Venda @relation(fields: [vendaId], references: [id], onDelete: Cascade)
 }
@@ -264,33 +327,33 @@ model AIAnalysis {
 }
 
 model AIDraftAnalysis {
-  id                  String   @id @default(cuid())
-  brechoId            String
+  id                   String   @id @default(cuid())
+  brechoId             String
   /// Quando a análise veio de importação multipeças (opcional).
-  importacaoLoteId    String?
-  importacaoGrupoId  String?
-  textoContexto       String?  @db.Text
-  imagensJson         Json
-  sugestoesJson       Json
-  metaJson            Json
-  warningsJson        Json
-  stage1Json          Json?
-  stage2Json          Json?
-  fieldConfidenceJson Json?
+  importacaoLoteId     String?
+  importacaoGrupoId    String?
+  textoContexto        String?  @db.Text
+  imagensJson          Json
+  sugestoesJson        Json
+  metaJson             Json
+  warningsJson         Json
+  stage1Json           Json?
+  stage2Json           Json?
+  fieldConfidenceJson  Json?
   fallbacksAppliedJson Json?
-  modeloUsado         String
-  tokensConsumidos    Int
-  stage1Tokens        Int?
-  stage2Tokens        Int?
-  stage1LatencyMs     Int?
-  stage2LatencyMs     Int?
-  criadoEm            DateTime @default(now())
+  modeloUsado          String
+  tokensConsumidos     Int
+  stage1Tokens         Int?
+  stage2Tokens         Int?
+  stage1LatencyMs      Int?
+  stage2LatencyMs      Int?
+  criadoEm             DateTime @default(now())
 
-  brecho            Brecho            @relation(fields: [brechoId], references: [id], onDelete: Cascade)
-  importacaoLote    ImportacaoLote?   @relation(fields: [importacaoLoteId], references: [id], onDelete: SetNull)
-  importacaoGrupo   ImportacaoGrupo?  @relation(fields: [importacaoGrupoId], references: [id], onDelete: SetNull)
+  brecho             Brecho              @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+  importacaoLote     ImportacaoLote?     @relation(fields: [importacaoLoteId], references: [id], onDelete: SetNull)
+  importacaoGrupo    ImportacaoGrupo?    @relation(fields: [importacaoGrupoId], references: [id], onDelete: SetNull)
   importacaoRascunho ImportacaoRascunho?
-  feedbacks         AIDraftFeedback[]
+  feedbacks          AIDraftFeedback[]
 
   @@index([brechoId, criadoEm])
   @@index([importacaoLoteId])
@@ -298,40 +361,40 @@ model AIDraftAnalysis {
 }
 
 model ImportacaoLote {
-  id          String               @id @default(cuid())
-  brechoId    String
-  status      ImportacaoLoteStatus @default(RECEBENDO_FOTOS)
-  totalFotos  Int                  @default(0)
-  totalGrupos Int                  @default(0)
-  criadoEm    DateTime             @default(now())
-  atualizadoEm DateTime            @updatedAt
+  id           String               @id @default(cuid())
+  brechoId     String
+  status       ImportacaoLoteStatus @default(RECEBENDO_FOTOS)
+  totalFotos   Int                  @default(0)
+  totalGrupos  Int                  @default(0)
+  criadoEm     DateTime             @default(now())
+  atualizadoEm DateTime             @updatedAt
 
-  brecho Brecho @relation(fields: [brechoId], references: [id], onDelete: Cascade)
-  fotos  ImportacaoFoto[]
-  grupos ImportacaoGrupo[]
+  brecho          Brecho            @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+  fotos           ImportacaoFoto[]
+  grupos          ImportacaoGrupo[]
   aiDraftAnalyses AIDraftAnalysis[]
 
   @@index([brechoId, status, criadoEm])
 }
 
 model ImportacaoFoto {
-  id             String                     @id @default(cuid())
-  loteId         String
-  ordemOriginal  Int
-  url            String
-  thumbnailUrl   String?
-  mime           String
-  tamanhoBytes   Int?
+  id                    String                     @id @default(cuid())
+  loteId                String
+  ordemOriginal         Int
+  url                   String
+  thumbnailUrl          String?
+  mime                  String
+  tamanhoBytes          Int?
   thumbnailTamanhoBytes Int?
-  largura        Int?
-  altura         Int?
-  nomeArquivo    String?
-  source         String?
-  statusUpload   ImportacaoFotoUploadStatus @default(PENDENTE)
-  ignorada       Boolean                    @default(false)
-  criadoEm       DateTime                   @default(now())
+  largura               Int?
+  altura                Int?
+  nomeArquivo           String?
+  source                String?
+  statusUpload          ImportacaoFotoUploadStatus @default(PENDENTE)
+  ignorada              Boolean                    @default(false)
+  criadoEm              DateTime                   @default(now())
 
-  lote ImportacaoLote @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  lote       ImportacaoLote        @relation(fields: [loteId], references: [id], onDelete: Cascade)
   grupoLinks ImportacaoGrupoFoto[]
 
   @@unique([loteId, ordemOriginal])
@@ -339,20 +402,20 @@ model ImportacaoFoto {
 }
 
 model ImportacaoGrupo {
-  id                     String               @id @default(cuid())
-  loteId                 String
-  ordem                  Int
-  status                 ImportacaoGrupoStatus @default(PROPOSTO)
-  confiancaAgrupamento   Float?
-  motivoRevisao          String?              @db.Text
-  ordemInicio            Int
-  ordemFim               Int
-  temFotosNaoContiguas   Boolean              @default(false)
-  criadoEm               DateTime             @default(now())
+  id                   String                @id @default(cuid())
+  loteId               String
+  ordem                Int
+  status               ImportacaoGrupoStatus @default(PROPOSTO)
+  confiancaAgrupamento Float?
+  motivoRevisao        String?               @db.Text
+  ordemInicio          Int
+  ordemFim             Int
+  temFotosNaoContiguas Boolean               @default(false)
+  criadoEm             DateTime              @default(now())
 
-  lote       ImportacaoLote        @relation(fields: [loteId], references: [id], onDelete: Cascade)
-  fotoLinks  ImportacaoGrupoFoto[]
-  rascunho   ImportacaoRascunho?
+  lote            ImportacaoLote        @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  fotoLinks       ImportacaoGrupoFoto[]
+  rascunho        ImportacaoRascunho?
   aiDraftAnalyses AIDraftAnalysis[]
 
   @@index([loteId, ordem])
@@ -373,14 +436,14 @@ model ImportacaoGrupoFoto {
 }
 
 model ImportacaoRascunho {
-  id               String                   @id @default(cuid())
-  grupoId          String                   @unique
-  draftAnalysisId  String?                  @unique
-  formValuesJson   Json?
-  status           ImportacaoRascunhoStatus @default(RASCUNHO)
-  pecaId           String?                  @unique
-  criadoEm         DateTime                 @default(now())
-  atualizadoEm     DateTime                 @updatedAt
+  id              String                   @id @default(cuid())
+  grupoId         String                   @unique
+  draftAnalysisId String?                  @unique
+  formValuesJson  Json?
+  status          ImportacaoRascunhoStatus @default(RASCUNHO)
+  pecaId          String?                  @unique
+  criadoEm        DateTime                 @default(now())
+  atualizadoEm    DateTime                 @updatedAt
 
   grupo    ImportacaoGrupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
   analysis AIDraftAnalysis? @relation(fields: [draftAnalysisId], references: [id], onDelete: SetNull)
@@ -388,7 +451,7 @@ model ImportacaoRascunho {
 }
 
 model AIDraftFeedback {
-  id              String            @id @default(cuid())
+  id              String             @id @default(cuid())
   brechoId        String
   analysisId      String
   itemId          String?
@@ -396,7 +459,7 @@ model AIDraftFeedback {
   finalValuesJson Json
   changedFields   String[]
   reasonCodes     String[]
-  criadoEm        DateTime          @default(now())
+  criadoEm        DateTime           @default(now())
 
   brecho   Brecho          @relation(fields: [brechoId], references: [id], onDelete: Cascade)
   analysis AIDraftAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
@@ -417,4 +480,42 @@ model EmailJob {
   processadoEm DateTime?
 
   brecho Brecho @relation(fields: [brechoId], references: [id])
+}
+
+model AnalyticsBrechoDia {
+  id                  String   @id @default(cuid())
+  brechoId            String
+  data                DateTime @db.Date
+  pecasCadastradas    Int      @default(0)
+  pecasVendidas       Int      @default(0)
+  faturamentoBruto    Decimal  @default(0) @db.Decimal(12, 2)
+  estoqueDisponivel   Int      @default(0)
+  estoqueReservado    Int      @default(0)
+  estoqueIndisponivel Int      @default(0)
+  pecasParadas30d     Int      @default(0)
+  criadoEm            DateTime @default(now())
+  atualizadoEm        DateTime @updatedAt
+
+  brecho Brecho @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+
+  @@unique([brechoId, data])
+  @@index([data])
+}
+
+model AnalyticsCategoriaDia {
+  id               String    @id @default(cuid())
+  brechoId         String
+  data             DateTime  @db.Date
+  categoria        Categoria
+  subcategoria     String?
+  pecasCadastradas Int       @default(0)
+  pecasVendidas    Int       @default(0)
+  faturamentoBruto Decimal   @default(0) @db.Decimal(12, 2)
+  criadoEm         DateTime  @default(now())
+  atualizadoEm     DateTime  @updatedAt
+
+  brecho Brecho @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+
+  @@unique([brechoId, data, categoria, subcategoria])
+  @@index([data, categoria])
 }
