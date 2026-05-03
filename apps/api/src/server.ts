@@ -11,6 +11,7 @@ import { clientRoutes } from "./modules/clients/client.routes.js";
 import { itemRoutes } from "./modules/items/item.routes.js";
 import { salesRoutes } from "./modules/sales/sales.routes.js";
 import { importacaoRoutes } from "./modules/importacoes/importacao.routes.js";
+import { ensureFounderFromEnv, shouldRunFounderBootstrapOnStart } from "./lib/founderBootstrap.js";
 
 // Deploy marker: force Railway rebuild with idempotent importacao migration.
 export const buildServer = () => {
@@ -64,6 +65,15 @@ export const buildServer = () => {
 
 export const startServer = async () => {
   const app = buildServer();
+  await app.ready();
+
+  if (shouldRunFounderBootstrapOnStart()) {
+    const result = await ensureFounderFromEnv(app.prisma);
+    if (result.ran) {
+      app.log.info({ userId: result.userId }, "founder_bootstrap_applied_on_start");
+    }
+  }
+
   await app.listen({
     host: env.API_HOST,
     port: env.PORT ?? env.API_PORT

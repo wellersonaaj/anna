@@ -33,6 +33,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().optional(),
   FOUNDER_BOOTSTRAP_PHONE: z.string().optional(),
   FOUNDER_BOOTSTRAP_PASSWORD: z.string().optional(),
+  /** Se `true` / `1` / `yes`, a API não aplica bootstrap de fundador no arranque (útil se só usar `seed:founder`). */
+  FOUNDER_BOOTSTRAP_DISABLE_ON_START: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   /** Modelo com visão para análise de fotos de peça (ex.: gpt-4o-mini). */
   OPENAI_VISION_MODEL: z.string().optional()

@@ -47,10 +47,11 @@ Este repositório inicia o MVP v1 com foco em:
    npm run dev:api
    npm run dev:web
    ```
-6. (Opcional) Crie/atualize o usuário fundador após preencher `JWT_SECRET`, `FOUNDER_BOOTSTRAP_PHONE` e `FOUNDER_BOOTSTRAP_PASSWORD`:
+6. Fundador: com `FOUNDER_BOOTSTRAP_PHONE` e `FOUNDER_BOOTSTRAP_PASSWORD` no `.env`, o primeiro `npm run dev:api` (ou deploy) **cria/atualiza** o usuário fundador automaticamente. Para desligar isso e usar só o script:
    ```bash
    npm run seed:founder -w @anna/api
    ```
+   (Defina `FOUNDER_BOOTSTRAP_DISABLE_ON_START=true` se quiser manter as vars mas não aplicar no arranque.)
 7. (Opcional) Worker stub de e-mail em outro terminal:
    ```bash
    npm run worker:email

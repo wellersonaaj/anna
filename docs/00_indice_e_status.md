@@ -128,7 +128,7 @@ Resolução unificada em código: `storageEnv` em [`apps/api/src/config/env.ts`]
 
 - `VITE_API_URL` — base URL da API (ex.: `https://annaapi-production...`).
 - `JWT_SECRET` — segredo para assinar sessão JWT.
-- `FOUNDER_BOOTSTRAP_PHONE` / `FOUNDER_BOOTSTRAP_PASSWORD` — usados pelo script `npm run seed:founder -w @anna/api`.
+- `FOUNDER_BOOTSTRAP_PHONE` / `FOUNDER_BOOTSTRAP_PASSWORD` — com ambos preenchidos, a API aplica o fundador no **arranque** (`apps/api/src/lib/founderBootstrap.ts` + `server.ts`); o script `npm run seed:founder -w @anna/api` continua opcional. `FOUNDER_BOOTSTRAP_DISABLE_ON_START=true` desliga o bootstrap no start.
 
 ---
 
@@ -137,6 +137,7 @@ Resolução unificada em código: `storageEnv` em [`apps/api/src/config/env.ts`]
 | Área | Arquivo |
 |------|---------|
 | Env + `storageEnv` | `apps/api/src/config/env.ts` |
+| Bootstrap fundador (env → DB) | `apps/api/src/lib/founderBootstrap.ts` |
 | S3 presign / GetObject / URL pública | `apps/api/src/lib/storage.ts` |
 | Prompt + Zod + chamada visão | `apps/api/src/lib/openaiVision.ts` |
 | Regras de negócio itens/fotos/IA | `apps/api/src/modules/items/item.service.ts` |
