@@ -146,7 +146,7 @@ export const InventoryPage = () => {
                 subtitle={`${item.categoria.replaceAll("_", " ")} / ${item.subcategoria}`}
                 priceLabel={formatCurrency(item.precoVenda)}
                 onImageClick={
-                  item.fotoCapaUrl
+                  (item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl)
                     ? () => {
                         setExpandedItemId(item.id);
                       }
@@ -187,6 +187,7 @@ export const InventoryPage = () => {
           photos={(expandedItemQuery.data.fotos ?? []).map((foto) => ({
             id: foto.id,
             url: foto.url,
+            thumbnailUrl: foto.thumbnailUrl ?? undefined,
             alt: `Foto da peça ${expandedItemQuery.data.nome}`
           }))}
           initialIndex={Math.max(

@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 const cx = (...parts) => parts.filter(Boolean).join(" ");
 export const AppShell = ({ children, showTopBar = false, topBarTitle = "Agente", topBarAction, showBottomNav = false, activeTab = "estoque", fabLink = "/items/new", maxWidthClass = "max-w-5xl" }) => {
@@ -61,22 +61,28 @@ export const ItemStatusTone = ({ status, compact = false }) => {
 };
 export const ProductCard = ({ item, subtitle, priceLabel, children, onImageClick }) => {
     const [imageBroken, setImageBroken] = useState(false);
-    const hasImage = Boolean(item.fotoCapaUrl) && !imageBroken;
-    const image = hasImage ? (_jsx("img", { src: item.fotoCapaUrl ?? undefined, alt: `Foto da peça ${item.nome}`, className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105", loading: "lazy", onError: () => setImageBroken(true) })) : (_jsx("div", { className: "flex h-full w-full items-center justify-center text-xs font-bold text-outline", children: "Sem foto" }));
+    const displaySrc = item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl ?? null;
+    const hasImage = Boolean(displaySrc) && !imageBroken;
+    const image = hasImage ? (_jsx("img", { src: displaySrc ?? undefined, alt: `Foto da peça ${item.nome}`, className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105", loading: "lazy", onError: () => setImageBroken(true) })) : (_jsx("div", { className: "flex h-full w-full items-center justify-center text-xs font-bold text-outline", children: "Sem foto" }));
     return (_jsxs("article", { className: "group", children: [_jsxs("div", { className: "relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low", children: [onImageClick && hasImage ? (_jsx("button", { type: "button", onClick: onImageClick, className: "block h-full w-full cursor-zoom-in p-0", children: image })) : (image), _jsx("div", { className: "absolute left-3 top-3", children: _jsx(ItemStatusTone, { status: item.status }) })] }), _jsx("p", { className: "mb-1 text-[9px] font-bold uppercase tracking-widest text-outline", children: subtitle }), _jsx("h3", { className: "mb-1 text-sm font-bold leading-tight tracking-tight text-on-background", children: item.nome }), priceLabel && _jsx("p", { className: "text-sm font-bold text-on-background", children: priceLabel }), children] }));
 };
 export const PhotoLightbox = ({ photos, initialIndex, title, onClose, coverPhotoId, onSetCover, setCoverPending = false }) => {
     const [index, setIndex] = useState(initialIndex);
+    const [fullLoaded, setFullLoaded] = useState(false);
     const total = photos.length;
     const photo = photos[index];
+    useEffect(() => {
+        setFullLoaded(false);
+    }, [index, photo?.url]);
     if (!photo) {
         return null;
     }
+    const showPreviewUnder = Boolean(photo.thumbnailUrl) && photo.thumbnailUrl !== photo.url && !fullLoaded;
     const goTo = (nextIndex) => {
         setIndex((nextIndex + total) % total);
     };
     return (_jsxs("div", { className: "fixed inset-0 z-[80] flex flex-col bg-black/90 p-4 text-white", role: "dialog", "aria-modal": "true", "aria-label": title, children: [_jsxs("div", { className: "mb-3 flex items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("strong", { className: "block text-sm", children: title }), _jsxs("span", { className: "text-xs text-white/70", children: [index + 1, " de ", total] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [onSetCover &&
-                                (photo.id === coverPhotoId ? (_jsx("span", { className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white/80", children: "Capa" })) : (_jsx("button", { type: "button", onClick: () => onSetCover(photo.id), disabled: setCoverPending, className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white disabled:opacity-60", children: setCoverPending ? "Salvando..." : "Definir como capa" }))), _jsx("button", { type: "button", onClick: onClose, className: "rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white", children: "Fechar" })] })] }), _jsxs("div", { className: "flex min-h-0 flex-1 items-center justify-center gap-2", children: [total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index - 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Foto anterior", children: "\u2039" })), _jsx("img", { src: photo.url, alt: photo.alt ?? title, className: "max-h-full min-w-0 rounded-2xl object-contain" }), total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index + 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Pr\u00F3xima foto", children: "\u203A" }))] })] }));
+                                (photo.id === coverPhotoId ? (_jsx("span", { className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white/80", children: "Capa" })) : (_jsx("button", { type: "button", onClick: () => onSetCover(photo.id), disabled: setCoverPending, className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white disabled:opacity-60", children: setCoverPending ? "Salvando..." : "Definir como capa" }))), _jsx("button", { type: "button", onClick: onClose, className: "rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white", children: "Fechar" })] })] }), _jsxs("div", { className: "flex min-h-0 flex-1 items-center justify-center gap-2", children: [total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index - 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Foto anterior", children: "\u2039" })), _jsxs("div", { className: "relative flex min-h-0 min-w-0 flex-1 items-center justify-center", children: [showPreviewUnder ? (_jsx("img", { src: photo.thumbnailUrl ?? undefined, alt: "", className: "absolute max-h-full max-w-full rounded-2xl object-contain opacity-90", "aria-hidden": true })) : null, _jsx("img", { src: photo.url, alt: photo.alt ?? title, className: "relative z-10 max-h-full min-w-0 rounded-2xl object-contain", onLoad: () => setFullLoaded(true) })] }), total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index + 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Pr\u00F3xima foto", children: "\u203A" }))] })] }));
 };
 export const formatCurrency = (value) => {
     if (value === null || value === undefined || value === "") {

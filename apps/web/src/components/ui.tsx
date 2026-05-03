@@ -6,7 +6,7 @@ import type {
   ReactNode,
   SelectHTMLAttributes
 } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
@@ -277,17 +277,23 @@ export const ProductCard = ({
   children,
   onImageClick
 }: {
-  item: { nome: string; status: keyof typeof statusColorMap; fotoCapaUrl?: string | null };
+  item: {
+    nome: string;
+    status: keyof typeof statusColorMap;
+    fotoCapaUrl?: string | null;
+    fotoCapaThumbnailUrl?: string | null;
+  };
   subtitle: string;
   priceLabel?: string;
   children?: ReactNode;
   onImageClick?: () => void;
 }) => {
   const [imageBroken, setImageBroken] = useState(false);
-  const hasImage = Boolean(item.fotoCapaUrl) && !imageBroken;
+  const displaySrc = item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl ?? null;
+  const hasImage = Boolean(displaySrc) && !imageBroken;
   const image = hasImage ? (
     <img
-      src={item.fotoCapaUrl ?? undefined}
+      src={displaySrc ?? undefined}
       alt={`Foto da peça ${item.nome}`}
       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
       loading="lazy"
@@ -328,7 +334,7 @@ export const PhotoLightbox = ({
   onSetCover,
   setCoverPending = false
 }: {
-  photos: Array<{ id: string; url: string; alt?: string }>;
+  photos: Array<{ id: string; url: string; thumbnailUrl?: string | null; alt?: string }>;
   initialIndex: number;
   title: string;
   onClose: () => void;
@@ -337,12 +343,20 @@ export const PhotoLightbox = ({
   setCoverPending?: boolean;
 }) => {
   const [index, setIndex] = useState(initialIndex);
+  const [fullLoaded, setFullLoaded] = useState(false);
   const total = photos.length;
   const photo = photos[index];
+
+  useEffect(() => {
+    setFullLoaded(false);
+  }, [index, photo?.url]);
 
   if (!photo) {
     return null;
   }
+
+  const showPreviewUnder =
+    Boolean(photo.thumbnailUrl) && photo.thumbnailUrl !== photo.url && !fullLoaded;
 
   const goTo = (nextIndex: number) => {
     setIndex((nextIndex + total) % total);
@@ -396,7 +410,22 @@ export const PhotoLightbox = ({
             ‹
           </button>
         )}
-        <img src={photo.url} alt={photo.alt ?? title} className="max-h-full min-w-0 rounded-2xl object-contain" />
+        <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center">
+          {showPreviewUnder ? (
+            <img
+              src={photo.thumbnailUrl ?? undefined}
+              alt=""
+              className="absolute max-h-full max-w-full rounded-2xl object-contain opacity-90"
+              aria-hidden
+            />
+          ) : null}
+          <img
+            src={photo.url}
+            alt={photo.alt ?? title}
+            className="relative z-10 max-h-full min-w-0 rounded-2xl object-contain"
+            onLoad={() => setFullLoaded(true)}
+          />
+        </div>
         {total > 1 && (
           <button
             type="button"

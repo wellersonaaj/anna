@@ -146,6 +146,7 @@ export const ItemDetailPage = () => {
       (item?.fotos ?? []).map((foto) => ({
         id: foto.id,
         url: foto.url,
+        thumbnailUrl: foto.thumbnailUrl ?? undefined,
         alt: `Foto da peça ${item?.nome ?? ""}`
       })),
     [item?.fotos, item?.nome]
@@ -490,7 +491,7 @@ export const ItemDetailPage = () => {
                             aria-label="Ampliar foto"
                           >
                             <img
-                              src={foto.url}
+                              src={foto.thumbnailUrl ?? foto.url}
                               alt={`Foto da peça ${item.nome}`}
                               className="h-24 w-24 object-cover"
                             />

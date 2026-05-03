@@ -214,10 +214,14 @@ model PecaFotoLote {
 }
 
 model PecaFoto {
-  id             String   @id @default(cuid())
-  pecaId         String
-  loteId         String?
-  url            String
+  id                    String   @id @default(cuid())
+  pecaId                String
+  loteId                String?
+  url                   String
+  thumbnailUrl          String?
+  thumbnailTamanhoBytes Int?
+  largura               Int?
+  altura                Int?
   ordem          Int
   aiAmbiente     String?
   aiQualidade    String?

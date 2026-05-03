@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { addItemFoto, analisarItemFoto, createFotoLote, getItem, patchFotoLote, presignFotoLoteUpload, putToPresignedUrl, transcribeFotoLote } from "../api/items";
 import { ApiError } from "../api/client";
 import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
-import { resizeImageToJpeg } from "../lib/imageResize";
+import { resizeImageDetailed } from "../lib/imageResize";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Section } from "../components/ui";
 const pickAudioMime = () => {
@@ -139,19 +139,39 @@ export const ItemFotoUploadPage = () => {
         stopStream();
         setCameraOpen(false);
     };
-    const uploadJpegForLote = async (jpeg) => {
+    const uploadResizedPairForLote = async (source, options) => {
         if (!itemId || !loteId) {
             return;
         }
-        const signed = await presignFotoLoteUpload(brechoId, itemId, loteId, {
+        const [main, thumb] = await Promise.all([
+            resizeImageDetailed(source, { maxSide: 1600, quality: 0.78, mime: "image/jpeg" }),
+            resizeImageDetailed(source, { maxSide: 360, quality: 0.72, mime: "image/jpeg" })
+        ]);
+        const signedMain = await presignFotoLoteUpload(brechoId, itemId, loteId, {
             tipo: "imagem",
             contentType: "image/jpeg",
             extensao: "jpeg",
-            tamanhoBytes: jpeg.size
+            tamanhoBytes: main.blob.size
         });
-        await putToPresignedUrl(signed.uploadUrl, jpeg, "image/jpeg");
-        await addItemFoto(brechoId, itemId, { url: signed.publicUrl, loteId });
-        await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
+        await putToPresignedUrl(signedMain.uploadUrl, main.blob, "image/jpeg");
+        const signedThumb = await presignFotoLoteUpload(brechoId, itemId, loteId, {
+            tipo: "imagem",
+            contentType: "image/jpeg",
+            extensao: "jpeg",
+            tamanhoBytes: thumb.blob.size
+        });
+        await putToPresignedUrl(signedThumb.uploadUrl, thumb.blob, "image/jpeg");
+        await addItemFoto(brechoId, itemId, {
+            url: signedMain.publicUrl,
+            thumbnailUrl: signedThumb.publicUrl,
+            thumbnailTamanhoBytes: thumb.blob.size,
+            largura: main.width,
+            altura: main.height,
+            loteId
+        });
+        if (!options?.skipInvalidate) {
+            await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
+        }
     };
     const captureFromVideo = async () => {
         const video = videoRef.current;
@@ -177,9 +197,8 @@ export const ItemFotoUploadPage = () => {
             setActionError("Falha ao capturar imagem.");
             return;
         }
-        const jpeg = await resizeImageToJpeg(raw);
         try {
-            await uploadJpegForLote(jpeg);
+            await uploadResizedPairForLote(raw);
             setActionError(null);
         }
         catch (e) {
@@ -198,15 +217,7 @@ export const ItemFotoUploadPage = () => {
                 if (n >= 15) {
                     break;
                 }
-                const jpeg = await resizeImageToJpeg(file);
-                const signed = await presignFotoLoteUpload(brechoId, itemId, loteId, {
-                    tipo: "imagem",
-                    contentType: "image/jpeg",
-                    extensao: "jpeg",
-                    tamanhoBytes: jpeg.size
-                });
-                await putToPresignedUrl(signed.uploadUrl, jpeg, "image/jpeg");
-                await addItemFoto(brechoId, itemId, { url: signed.publicUrl, loteId });
+                await uploadResizedPairForLote(file, { skipInvalidate: true });
                 n += 1;
             }
             await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
@@ -308,7 +319,7 @@ export const ItemFotoUploadPage = () => {
                                                         flexWrap: "wrap",
                                                         gap: 12,
                                                         alignItems: "flex-start"
-                                                    }, children: [_jsx("img", { src: foto.url, alt: "", style: { width: 88, height: 88, objectFit: "cover", borderRadius: 8 } }), _jsxs("div", { className: "stack", style: { flex: 1, minWidth: 0, gap: 8 }, children: [_jsxs("small", { style: { opacity: 0.75 }, children: ["Ordem ", foto.ordem] }), !latest && (_jsx(Button, { type: "button", onClick: () => analyzeMutation.mutate(foto.id), disabled: analyzeMutation.isPending, children: analyzeMutation.isPending && analyzeMutation.variables === foto.id
+                                                    }, children: [_jsx("img", { src: foto.thumbnailUrl ?? foto.url, alt: "", style: { width: 88, height: 88, objectFit: "cover", borderRadius: 8 } }), _jsxs("div", { className: "stack", style: { flex: 1, minWidth: 0, gap: 8 }, children: [_jsxs("small", { style: { opacity: 0.75 }, children: ["Ordem ", foto.ordem] }), !latest && (_jsx(Button, { type: "button", onClick: () => analyzeMutation.mutate(foto.id), disabled: analyzeMutation.isPending, children: analyzeMutation.isPending && analyzeMutation.variables === foto.id
                                                                         ? "Analisando..."
                                                                         : "Sugerir com IA" })), latest && _jsx(FotoAiSuggestionsCard, { analysis: latest })] })] }, foto.id));
                                             }))] })] }), _jsx(Button, { type: "button", onClick: () => navigate(`/items/${itemId}`), children: "Concluir" })] }))] })), cameraOpen && (_jsxs("div", { style: {

@@ -20,9 +20,10 @@ const ensureTransition = (from: StatusPeca, to: StatusPeca): void => {
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
-type CoverFotoCandidate = {
+export type CoverFotoCandidate = {
   id: string;
   url: string;
+  thumbnailUrl?: string | null;
   ordem: number;
   aiConfianca: number | null;
   aiQualidade: string | null;
@@ -73,7 +74,7 @@ const chooseBestCoverFoto = <T extends CoverFotoCandidate>(fotos: T[]): T | null
   })[0] ?? null;
 };
 
-const resolveCoverFoto = <T extends CoverFotoCandidate>(fotoCapaId: string | null | undefined, fotos: T[]): T | null => {
+export const resolveCoverFoto = <T extends CoverFotoCandidate>(fotoCapaId: string | null | undefined, fotos: T[]): T | null => {
   if (fotoCapaId) {
     const manualCover = fotos.find((foto) => foto.id === fotoCapaId);
     if (manualCover) {
@@ -381,6 +382,7 @@ export const itemService = {
           select: {
             id: true,
             url: true,
+            thumbnailUrl: true,
             ordem: true,
             aiConfianca: true,
             aiQualidade: true,
@@ -421,6 +423,7 @@ export const itemService = {
           precoVenda: row.precoVenda,
           marca: row.marca,
           fotoCapaUrl: await resolveDisplayImageUrl(coverFoto?.url ?? null),
+          fotoCapaThumbnailUrl: await resolveDisplayImageUrl((coverFoto?.thumbnailUrl ?? coverFoto?.url) ?? null),
           ultimoStatus: row.historicoStatus[0]
             ? {
                 status: row.historicoStatus[0].status,
@@ -507,19 +510,24 @@ export const itemService = {
     if (!item) {
       return item;
     }
+    const coverFotoRaw = resolveCoverFoto(item.fotoCapaId, item.fotos);
+    const coverId = coverFotoRaw?.id ?? null;
     const signedFotos = await Promise.all(
       (item.fotos ?? []).map(async (foto) => ({
         ...foto,
-        url: (await resolveDisplayImageUrl(foto.url)) ?? foto.url
+        url: (await resolveDisplayImageUrl(foto.url)) ?? foto.url,
+        thumbnailUrl: foto.thumbnailUrl
+          ? ((await resolveDisplayImageUrl(foto.thumbnailUrl)) ?? foto.thumbnailUrl)
+          : null
       }))
     );
-    const coverFoto = resolveCoverFoto(item.fotoCapaId, signedFotos);
     return {
       ...item,
-      fotoCapaUrl: coverFoto?.url ?? null,
+      fotoCapaUrl: await resolveDisplayImageUrl(coverFotoRaw?.url ?? null),
+      fotoCapaThumbnailUrl: await resolveDisplayImageUrl((coverFotoRaw?.thumbnailUrl ?? coverFotoRaw?.url) ?? null),
       fotos: signedFotos.map((foto) => ({
         ...foto,
-        isCover: foto.id === coverFoto?.id
+        isCover: foto.id === coverId
       }))
     };
   },
@@ -611,7 +619,15 @@ export const itemService = {
     prisma: PrismaClient,
     brechoId: string,
     itemId: string,
-    payload: { url: string; ordem?: number; loteId?: string }
+    payload: {
+      url: string;
+      ordem?: number;
+      loteId?: string;
+      thumbnailUrl?: string;
+      thumbnailTamanhoBytes?: number;
+      largura?: number;
+      altura?: number;
+    }
   ) {
     const item = await prisma.peca.findFirst({
       where: { id: itemId, brechoId },
@@ -666,6 +682,10 @@ export const itemService = {
         pecaId: itemId,
         loteId: payload.loteId ?? null,
         url: payload.url.trim(),
+        thumbnailUrl: payload.thumbnailUrl?.trim() || null,
+        thumbnailTamanhoBytes: payload.thumbnailTamanhoBytes ?? null,
+        largura: payload.largura ?? null,
+        altura: payload.altura ?? null,
         ordem
       }
     });

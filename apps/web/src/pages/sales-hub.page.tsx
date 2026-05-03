@@ -115,12 +115,13 @@ export const SalesHubPage = () => {
           {reservedItems.map((item) => {
             const age = relativeAgeLabel(item.ultimoStatus?.criadoEm ?? item.criadoEm);
             const isUrgent = age.label.includes("h") && Number.parseInt(age.label.replace(/\D/g, ""), 10) >= 24;
+            const itemImg = item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl;
             return (
               <article key={item.id} className="rounded-3xl border border-rose-50 bg-white p-4 shadow-sm">
                 <div className="flex gap-4">
-                  {item.fotoCapaUrl ? (
+                  {itemImg ? (
                     <img
-                      src={item.fotoCapaUrl}
+                      src={itemImg}
                       alt={`Foto da peça ${item.nome}`}
                       className="h-20 w-20 rounded-2xl object-cover"
                       loading="lazy"
@@ -182,12 +183,14 @@ export const SalesHubPage = () => {
               Nenhuma venda aguardando entrega.
             </p>
           )}
-          {pendingSalesQuery.data?.map((sale) => (
+          {pendingSalesQuery.data?.map((sale) => {
+            const pecaImg = sale.peca.fotoCapaThumbnailUrl ?? sale.peca.fotoCapaUrl;
+            return (
             <article key={sale.id} className="rounded-3xl border border-rose-50 bg-white p-4 shadow-sm">
               <div className="flex gap-4">
-                {sale.peca.fotoCapaUrl ? (
+                {pecaImg ? (
                   <img
-                    src={sale.peca.fotoCapaUrl}
+                    src={pecaImg}
                     alt={`Foto da peça ${sale.peca.nome}`}
                     className="h-20 w-20 rounded-2xl object-cover"
                     loading="lazy"
@@ -229,7 +232,8 @@ export const SalesHubPage = () => {
                 </Button>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -245,12 +249,14 @@ export const SalesHubPage = () => {
               Nenhuma entrega nos últimos 30 dias.
             </p>
           )}
-          {deliveredRows.map((sale) => (
+          {deliveredRows.map((sale) => {
+            const pecaImg = sale.peca.fotoCapaThumbnailUrl ?? sale.peca.fotoCapaUrl;
+            return (
             <article key={sale.id} className="rounded-2xl border border-rose-50 bg-white p-3 shadow-sm">
               <div className="flex items-center gap-4">
-                {sale.peca.fotoCapaUrl ? (
+                {pecaImg ? (
                   <img
-                    src={sale.peca.fotoCapaUrl}
+                    src={pecaImg}
                     alt={`Foto da peça ${sale.peca.nome}`}
                     className="h-14 w-14 rounded-xl object-cover"
                     loading="lazy"
@@ -269,7 +275,8 @@ export const SalesHubPage = () => {
                 <strong className="text-primary">{formatCurrency(sale.ganhosTotal)}</strong>
               </div>
             </article>
-          ))}
+            );
+          })}
           {deliveredSalesQuery.data?.hasMore && (
             <Button
               type="button"

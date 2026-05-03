@@ -2,6 +2,7 @@ import { canTransitionStatus, itemStatus } from "@anna/shared";
 import type { PrismaClient, StatusPeca } from "@prisma/client";
 import { storageEnv } from "../../config/env.js";
 import { createPresignedGet, isStorageConfigured, resolveObjectKeyFromPublicUrl } from "../../lib/storage.js";
+import { resolveCoverFoto } from "../items/item.service.js";
 
 const ensureTransition = (from: StatusPeca, to: StatusPeca) => {
   if (!canTransitionStatus(from, to)) {
@@ -38,11 +39,22 @@ export const salesService = {
       },
       include: {
         peca: {
-          include: {
+          select: {
+            id: true,
+            nome: true,
+            fotoCapaId: true,
             fotos: {
-              select: { url: true },
+              select: {
+                id: true,
+                url: true,
+                thumbnailUrl: true,
+                ordem: true,
+                aiConfianca: true,
+                aiQualidade: true,
+                aiPredicaoJson: true
+              },
               orderBy: { ordem: "asc" },
-              take: 1
+              take: 15
             }
           }
         },
@@ -54,14 +66,19 @@ export const salesService = {
     });
 
     return Promise.all(
-      rows.map(async (row) => ({
-        ...row,
-        peca: {
-          id: row.peca.id,
-          nome: row.peca.nome,
-          fotoCapaUrl: await resolveDisplayImageUrl(row.peca.fotos[0]?.url ?? null)
-        }
-      }))
+      rows.map(async (row) => {
+        const cover = resolveCoverFoto(row.peca.fotoCapaId, row.peca.fotos);
+        const thumbPrefer = cover?.thumbnailUrl ?? cover?.url ?? null;
+        return {
+          ...row,
+          peca: {
+            id: row.peca.id,
+            nome: row.peca.nome,
+            fotoCapaUrl: await resolveDisplayImageUrl(cover?.url ?? null),
+            fotoCapaThumbnailUrl: await resolveDisplayImageUrl(thumbPrefer)
+          }
+        };
+      })
     );
   },
 
@@ -87,11 +104,22 @@ export const salesService = {
         where,
         include: {
           peca: {
-            include: {
+            select: {
+              id: true,
+              nome: true,
+              fotoCapaId: true,
               fotos: {
-                select: { url: true },
+                select: {
+                  id: true,
+                  url: true,
+                  thumbnailUrl: true,
+                  ordem: true,
+                  aiConfianca: true,
+                  aiQualidade: true,
+                  aiPredicaoJson: true
+                },
                 orderBy: { ordem: "asc" },
-                take: 1
+                take: 15
               }
             }
           },
@@ -110,14 +138,19 @@ export const salesService = {
     ]);
 
     const mappedRows = await Promise.all(
-      rows.map(async (row) => ({
-        ...row,
-        peca: {
-          id: row.peca.id,
-          nome: row.peca.nome,
-          fotoCapaUrl: await resolveDisplayImageUrl(row.peca.fotos[0]?.url ?? null)
-        }
-      }))
+      rows.map(async (row) => {
+        const cover = resolveCoverFoto(row.peca.fotoCapaId, row.peca.fotos);
+        const thumbPrefer = cover?.thumbnailUrl ?? cover?.url ?? null;
+        return {
+          ...row,
+          peca: {
+            id: row.peca.id,
+            nome: row.peca.nome,
+            fotoCapaUrl: await resolveDisplayImageUrl(cover?.url ?? null),
+            fotoCapaThumbnailUrl: await resolveDisplayImageUrl(thumbPrefer)
+          }
+        };
+      })
     );
 
     return {

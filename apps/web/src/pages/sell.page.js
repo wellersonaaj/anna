@@ -81,7 +81,12 @@ export const SellPage = () => {
     const queueEntries = item?.filaInteressados ?? [];
     const selectedQueueEntry = queueEntries.find((entry) => entry.id === selectedQueueEntryId) ?? queueEntries[0];
     const selectedCliente = saleMode === "queue" ? selectedQueueEntry?.cliente : undefined;
-    const itemPhoto = item?.fotos?.[0]?.url ?? item?.fotoCapaUrl ?? null;
+    const listCoverFoto = item?.fotos?.find((f) => f.isCover) ?? item?.fotos?.[0];
+    const itemPhoto = listCoverFoto?.thumbnailUrl ??
+        listCoverFoto?.url ??
+        item?.fotoCapaThumbnailUrl ??
+        item?.fotoCapaUrl ??
+        null;
     const { register, handleSubmit, reset, control, setValue, watch } = useForm({
         resolver: zodResolver(sellFormSchema),
         defaultValues: {

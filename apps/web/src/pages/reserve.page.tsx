@@ -91,7 +91,13 @@ export const ReservePage = () => {
   });
 
   const item = itemQuery.data;
-  const itemPhoto = item?.fotos?.[0]?.url ?? item?.fotoCapaUrl ?? null;
+  const listCoverFoto = item?.fotos?.find((f) => f.isCover) ?? item?.fotos?.[0];
+  const itemPhoto =
+    listCoverFoto?.thumbnailUrl ??
+    listCoverFoto?.url ??
+    item?.fotoCapaThumbnailUrl ??
+    item?.fotoCapaUrl ??
+    null;
   const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
   const selectedContact = {
     nome: watch("nome") ?? "",

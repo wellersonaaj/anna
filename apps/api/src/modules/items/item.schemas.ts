@@ -67,6 +67,10 @@ export const acervoSuggestionsQuerySchema = z.object({
 
 export const addPecaFotoSchema = z.object({
   url: z.string().trim().url("Informe uma URL válida (http ou https)."),
+  thumbnailUrl: z.string().trim().url("Informe uma URL válida (http ou https).").optional(),
+  thumbnailTamanhoBytes: z.coerce.number().int().positive().optional(),
+  largura: z.coerce.number().int().positive().optional(),
+  altura: z.coerce.number().int().positive().optional(),
   ordem: z.coerce.number().int().min(0).optional(),
   loteId: z.string().cuid().optional()
 });

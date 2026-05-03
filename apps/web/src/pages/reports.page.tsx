@@ -104,11 +104,13 @@ export const ReportsPage = () => {
               Não há peças paradas acima de 30 dias.
             </p>
           )}
-          {staleItems.map((item) => (
+          {staleItems.map((item) => {
+            const staleThumb = item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl;
+            return (
             <article key={item.id} className="flex items-center gap-4 rounded-2xl border border-rose-50 bg-white p-3">
-              {item.fotoCapaUrl ? (
+              {staleThumb ? (
                 <img
-                  src={item.fotoCapaUrl}
+                  src={staleThumb}
                   alt={`Foto da peça ${item.nome}`}
                   className="h-16 w-16 rounded-xl object-cover"
                   loading="lazy"
@@ -129,7 +131,8 @@ export const ReportsPage = () => {
                 <span className="text-[10px] font-bold uppercase text-gray-400">parada</span>
               </div>
             </article>
-          ))}
+          );
+          })}
         </div>
       </section>
     </AppShell>

@@ -20,6 +20,7 @@ export type Item = {
   precoVenda?: string | number | null;
   marca?: string | null;
   fotoCapaUrl?: string | null;
+  fotoCapaThumbnailUrl?: string | null;
   ultimoStatus?: {
     status: ItemStatus;
     criadoEm: string;
@@ -87,6 +88,10 @@ export type ItemFoto = {
   pecaId: string;
   loteId?: string | null;
   url: string;
+  thumbnailUrl?: string | null;
+  thumbnailTamanhoBytes?: number | null;
+  largura?: number | null;
+  altura?: number | null;
   ordem: number;
   criadoEm: string;
   lote?: ItemFotoLote | null;
@@ -213,6 +218,7 @@ export type SalePendingDelivery = {
     id: string;
     nome: string;
     fotoCapaUrl?: string | null;
+    fotoCapaThumbnailUrl?: string | null;
   };
   cliente: {
     nome: string;
@@ -228,6 +234,7 @@ export type DeliveredSale = {
     id: string;
     nome: string;
     fotoCapaUrl?: string | null;
+    fotoCapaThumbnailUrl?: string | null;
   };
   cliente: {
     id: string;
@@ -306,7 +313,15 @@ export const updateItemStatus = async (
 export const addItemFoto = async (
   brechoId: string,
   itemId: string,
-  payload: { url: string; ordem?: number; loteId?: string }
+  payload: {
+    url: string;
+    ordem?: number;
+    loteId?: string;
+    thumbnailUrl?: string;
+    thumbnailTamanhoBytes?: number;
+    largura?: number;
+    altura?: number;
+  }
 ): Promise<ItemFoto> => {
   return request<ItemFoto>(`/items/${itemId}/fotos`, {
     method: "POST",
