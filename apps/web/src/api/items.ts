@@ -251,6 +251,8 @@ export type ListItemsFilters = {
   status?: Item["status"];
   categoria?: ItemCategoria;
   search?: string;
+  acervoNome?: string;
+  acervoTipo?: Item["acervoTipo"];
 };
 
 export type UpdateItemPayload = Partial<{
@@ -277,6 +279,12 @@ export const listItems = async (brechoId: string, filters?: ListItemsFilters): P
   }
   if (filters?.search?.trim()) {
     params.set("search", filters.search.trim());
+  }
+  if (filters?.acervoNome?.trim()) {
+    params.set("acervoNome", filters.acervoNome.trim());
+  }
+  if (filters?.acervoTipo) {
+    params.set("acervoTipo", filters.acervoTipo);
   }
   const qs = params.toString();
   return request<Item[]>(`/items${qs ? `?${qs}` : ""}`, { brechoId });

@@ -10,6 +10,12 @@ export const listItems = async (brechoId, filters) => {
     if (filters?.search?.trim()) {
         params.set("search", filters.search.trim());
     }
+    if (filters?.acervoNome?.trim()) {
+        params.set("acervoNome", filters.acervoNome.trim());
+    }
+    if (filters?.acervoTipo) {
+        params.set("acervoTipo", filters.acervoTipo);
+    }
     const qs = params.toString();
     return request(`/items${qs ? `?${qs}` : ""}`, { brechoId });
 };

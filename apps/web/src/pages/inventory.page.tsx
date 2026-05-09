@@ -1,8 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { countImportacoesPendentes } from "../api/importacoes";
-import { getItem, listItems, setItemCoverFoto, type Item, type ItemCategoria } from "../api/items";
+import {
+  getItem,
+  listAcervoSuggestions,
+  listItems,
+  setItemCoverFoto,
+  type Item,
+  type ItemCategoria
+} from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Input, PhotoLightbox, PillButton, ProductCard, formatCurrency } from "../components/ui";
 
@@ -11,17 +18,33 @@ export const InventoryPage = () => {
   const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState<"" | Item["status"]>("");
   const [filterCategoria, setFilterCategoria] = useState<"" | ItemCategoria>("");
+  const [filterAcervoTipo, setFilterAcervoTipo] = useState<"" | Item["acervoTipo"]>("");
+  const [filterAcervoNome, setFilterAcervoNome] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const acervoSuggestionsListId = useId();
 
   const listFilters = useMemo(
     () => ({
       ...(filterStatus ? { status: filterStatus } : {}),
       ...(filterCategoria ? { categoria: filterCategoria } : {}),
-      ...(filterSearch.trim() ? { search: filterSearch.trim() } : {})
+      ...(filterSearch.trim() ? { search: filterSearch.trim() } : {}),
+      ...(filterAcervoTipo ? { acervoTipo: filterAcervoTipo } : {}),
+      ...(filterAcervoNome.trim() ? { acervoNome: filterAcervoNome.trim() } : {})
     }),
-    [filterStatus, filterCategoria, filterSearch]
+    [filterStatus, filterCategoria, filterSearch, filterAcervoTipo, filterAcervoNome]
   );
+
+  const acervoSuggestionsQuery = useQuery({
+    queryKey: ["acervo-suggestions", brechoId, filterAcervoTipo, filterAcervoNome],
+    queryFn: () =>
+      listAcervoSuggestions(brechoId, {
+        q: filterAcervoNome.trim() || undefined,
+        acervoTipo: filterAcervoTipo || undefined,
+        limit: 20
+      }),
+    enabled: Boolean(brechoId)
+  });
 
   const itemsQuery = useQuery({
     queryKey: ["items", brechoId, listFilters],
@@ -60,6 +83,12 @@ export const InventoryPage = () => {
     { key: "ROUPA_MASCULINA", label: "Roupas masculinas" },
     { key: "CALCADO", label: "Calçados" },
     { key: "ACESSORIO", label: "Acessórios" }
+  ];
+
+  const acervoTipoFilters: Array<{ key: "" | Item["acervoTipo"]; label: string }> = [
+    { key: "", label: "Todos" },
+    { key: "PROPRIO", label: "Próprio" },
+    { key: "CONSIGNACAO", label: "Consignação" }
   ];
 
   return (
@@ -132,6 +161,37 @@ export const InventoryPage = () => {
               </PillButton>
             ))}
           </div>
+        </div>
+        <div>
+          <label className="mb-3 block text-[9px] font-bold uppercase tracking-widest text-outline">Tipo de acervo</label>
+          <div className="no-scrollbar flex gap-2 overflow-x-auto">
+            {acervoTipoFilters.map((acervoTipoFilter) => (
+              <PillButton
+                key={acervoTipoFilter.label}
+                active={filterAcervoTipo === acervoTipoFilter.key}
+                onClick={() => setFilterAcervoTipo(acervoTipoFilter.key)}
+              >
+                {acervoTipoFilter.label}
+              </PillButton>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="mb-2 ml-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-on-surface-variant">
+            Nome do acervo
+          </label>
+          <Input
+            list={acervoSuggestionsListId}
+            value={filterAcervoNome}
+            onChange={(e) => setFilterAcervoNome(e.target.value)}
+            placeholder="Filtrar por nome (opcional)..."
+            className="h-12 rounded-none border-0 border-b-2 border-outline-variant bg-transparent px-0 text-base focus:border-primary"
+          />
+          <datalist id={acervoSuggestionsListId}>
+            {(acervoSuggestionsQuery.data ?? []).map((suggestion) => (
+              <option key={suggestion} value={suggestion} />
+            ))}
+          </datalist>
         </div>
       </div>
 

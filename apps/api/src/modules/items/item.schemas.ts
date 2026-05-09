@@ -56,7 +56,9 @@ export const sellItemSchema = z.object({
 export const listItemsQuerySchema = z.object({
   status: z.enum(["DISPONIVEL", "RESERVADO", "VENDIDO", "ENTREGUE", "INDISPONIVEL"]).optional(),
   categoria: z.enum(["ROUPA_FEMININA", "ROUPA_MASCULINA", "CALCADO", "ACESSORIO"]).optional(),
-  search: z.string().optional()
+  search: z.string().optional(),
+  acervoNome: z.string().trim().max(80).optional(),
+  acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]).optional()
 });
 
 export const acervoSuggestionsQuerySchema = z.object({

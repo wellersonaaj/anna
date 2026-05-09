@@ -1,9 +1,9 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { countImportacoesPendentes } from "../api/importacoes";
-import { getItem, listItems, setItemCoverFoto } from "../api/items";
+import { getItem, listAcervoSuggestions, listItems, setItemCoverFoto } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Input, PhotoLightbox, PillButton, ProductCard, formatCurrency } from "../components/ui";
 export const InventoryPage = () => {
@@ -11,13 +11,27 @@ export const InventoryPage = () => {
     const queryClient = useQueryClient();
     const [filterStatus, setFilterStatus] = useState("");
     const [filterCategoria, setFilterCategoria] = useState("");
+    const [filterAcervoTipo, setFilterAcervoTipo] = useState("");
+    const [filterAcervoNome, setFilterAcervoNome] = useState("");
     const [filterSearch, setFilterSearch] = useState("");
     const [expandedItemId, setExpandedItemId] = useState(null);
+    const acervoSuggestionsListId = useId();
     const listFilters = useMemo(() => ({
         ...(filterStatus ? { status: filterStatus } : {}),
         ...(filterCategoria ? { categoria: filterCategoria } : {}),
-        ...(filterSearch.trim() ? { search: filterSearch.trim() } : {})
-    }), [filterStatus, filterCategoria, filterSearch]);
+        ...(filterSearch.trim() ? { search: filterSearch.trim() } : {}),
+        ...(filterAcervoTipo ? { acervoTipo: filterAcervoTipo } : {}),
+        ...(filterAcervoNome.trim() ? { acervoNome: filterAcervoNome.trim() } : {})
+    }), [filterStatus, filterCategoria, filterSearch, filterAcervoTipo, filterAcervoNome]);
+    const acervoSuggestionsQuery = useQuery({
+        queryKey: ["acervo-suggestions", brechoId, filterAcervoTipo, filterAcervoNome],
+        queryFn: () => listAcervoSuggestions(brechoId, {
+            q: filterAcervoNome.trim() || undefined,
+            acervoTipo: filterAcervoTipo || undefined,
+            limit: 20
+        }),
+        enabled: Boolean(brechoId)
+    });
     const itemsQuery = useQuery({
         queryKey: ["items", brechoId, listFilters],
         queryFn: () => listItems(brechoId, listFilters)
@@ -51,7 +65,12 @@ export const InventoryPage = () => {
         { key: "CALCADO", label: "Calçados" },
         { key: "ACESSORIO", label: "Acessórios" }
     ];
-    return (_jsxs(AppShell, { showTopBar: true, showBottomNav: true, activeTab: "estoque", topBarTitle: "Agente Brech\u00F3", topBarAction: _jsxs(Link, { to: "/importacoes", className: "text-xs font-bold text-primary underline", children: ["Importa\u00E7\u00F5es", importPendentesQuery.data?.count ? ` (${importPendentesQuery.data.count})` : ""] }), children: [_jsxs("section", { children: [_jsx("h1", { className: "mb-2 font-headline text-5xl font-extrabold tracking-tighter", children: "Estoque" }), importPendentesQuery.data?.count ? (_jsxs("p", { className: "mb-2 rounded-2xl border border-amber-100 bg-amber-50/90 px-3 py-2 text-sm text-on-background", children: ["Voc\u00EA tem", " ", _jsxs("strong", { children: [importPendentesQuery.data.count, " ", importPendentesQuery.data.count === 1 ? "importação pendente" : "importações pendentes"] }), ".", " ", _jsx(Link, { to: "/importacoes", className: "font-bold text-primary underline", children: "Continuar" })] })) : null] }), _jsxs("div", { className: "mb-2", children: [_jsx("label", { className: "mb-2 ml-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-on-surface-variant", children: "Buscar pe\u00E7a" }), _jsx(Input, { value: filterSearch, onChange: (e) => setFilterSearch(e.target.value), placeholder: "Buscar por nome, cor ou categoria...", className: "h-12 rounded-none border-0 border-b-2 border-outline-variant bg-transparent px-0 text-base focus:border-primary" })] }), _jsxs("div", { className: "space-y-5", children: [_jsxs("div", { children: [_jsx("label", { className: "mb-3 block text-[9px] font-bold uppercase tracking-widest text-outline", children: "Status" }), _jsx("div", { className: "no-scrollbar flex gap-2 overflow-x-auto", children: statusFilters.map((statusFilter) => (_jsx(PillButton, { active: filterStatus === statusFilter.key, onClick: () => setFilterStatus(statusFilter.key), children: statusFilter.label }, statusFilter.label))) })] }), _jsxs("div", { children: [_jsx("label", { className: "mb-3 block text-[9px] font-bold uppercase tracking-widest text-outline", children: "Categoria" }), _jsx("div", { className: "no-scrollbar flex gap-2 overflow-x-auto", children: categoryFilters.map((categoryFilter) => (_jsx(PillButton, { active: filterCategoria === categoryFilter.key, onClick: () => setFilterCategoria(categoryFilter.key), children: categoryFilter.label }, categoryFilter.label))) })] })] }), itemsQuery.isLoading ? (_jsx("p", { children: "Carregando..." })) : itemsQuery.data?.length ? (_jsx("div", { className: "grid grid-cols-2 gap-x-4 gap-y-8", children: itemsQuery.data.map((item) => (_jsx("div", { children: _jsx(ProductCard, { item: item, subtitle: `${item.categoria.replaceAll("_", " ")} / ${item.subcategoria}`, priceLabel: formatCurrency(item.precoVenda), onImageClick: (item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl)
+    const acervoTipoFilters = [
+        { key: "", label: "Todos" },
+        { key: "PROPRIO", label: "Próprio" },
+        { key: "CONSIGNACAO", label: "Consignação" }
+    ];
+    return (_jsxs(AppShell, { showTopBar: true, showBottomNav: true, activeTab: "estoque", topBarTitle: "Agente Brech\u00F3", topBarAction: _jsxs(Link, { to: "/importacoes", className: "text-xs font-bold text-primary underline", children: ["Importa\u00E7\u00F5es", importPendentesQuery.data?.count ? ` (${importPendentesQuery.data.count})` : ""] }), children: [_jsxs("section", { children: [_jsx("h1", { className: "mb-2 font-headline text-5xl font-extrabold tracking-tighter", children: "Estoque" }), importPendentesQuery.data?.count ? (_jsxs("p", { className: "mb-2 rounded-2xl border border-amber-100 bg-amber-50/90 px-3 py-2 text-sm text-on-background", children: ["Voc\u00EA tem", " ", _jsxs("strong", { children: [importPendentesQuery.data.count, " ", importPendentesQuery.data.count === 1 ? "importação pendente" : "importações pendentes"] }), ".", " ", _jsx(Link, { to: "/importacoes", className: "font-bold text-primary underline", children: "Continuar" })] })) : null] }), _jsxs("div", { className: "mb-2", children: [_jsx("label", { className: "mb-2 ml-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-on-surface-variant", children: "Buscar pe\u00E7a" }), _jsx(Input, { value: filterSearch, onChange: (e) => setFilterSearch(e.target.value), placeholder: "Buscar por nome, cor ou categoria...", className: "h-12 rounded-none border-0 border-b-2 border-outline-variant bg-transparent px-0 text-base focus:border-primary" })] }), _jsxs("div", { className: "space-y-5", children: [_jsxs("div", { children: [_jsx("label", { className: "mb-3 block text-[9px] font-bold uppercase tracking-widest text-outline", children: "Status" }), _jsx("div", { className: "no-scrollbar flex gap-2 overflow-x-auto", children: statusFilters.map((statusFilter) => (_jsx(PillButton, { active: filterStatus === statusFilter.key, onClick: () => setFilterStatus(statusFilter.key), children: statusFilter.label }, statusFilter.label))) })] }), _jsxs("div", { children: [_jsx("label", { className: "mb-3 block text-[9px] font-bold uppercase tracking-widest text-outline", children: "Categoria" }), _jsx("div", { className: "no-scrollbar flex gap-2 overflow-x-auto", children: categoryFilters.map((categoryFilter) => (_jsx(PillButton, { active: filterCategoria === categoryFilter.key, onClick: () => setFilterCategoria(categoryFilter.key), children: categoryFilter.label }, categoryFilter.label))) })] }), _jsxs("div", { children: [_jsx("label", { className: "mb-3 block text-[9px] font-bold uppercase tracking-widest text-outline", children: "Tipo de acervo" }), _jsx("div", { className: "no-scrollbar flex gap-2 overflow-x-auto", children: acervoTipoFilters.map((acervoTipoFilter) => (_jsx(PillButton, { active: filterAcervoTipo === acervoTipoFilter.key, onClick: () => setFilterAcervoTipo(acervoTipoFilter.key), children: acervoTipoFilter.label }, acervoTipoFilter.label))) })] }), _jsxs("div", { children: [_jsx("label", { className: "mb-2 ml-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-on-surface-variant", children: "Nome do acervo" }), _jsx(Input, { list: acervoSuggestionsListId, value: filterAcervoNome, onChange: (e) => setFilterAcervoNome(e.target.value), placeholder: "Filtrar por nome (opcional)...", className: "h-12 rounded-none border-0 border-b-2 border-outline-variant bg-transparent px-0 text-base focus:border-primary" }), _jsx("datalist", { id: acervoSuggestionsListId, children: (acervoSuggestionsQuery.data ?? []).map((suggestion) => (_jsx("option", { value: suggestion }, suggestion))) })] })] }), itemsQuery.isLoading ? (_jsx("p", { children: "Carregando..." })) : itemsQuery.data?.length ? (_jsx("div", { className: "grid grid-cols-2 gap-x-4 gap-y-8", children: itemsQuery.data.map((item) => (_jsx("div", { children: _jsx(ProductCard, { item: item, subtitle: `${item.categoria.replaceAll("_", " ")} / ${item.subcategoria}`, priceLabel: formatCurrency(item.precoVenda), onImageClick: (item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl)
                             ? () => {
                                 setExpandedItemId(item.id);
                             }

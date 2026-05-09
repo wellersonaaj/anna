@@ -360,12 +360,19 @@ export const itemService = {
     status?: StatusPeca;
     categoria?: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
     search?: string;
+    acervoNome?: string;
+    acervoTipo?: "PROPRIO" | "CONSIGNACAO";
   }) {
+    const acervoNomeFilter = query.acervoNome?.trim();
     const rows = await prisma.peca.findMany({
       where: {
         brechoId,
         status: query.status,
         categoria: query.categoria,
+        acervoTipo: query.acervoTipo,
+        ...(acervoNomeFilter
+          ? { acervoNome: { equals: acervoNomeFilter, mode: "insensitive" as const } }
+          : {}),
         ...(query.search
           ? {
               OR: [
