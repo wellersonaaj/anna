@@ -351,6 +351,16 @@ export const PhotoLightbox = ({
     setFullLoaded(false);
   }, [index, photo?.url]);
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   if (!photo) {
     return null;
   }
@@ -364,12 +374,12 @@ export const PhotoLightbox = ({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex flex-col bg-black/90 p-4 text-white"
+      className="fixed inset-0 z-[80] flex select-none flex-col bg-black/90 p-4 text-white [-webkit-touch-callout:none]"
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="relative z-20 mb-3 flex shrink-0 items-center justify-between gap-3">
         <div>
           <strong className="block text-sm">{title}</strong>
           <span className="text-xs text-white/70">
@@ -410,19 +420,21 @@ export const PhotoLightbox = ({
             ‹
           </button>
         )}
-        <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center">
+        <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden">
           {showPreviewUnder ? (
             <img
               src={photo.thumbnailUrl ?? undefined}
               alt=""
-              className="absolute max-h-full max-w-full rounded-2xl object-contain opacity-90"
+              draggable={false}
+              className="pointer-events-none absolute max-h-full max-w-full select-none rounded-2xl object-contain opacity-90"
               aria-hidden
             />
           ) : null}
           <img
             src={photo.url}
             alt={photo.alt ?? title}
-            className="relative z-10 max-h-full min-w-0 rounded-2xl object-contain"
+            draggable={false}
+            className="relative max-h-full min-w-0 select-none rounded-2xl object-contain"
             onLoad={() => setFullLoaded(true)}
           />
         </div>

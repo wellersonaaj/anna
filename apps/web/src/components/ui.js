@@ -74,6 +74,15 @@ export const PhotoLightbox = ({ photos, initialIndex, title, onClose, coverPhoto
     useEffect(() => {
         setFullLoaded(false);
     }, [index, photo?.url]);
+    useEffect(() => {
+        const onKeyDown = (e) => {
+            if (e.key === "Escape") {
+                onClose();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [onClose]);
     if (!photo) {
         return null;
     }
@@ -81,8 +90,8 @@ export const PhotoLightbox = ({ photos, initialIndex, title, onClose, coverPhoto
     const goTo = (nextIndex) => {
         setIndex((nextIndex + total) % total);
     };
-    return (_jsxs("div", { className: "fixed inset-0 z-[80] flex flex-col bg-black/90 p-4 text-white", role: "dialog", "aria-modal": "true", "aria-label": title, children: [_jsxs("div", { className: "mb-3 flex items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("strong", { className: "block text-sm", children: title }), _jsxs("span", { className: "text-xs text-white/70", children: [index + 1, " de ", total] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [onSetCover &&
-                                (photo.id === coverPhotoId ? (_jsx("span", { className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white/80", children: "Capa" })) : (_jsx("button", { type: "button", onClick: () => onSetCover(photo.id), disabled: setCoverPending, className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white disabled:opacity-60", children: setCoverPending ? "Salvando..." : "Definir como capa" }))), _jsx("button", { type: "button", onClick: onClose, className: "rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white", children: "Fechar" })] })] }), _jsxs("div", { className: "flex min-h-0 flex-1 items-center justify-center gap-2", children: [total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index - 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Foto anterior", children: "\u2039" })), _jsxs("div", { className: "relative flex min-h-0 min-w-0 flex-1 items-center justify-center", children: [showPreviewUnder ? (_jsx("img", { src: photo.thumbnailUrl ?? undefined, alt: "", className: "absolute max-h-full max-w-full rounded-2xl object-contain opacity-90", "aria-hidden": true })) : null, _jsx("img", { src: photo.url, alt: photo.alt ?? title, className: "relative z-10 max-h-full min-w-0 rounded-2xl object-contain", onLoad: () => setFullLoaded(true) })] }), total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index + 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Pr\u00F3xima foto", children: "\u203A" }))] })] }));
+    return (_jsxs("div", { className: "fixed inset-0 z-[80] flex select-none flex-col bg-black/90 p-4 text-white [-webkit-touch-callout:none]", role: "dialog", "aria-modal": "true", "aria-label": title, children: [_jsxs("div", { className: "relative z-20 mb-3 flex shrink-0 items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("strong", { className: "block text-sm", children: title }), _jsxs("span", { className: "text-xs text-white/70", children: [index + 1, " de ", total] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [onSetCover &&
+                                (photo.id === coverPhotoId ? (_jsx("span", { className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white/80", children: "Capa" })) : (_jsx("button", { type: "button", onClick: () => onSetCover(photo.id), disabled: setCoverPending, className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white disabled:opacity-60", children: setCoverPending ? "Salvando..." : "Definir como capa" }))), _jsx("button", { type: "button", onClick: onClose, className: "rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white", children: "Fechar" })] })] }), _jsxs("div", { className: "flex min-h-0 flex-1 items-center justify-center gap-2", children: [total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index - 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Foto anterior", children: "\u2039" })), _jsxs("div", { className: "relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden", children: [showPreviewUnder ? (_jsx("img", { src: photo.thumbnailUrl ?? undefined, alt: "", draggable: false, className: "pointer-events-none absolute max-h-full max-w-full select-none rounded-2xl object-contain opacity-90", "aria-hidden": true })) : null, _jsx("img", { src: photo.url, alt: photo.alt ?? title, draggable: false, className: "relative max-h-full min-w-0 select-none rounded-2xl object-contain", onLoad: () => setFullLoaded(true) })] }), total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index + 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Pr\u00F3xima foto", children: "\u203A" }))] })] }));
 };
 export const formatCurrency = (value) => {
     if (value === null || value === undefined || value === "") {
