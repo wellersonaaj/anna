@@ -25,6 +25,7 @@ import { LoginPage } from "./pages/login.page";
 import { AdminBrechosPage } from "./pages/admin/admin-brechos.page";
 import { AdminBrechoFormPage } from "./pages/admin/admin-brecho-form.page";
 import { AdminBrechoDetailPage } from "./pages/admin/admin-brecho-detail.page";
+import { AddToHomeScreenPrompt } from "./components/add-to-home-screen-prompt";
 import { useSessionStore } from "./store/session.store";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ export const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <AddToHomeScreenPrompt />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/conta/senha" element={<RequireSession><AccountChangePasswordPage /></RequireSession>} />

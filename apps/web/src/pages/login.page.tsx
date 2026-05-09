@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/auth";
 import { ApiError } from "../api/client";
+import { SHOW_HOME_SCREEN_PROMPT_KEY } from "../lib/pwa/prompt-keys";
 import { Button, Field, Input } from "../components/ui";
 import { useSessionStore } from "../store/session.store";
 
@@ -20,6 +21,7 @@ export const LoginPage = () => {
     try {
       const session = await login({ telefone, password });
       setSession(session);
+      sessionStorage.setItem(SHOW_HOME_SCREEN_PROMPT_KEY, "1");
       navigate(session.user.isFounder ? "/admin/brechos" : "/", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível entrar.");
