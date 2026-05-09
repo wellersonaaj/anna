@@ -7,12 +7,130 @@ import type {
   ReactNode,
   SelectHTMLAttributes
 } from "react";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "../api/auth";
+import { useSessionStore } from "../store/session.store";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
 type MainTab = "estoque" | "vendas" | "clientes" | "relatorios";
+
+const AppShellAccountMenu = () => {
+  const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
+  const user = useSessionStore((s) => s.user);
+  const activeBrecho = useSessionStore((s) => s.activeBrecho);
+  const clearSession = useSessionStore((s) => s.clearSession);
+
+  useLayoutEffect(() => {
+    if (!open || !btnRef.current) {
+      return;
+    }
+    const update = () => {
+      if (!btnRef.current) {
+        return;
+      }
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 4, left: r.left });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const avatarUrl = activeBrecho?.avatarUrl;
+  const trimmedNome = user?.nome?.trim();
+  const initial = (
+    trimmedNome && trimmedNome.length > 0 ? trimmedNome[0]! : user?.telefone?.[0] ?? "?"
+  ).toUpperCase();
+
+  const onLogout = async () => {
+    await logout().catch(() => undefined);
+    clearSession();
+    navigate("/login", { replace: true });
+  };
+
+  const menuPortal =
+    open &&
+    createPortal(
+      <>
+        <button
+          type="button"
+          className="fixed inset-0 z-[100] cursor-default bg-black/20"
+          aria-label="Fechar menu"
+          onClick={() => setOpen(false)}
+        />
+        <div
+          role="menu"
+          className="fixed z-[101] min-w-[208px] overflow-hidden rounded-2xl border border-rose-100 bg-white py-1 shadow-lg"
+          style={{ top: menuPos.top, left: menuPos.left }}
+        >
+          <Link
+            role="menuitem"
+            to="/conta/senha"
+            className="block px-4 py-3 text-sm font-bold text-on-background no-underline hover:bg-rose-50"
+            onClick={() => setOpen(false)}
+          >
+            Trocar senha
+          </Link>
+          <button
+            role="menuitem"
+            type="button"
+            className="block w-full border-t border-rose-100 px-4 py-3 text-left text-sm font-bold text-on-background hover:bg-rose-50"
+            onClick={() => {
+              setOpen(false);
+              void onLogout();
+            }}
+          >
+            Sair
+          </button>
+        </div>
+      </>,
+      document.body
+    );
+
+  return (
+    <div className="relative flex shrink-0 items-center">
+      <button
+        ref={btnRef}
+        type="button"
+        className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-container-high text-xs font-extrabold text-primary outline-none ring-primary focus-visible:ring-2"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Conta e sessão — toque para trocar senha ou sair"
+        onClick={() => setOpen((o) => !o)}
+      >
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span aria-hidden>{initial}</span>
+        )}
+      </button>
+      {menuPortal}
+    </div>
+  );
+};
 
 export const AppShell = ({
   children,
@@ -38,7 +156,7 @@ export const AppShell = ({
         <header className="fixed inset-x-0 top-0 z-40 border-b border-rose-100 bg-[#fff8f7]/90 backdrop-blur-md">
           <div className={cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass)}>
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 overflow-hidden rounded-full bg-surface-container-high" />
+              <AppShellAccountMenu />
               <span className="font-headline text-lg font-bold text-primary">{topBarTitle}</span>
             </div>
             <div>{topBarAction}</div>
