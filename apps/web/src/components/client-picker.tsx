@@ -149,7 +149,7 @@ export const ClientPicker = ({
       {canSearch && (
         <Button
           type="button"
-          className="h-auto min-h-11 bg-white py-3 text-primary ring-1 ring-rose-100"
+          className="h-auto min-h-11 !bg-white py-3 !text-primary ring-1 ring-rose-100"
           onClick={() => {
             onCreateNew(createContact);
             setSearch("");

@@ -143,7 +143,11 @@ export const publicarImportacaoRascunho = async (
   brechoId: string,
   loteId: string,
   rascunhoId: string,
-  body?: { helpfulness?: "SIM" | "PARCIAL" | "NAO"; reasonCodes?: string[] }
+  body?: {
+    helpfulness?: "SIM" | "PARCIAL" | "NAO";
+    reasonCodes?: string[];
+    formValues?: Record<string, unknown>;
+  }
 ): Promise<{ itemId: string }> => {
   return request(`/importacoes/${loteId}/rascunhos/${rascunhoId}/publicar`, { method: "POST", brechoId, body: body ?? {} });
 };

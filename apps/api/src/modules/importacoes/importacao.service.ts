@@ -761,7 +761,23 @@ export const importacaoService = {
     brechoId: string,
     loteId: string,
     rascunhoId: string,
-    payload: { helpfulness: "SIM" | "PARCIAL" | "NAO"; reasonCodes?: string[] }
+    payload: {
+      helpfulness: "SIM" | "PARCIAL" | "NAO";
+      reasonCodes?: string[];
+      formValues?: {
+        nome: string;
+        categoria: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
+        subcategoria: string;
+        cor: string;
+        estampa: boolean;
+        condicao: "OTIMO" | "BOM" | "REGULAR";
+        tamanho: string;
+        marca?: string;
+        precoVenda?: number;
+        acervoTipo: "PROPRIO" | "CONSIGNACAO";
+        acervoNome?: string;
+      };
+    }
   ) {
     const rascunho = await prisma.importacaoRascunho.findFirst({
       where: {
@@ -787,12 +803,20 @@ export const importacaoService = {
       throw new Error("Rascunho ja publicado.");
     }
 
+    if (payload.formValues) {
+      await prisma.importacaoRascunho.update({
+        where: { id: rascunhoId },
+        data: { formValuesJson: payload.formValues as Prisma.InputJsonValue }
+      });
+    }
+
     const raw = rascunho.formValuesJson as Record<string, unknown> | null;
-    if (!raw || typeof raw.nome !== "string") {
+    const effectiveRaw = (payload.formValues ?? raw) as Record<string, unknown> | null;
+    if (!effectiveRaw || typeof effectiveRaw.nome !== "string") {
       throw new Error("Formulario incompleto.");
     }
 
-    const fv = raw as {
+    const fv = effectiveRaw as {
       nome: string;
       categoria: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
       subcategoria: string;

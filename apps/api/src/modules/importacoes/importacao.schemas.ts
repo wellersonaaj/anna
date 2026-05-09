@@ -57,5 +57,6 @@ export const publicarImportRascunhoSchema = z.object({
       ])
     )
     .max(5)
-    .optional()
+    .optional(),
+  formValues: itemFormValuesSchema.optional()
 });

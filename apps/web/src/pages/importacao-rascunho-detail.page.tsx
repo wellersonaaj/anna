@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getImportacaoLote, patchImportacaoRascunho, publicarImportacaoRascunho } from "../api/importacoes";
 import { listAcervoSuggestions, type ItemCategoria } from "../api/items";
@@ -34,6 +34,13 @@ const emptyForm: FormValues = {
   acervoNome: ""
 };
 
+const formValuesForApi = (f: FormValues) => ({
+  ...f,
+  precoVenda: f.precoVenda.trim() ? Number(f.precoVenda.replace(",", ".")) : undefined,
+  marca: f.marca.trim() || undefined,
+  acervoNome: f.acervoNome.trim() || undefined
+});
+
 export const ImportacaoRascunhoDetailPage = () => {
   const { loteId, rascunhoId } = useParams<{ loteId: string; rascunhoId: string }>();
   const brechoId = useSessionStore((s) => s.brechoId);
@@ -41,6 +48,20 @@ export const ImportacaoRascunhoDetailPage = () => {
   const queryClient = useQueryClient();
   const acervoSuggestionsListId = useId();
   const [form, setForm] = useState<FormValues>(emptyForm);
+  const userEditedRef = useRef(false);
+  const prevRascunhoIdRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (rascunhoId !== prevRascunhoIdRef.current) {
+      prevRascunhoIdRef.current = rascunhoId;
+      userEditedRef.current = false;
+    }
+  }, [rascunhoId]);
+
+  const setFormFromUser = (updater: FormValues | ((prev: FormValues) => FormValues)) => {
+    userEditedRef.current = true;
+    setForm(updater);
+  };
 
   const detailQuery = useQuery({
     queryKey: ["importacao", brechoId, loteId],
@@ -99,6 +120,9 @@ export const ImportacaoRascunhoDetailPage = () => {
     if (!raw) {
       return;
     }
+    if (userEditedRef.current) {
+      return;
+    }
     const rawAcervoNome = typeof raw.acervoNome === "string" ? raw.acervoNome : "";
     const rawAcervoTipo = raw.acervoTipo === "CONSIGNACAO" ? "CONSIGNACAO" : "PROPRIO";
     const suggestedAcervo = rawAcervoNome.trim() ? null : loteAcervoSuggestion;
@@ -121,14 +145,10 @@ export const ImportacaoRascunhoDetailPage = () => {
   const saveMutation = useMutation({
     mutationFn: () =>
       patchImportacaoRascunho(brechoId, loteId!, rascunhoId!, {
-        formValues: {
-          ...form,
-          precoVenda: form.precoVenda.trim() ? Number(form.precoVenda.replace(",", ".")) : undefined,
-          marca: form.marca.trim() || undefined,
-          acervoNome: form.acervoNome.trim() || undefined
-        }
+        formValues: formValuesForApi(form)
       }),
     onSuccess: () => {
+      userEditedRef.current = false;
       void queryClient.invalidateQueries({ queryKey: ["importacao", brechoId, loteId] });
     }
   });
@@ -136,7 +156,8 @@ export const ImportacaoRascunhoDetailPage = () => {
   const pubMutation = useMutation({
     mutationFn: () =>
       publicarImportacaoRascunho(brechoId, loteId!, rascunhoId!, {
-        helpfulness: "SIM"
+        helpfulness: "SIM",
+        formValues: formValuesForApi(form)
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["importacao", brechoId, loteId] });
@@ -179,12 +200,12 @@ export const ImportacaoRascunhoDetailPage = () => {
         <Section title="Campos">
           <div className="flex flex-col gap-3">
             <Field label="Nome">
-              <Input value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} />
+              <Input value={form.nome} onChange={(e) => setFormFromUser((f) => ({ ...f, nome: e.target.value }))} />
             </Field>
             <Field label="Categoria">
               <Select
                 value={form.categoria}
-                onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value as ItemCategoria }))}
+                onChange={(e) => setFormFromUser((f) => ({ ...f, categoria: e.target.value as ItemCategoria }))}
               >
                 <option value="ROUPA_FEMININA">Roupa feminina</option>
                 <option value="ROUPA_MASCULINA">Roupa masculina</option>
@@ -193,22 +214,25 @@ export const ImportacaoRascunhoDetailPage = () => {
               </Select>
             </Field>
             <Field label="Subcategoria">
-              <Input value={form.subcategoria} onChange={(e) => setForm((f) => ({ ...f, subcategoria: e.target.value }))} />
+              <Input
+                value={form.subcategoria}
+                onChange={(e) => setFormFromUser((f) => ({ ...f, subcategoria: e.target.value }))}
+              />
             </Field>
             <Field label="Cor">
-              <Input value={form.cor} onChange={(e) => setForm((f) => ({ ...f, cor: e.target.value }))} />
+              <Input value={form.cor} onChange={(e) => setFormFromUser((f) => ({ ...f, cor: e.target.value }))} />
             </Field>
             <Field label="Estampa">
               <input
                 type="checkbox"
                 checked={form.estampa}
-                onChange={(e) => setForm((f) => ({ ...f, estampa: e.target.checked }))}
+                onChange={(e) => setFormFromUser((f) => ({ ...f, estampa: e.target.checked }))}
               />
             </Field>
             <Field label="Condição">
               <Select
                 value={form.condicao}
-                onChange={(e) => setForm((f) => ({ ...f, condicao: e.target.value as FormValues["condicao"] }))}
+                onChange={(e) => setFormFromUser((f) => ({ ...f, condicao: e.target.value as FormValues["condicao"] }))}
               >
                 <option value="OTIMO">Ótimo</option>
                 <option value="BOM">Bom</option>
@@ -216,18 +240,26 @@ export const ImportacaoRascunhoDetailPage = () => {
               </Select>
             </Field>
             <Field label="Tamanho">
-              <Input value={form.tamanho} onChange={(e) => setForm((f) => ({ ...f, tamanho: e.target.value }))} />
+              <Input
+                value={form.tamanho}
+                onChange={(e) => setFormFromUser((f) => ({ ...f, tamanho: e.target.value }))}
+              />
             </Field>
             <Field label="Marca">
-              <Input value={form.marca} onChange={(e) => setForm((f) => ({ ...f, marca: e.target.value }))} />
+              <Input value={form.marca} onChange={(e) => setFormFromUser((f) => ({ ...f, marca: e.target.value }))} />
             </Field>
             <Field label="Preço venda (opcional)">
-              <Input value={form.precoVenda} onChange={(e) => setForm((f) => ({ ...f, precoVenda: e.target.value }))} />
+              <Input
+                value={form.precoVenda}
+                onChange={(e) => setFormFromUser((f) => ({ ...f, precoVenda: e.target.value }))}
+              />
             </Field>
             <Field label="Acervo">
               <Select
                 value={form.acervoTipo}
-                onChange={(e) => setForm((f) => ({ ...f, acervoTipo: e.target.value as FormValues["acervoTipo"] }))}
+                onChange={(e) =>
+                  setFormFromUser((f) => ({ ...f, acervoTipo: e.target.value as FormValues["acervoTipo"] }))
+                }
               >
                 <option value="PROPRIO">Próprio</option>
                 <option value="CONSIGNACAO">Consignação</option>
@@ -237,7 +269,7 @@ export const ImportacaoRascunhoDetailPage = () => {
               <Input
                 list={acervoSuggestionsListId}
                 value={form.acervoNome}
-                onChange={(e) => setForm((f) => ({ ...f, acervoNome: e.target.value }))}
+                onChange={(e) => setFormFromUser((f) => ({ ...f, acervoNome: e.target.value }))}
               />
               <datalist id={acervoSuggestionsListId}>
                 {acervoSuggestionsQuery.data?.map((suggestion) => (
@@ -247,13 +279,13 @@ export const ImportacaoRascunhoDetailPage = () => {
             </Field>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button type="button" disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+            <Button type="button" disabled={saveMutation.isPending || pubMutation.isPending} onClick={() => saveMutation.mutate()}>
               {saveMutation.isPending ? "Salvando…" : "Salvar rascunho"}
             </Button>
             <Button
               type="button"
               className="!bg-[#006a39]"
-              disabled={pubMutation.isPending}
+              disabled={pubMutation.isPending || saveMutation.isPending}
               onClick={() => pubMutation.mutate()}
             >
               {pubMutation.isPending ? "Publicando…" : "Publicar e revisar próxima"}
