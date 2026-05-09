@@ -42,7 +42,7 @@ export const ReportsPage = () => {
     .slice(0, 10);
 
   return (
-    <AppShell showTopBar showBottomNav activeTab="relatorios" topBarTitle="Agente Brechó">
+    <AppShell showTopBar showBottomNav activeTab="relatorios">
       <div className="mb-2">
         <h1 className="text-3xl font-extrabold tracking-tight">Relatórios</h1>
         <p className="text-sm font-medium text-gray-500">Visão geral do seu desempenho este mês</p>

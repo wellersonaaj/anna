@@ -21,7 +21,7 @@ export const ClientsPage = () => {
   });
 
   return (
-    <AppShell showTopBar showBottomNav activeTab="clientes" topBarTitle="Agente">
+    <AppShell showTopBar showBottomNav activeTab="clientes">
       <div>
         <h1 className="mb-6 font-headline text-4xl font-extrabold tracking-tight text-gray-900">Clientes</h1>
         <div className="group relative">

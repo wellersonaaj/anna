@@ -89,7 +89,7 @@ export const SalesHubPage = () => {
   });
 
   return (
-    <AppShell showTopBar showBottomNav activeTab="vendas" topBarTitle="Agente Brechó">
+    <AppShell showTopBar showBottomNav activeTab="vendas">
       <TopShortcutBar
         shortcuts={[
           { id: "reservados", label: "Reservados" },

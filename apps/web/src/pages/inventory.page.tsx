@@ -96,7 +96,6 @@ export const InventoryPage = () => {
       showTopBar
       showBottomNav
       activeTab="estoque"
-      topBarTitle="Agente Brechó"
       topBarAction={
         <Link to="/importacoes" className="text-xs font-bold text-primary underline">
           Importações

@@ -60,10 +60,15 @@ const AppShellAccountMenu = () => {
   }, [open]);
 
   const avatarUrl = activeBrecho?.avatarUrl;
-  const trimmedNome = user?.nome?.trim();
-  const initial = (
-    trimmedNome && trimmedNome.length > 0 ? trimmedNome[0]! : user?.telefone?.[0] ?? "?"
-  ).toUpperCase();
+  const trimmedBrechoNome = activeBrecho?.nome?.trim();
+  const trimmedUserNome = user?.nome?.trim();
+  const initialSource =
+    trimmedBrechoNome && trimmedBrechoNome.length > 0
+      ? trimmedBrechoNome[0]!
+      : trimmedUserNome && trimmedUserNome.length > 0
+        ? trimmedUserNome[0]!
+        : user?.telefone?.[0] ?? "?";
+  const initial = initialSource.toUpperCase();
 
   const onLogout = async () => {
     await logout().catch(() => undefined);
@@ -135,7 +140,7 @@ const AppShellAccountMenu = () => {
 export const AppShell = ({
   children,
   showTopBar = false,
-  topBarTitle = "Agente",
+  topBarTitle,
   topBarAction,
   showBottomNav = false,
   activeTab = "estoque",
@@ -150,6 +155,10 @@ export const AppShell = ({
   fabLink?: string;
   maxWidthClass?: string;
 }>) => {
+  const brechoNomeTrim = useSessionStore((s) => s.activeBrecho?.nome?.trim());
+  const resolvedTopBarTitle =
+    topBarTitle ?? (brechoNomeTrim && brechoNomeTrim.length > 0 ? brechoNomeTrim : "Anna");
+
   return (
     <div className="min-h-screen bg-background text-on-background">
       {showTopBar && (
@@ -157,7 +166,7 @@ export const AppShell = ({
           <div className={cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass)}>
             <div className="flex items-center gap-3">
               <AppShellAccountMenu />
-              <span className="font-headline text-lg font-bold text-primary">{topBarTitle}</span>
+              <span className="font-headline text-lg font-bold text-primary">{resolvedTopBarTitle}</span>
             </div>
             <div>{topBarAction}</div>
           </div>
