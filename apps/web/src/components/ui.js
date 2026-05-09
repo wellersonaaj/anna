@@ -65,6 +65,7 @@ export const ProductCard = ({ item, subtitle, priceLabel, children, onImageClick
     const previewKey = previews?.map((p) => p.id).join("|") ?? "";
     const [previewIndex, setPreviewIndex] = useState(0);
     const [imageBroken, setImageBroken] = useState(false);
+    const [previewImageReady, setPreviewImageReady] = useState(true);
     useEffect(() => {
         setImageBroken(false);
         if (!previews?.length) {
@@ -77,6 +78,25 @@ export const ProductCard = ({ item, subtitle, priceLabel, children, onImageClick
     const fallbackSrc = item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl ?? null;
     const displaySrc = hasPreviews ? (previews[previewIndex]?.displayUrl ?? null) : fallbackSrc;
     const hasImage = Boolean(displaySrc) && !imageBroken;
+    useEffect(() => {
+        if (!displaySrc) {
+            setPreviewImageReady(true);
+            return;
+        }
+        setPreviewImageReady(false);
+    }, [displaySrc]);
+    useEffect(() => {
+        if (!previews?.length || previews.length < 2) {
+            return;
+        }
+        const n = previews.length;
+        const prevIdx = (previewIndex - 1 + n) % n;
+        const nextIdx = (previewIndex + 1) % n;
+        const a = new Image();
+        a.src = previews[prevIdx].displayUrl;
+        const b = new Image();
+        b.src = previews[nextIdx].displayUrl;
+    }, [previewIndex, previewKey]);
     const goPreview = (delta, e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -86,15 +106,23 @@ export const ProductCard = ({ item, subtitle, priceLabel, children, onImageClick
         const n = previews.length;
         setPreviewIndex((i) => (i + delta + n) % n);
     };
-    const image = hasImage
-        ? _jsx("img", { src: displaySrc ?? undefined, alt: `Foto da peça ${item.nome}`, className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105", loading: "lazy", onError: () => setImageBroken(true) })
-        : _jsx("div", { className: "flex h-full w-full items-center justify-center text-xs font-bold text-outline", children: "Sem foto" });
     const showCarouselControls = hasPreviews && previews.length > 1;
-    return (_jsxs("article", { className: "group", children: [_jsxs("div", { className: "relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low", children: [onImageClick && hasImage ? (_jsx("button", { type: "button", onClick: onImageClick, className: "block h-full w-full cursor-zoom-in p-0", children: image })) : image, showCarouselControls
+    const showPreviewLoadingOverlay = Boolean(hasImage && !previewImageReady);
+    const image = hasImage
+        ? _jsx("img", { src: displaySrc ?? undefined, alt: `Foto da peça ${item.nome}`, className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105", loading: showCarouselControls ? "eager" : "lazy", onLoad: () => setPreviewImageReady(true), onError: () => {
+                setImageBroken(true);
+                setPreviewImageReady(true);
+            } })
+        : _jsx("div", { className: "flex h-full w-full items-center justify-center text-xs font-bold text-outline", children: "Sem foto" });
+    return (_jsxs("article", { className: "group", children: [_jsxs("div", { className: "relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low", "aria-busy": showPreviewLoadingOverlay, children: [onImageClick && hasImage
+                    ? _jsx("button", { type: "button", onClick: onImageClick, className: "relative z-0 block h-full w-full cursor-zoom-in p-0", children: image })
+                    : _jsx("div", { className: "relative z-0 h-full w-full", children: image }), showPreviewLoadingOverlay
+                    ? _jsx("div", { className: "pointer-events-none absolute inset-0 z-[8] flex items-center justify-center bg-black/10", "aria-hidden": true, children: _jsx("span", { className: "inline-block h-9 w-9 animate-spin rounded-full border-2 border-white/40 border-t-white/90 shadow-sm" }) })
+                    : null, showCarouselControls
                     ? _jsx("button", { type: "button", onClick: (e) => goPreview(-1, e), className: "absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85", "aria-label": "Foto anterior", children: "\u2039" })
                     : null, showCarouselControls
                     ? _jsx("button", { type: "button", onClick: (e) => goPreview(1, e), className: "absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85", "aria-label": "Pr\u00F3xima foto", children: "\u203A" })
-                    : null, _jsx("div", { className: "pointer-events-none absolute left-3 top-3", children: _jsx(ItemStatusTone, { status: item.status }) })] }), _jsx("p", { className: "mb-1 text-[9px] font-bold uppercase tracking-widest text-outline", children: subtitle }), _jsx("h3", { className: "mb-1 text-sm font-bold leading-tight tracking-tight text-on-background", children: item.nome }), priceLabel && _jsx("p", { className: "text-sm font-bold text-on-background", children: priceLabel }), children] }));
+                    : null, _jsx("div", { className: "pointer-events-none absolute left-3 top-3 z-20", children: _jsx(ItemStatusTone, { status: item.status }) })] }), _jsx("p", { className: "mb-1 text-[9px] font-bold uppercase tracking-widest text-outline", children: subtitle }), _jsx("h3", { className: "mb-1 text-sm font-bold leading-tight tracking-tight text-on-background", children: item.nome }), priceLabel && _jsx("p", { className: "text-sm font-bold text-on-background", children: priceLabel }), children] }));
 };
 export const PhotoLightbox = ({ photos, initialIndex, title, onClose, coverPhotoId, onSetCover, setCoverPending = false }) => {
     const [index, setIndex] = useState(initialIndex);

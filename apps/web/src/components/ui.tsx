@@ -297,6 +297,7 @@ export const ProductCard = ({
 
   const [previewIndex, setPreviewIndex] = useState(0);
   const [imageBroken, setImageBroken] = useState(false);
+  const [previewImageReady, setPreviewImageReady] = useState(true);
 
   useEffect(() => {
     setImageBroken(false);
@@ -312,6 +313,27 @@ export const ProductCard = ({
   const displaySrc = hasPreviews ? (previews![previewIndex]?.displayUrl ?? null) : fallbackSrc;
   const hasImage = Boolean(displaySrc) && !imageBroken;
 
+  useEffect(() => {
+    if (!displaySrc) {
+      setPreviewImageReady(true);
+      return;
+    }
+    setPreviewImageReady(false);
+  }, [displaySrc]);
+
+  useEffect(() => {
+    if (!previews?.length || previews.length < 2) {
+      return;
+    }
+    const n = previews.length;
+    const prevIdx = (previewIndex - 1 + n) % n;
+    const nextIdx = (previewIndex + 1) % n;
+    const a = new Image();
+    a.src = previews[prevIdx]!.displayUrl;
+    const b = new Image();
+    b.src = previews[nextIdx]!.displayUrl;
+  }, [previewIndex, previewKey]);
+
   const goPreview = (delta: number, e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -322,30 +344,46 @@ export const ProductCard = ({
     setPreviewIndex((i) => (i + delta + n) % n);
   };
 
+  const showCarouselControls = hasPreviews && previews!.length > 1;
+  const showPreviewLoadingOverlay = Boolean(hasImage && !previewImageReady);
+
   const image = hasImage ? (
     <img
       src={displaySrc ?? undefined}
       alt={`Foto da peça ${item.nome}`}
       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-      loading="lazy"
-      onError={() => setImageBroken(true)}
+      loading={showCarouselControls ? "eager" : "lazy"}
+      onLoad={() => setPreviewImageReady(true)}
+      onError={() => {
+        setImageBroken(true);
+        setPreviewImageReady(true);
+      }}
     />
   ) : (
     <div className="flex h-full w-full items-center justify-center text-xs font-bold text-outline">Sem foto</div>
   );
 
-  const showCarouselControls = hasPreviews && previews!.length > 1;
-
   return (
     <article className="group">
-      <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low">
+      <div
+        className="relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low"
+        aria-busy={showPreviewLoadingOverlay}
+      >
         {onImageClick && hasImage ? (
-          <button type="button" onClick={onImageClick} className="block h-full w-full cursor-zoom-in p-0">
+          <button type="button" onClick={onImageClick} className="relative z-0 block h-full w-full cursor-zoom-in p-0">
             {image}
           </button>
         ) : (
-          image
+          <div className="relative z-0 h-full w-full">{image}</div>
         )}
+        {showPreviewLoadingOverlay ? (
+          <div
+            className="pointer-events-none absolute inset-0 z-[8] flex items-center justify-center bg-black/10"
+            aria-hidden
+          >
+            <span className="inline-block h-9 w-9 animate-spin rounded-full border-2 border-white/40 border-t-white/90 shadow-sm" />
+          </div>
+        ) : null}
         {showCarouselControls ? (
           <>
             <button
@@ -366,7 +404,7 @@ export const ProductCard = ({
             </button>
           </>
         ) : null}
-        <div className="pointer-events-none absolute left-3 top-3">
+        <div className="pointer-events-none absolute left-3 top-3 z-20">
           <ItemStatusTone status={item.status} />
         </div>
       </div>
