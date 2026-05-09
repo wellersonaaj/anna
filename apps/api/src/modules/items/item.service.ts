@@ -250,6 +250,9 @@ const resolveDisplayImageUrl = async (url: string | null | undefined): Promise<s
   }
 };
 
+/** Max photos per item returned in list payload (thumbnails / grid carousel); caps presign work. */
+const LIST_FOTO_PREVIEW_CAP = 8;
+
 const normalizeFieldConfidence = (parsed: { field_confidence?: Record<string, number> }): DraftFieldConfidence => ({
   nome: parsed.field_confidence?.nome_sugerido ?? 0.5,
   categoria: parsed.field_confidence?.categoria ?? 0.5,
@@ -414,6 +417,19 @@ export const itemService = {
     return Promise.all(
       rows.map(async (row) => {
         const coverFoto = resolveCoverFoto(row.fotoCapaId, row.fotos);
+        const previewFotos = row.fotos.slice(0, LIST_FOTO_PREVIEW_CAP);
+        const fotoPreviews = (
+          await Promise.all(
+            previewFotos.map(async (f) => {
+              const raw = f.thumbnailUrl ?? f.url;
+              if (!raw) {
+                return null;
+              }
+              const displayUrl = (await resolveDisplayImageUrl(raw)) ?? raw;
+              return { id: f.id, displayUrl };
+            })
+          )
+        ).filter((p): p is { id: string; displayUrl: string } => p !== null);
         return {
           id: row.id,
           nome: row.nome,
@@ -429,6 +445,8 @@ export const itemService = {
           acervoNome: row.acervoNome,
           precoVenda: row.precoVenda,
           marca: row.marca,
+          fotoCapaId: row.fotoCapaId,
+          fotoPreviews,
           fotoCapaUrl: await resolveDisplayImageUrl(coverFoto?.url ?? null),
           fotoCapaThumbnailUrl: await resolveDisplayImageUrl((coverFoto?.thumbnailUrl ?? coverFoto?.url) ?? null),
           ultimoStatus: row.historicoStatus[0]

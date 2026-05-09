@@ -2,6 +2,7 @@ import type {
   ButtonHTMLAttributes,
   CSSProperties,
   InputHTMLAttributes,
+  MouseEvent,
   PropsWithChildren,
   ReactNode,
   SelectHTMLAttributes
@@ -282,15 +283,45 @@ export const ProductCard = ({
     status: keyof typeof statusColorMap;
     fotoCapaUrl?: string | null;
     fotoCapaThumbnailUrl?: string | null;
+    fotoCapaId?: string | null;
+    fotoPreviews?: Array<{ id: string; displayUrl: string }>;
   };
   subtitle: string;
   priceLabel?: string;
   children?: ReactNode;
   onImageClick?: () => void;
 }) => {
+  const previews = item.fotoPreviews;
+  const hasPreviews = Boolean(previews?.length);
+  const previewKey = previews?.map((p) => p.id).join("|") ?? "";
+
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [imageBroken, setImageBroken] = useState(false);
-  const displaySrc = item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl ?? null;
+
+  useEffect(() => {
+    setImageBroken(false);
+    if (!previews?.length) {
+      setPreviewIndex(0);
+      return;
+    }
+    const coverIdx = item.fotoCapaId ? previews.findIndex((p) => p.id === item.fotoCapaId) : 0;
+    setPreviewIndex(coverIdx >= 0 ? coverIdx : 0);
+  }, [item.fotoCapaId, previewKey]);
+
+  const fallbackSrc = item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl ?? null;
+  const displaySrc = hasPreviews ? (previews![previewIndex]?.displayUrl ?? null) : fallbackSrc;
   const hasImage = Boolean(displaySrc) && !imageBroken;
+
+  const goPreview = (delta: number, e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!previews?.length) {
+      return;
+    }
+    const n = previews.length;
+    setPreviewIndex((i) => (i + delta + n) % n);
+  };
+
   const image = hasImage ? (
     <img
       src={displaySrc ?? undefined}
@@ -303,6 +334,8 @@ export const ProductCard = ({
     <div className="flex h-full w-full items-center justify-center text-xs font-bold text-outline">Sem foto</div>
   );
 
+  const showCarouselControls = hasPreviews && previews!.length > 1;
+
   return (
     <article className="group">
       <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low">
@@ -313,7 +346,27 @@ export const ProductCard = ({
         ) : (
           image
         )}
-        <div className="absolute left-3 top-3">
+        {showCarouselControls ? (
+          <>
+            <button
+              type="button"
+              onClick={(e) => goPreview(-1, e)}
+              className="absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85"
+              aria-label="Foto anterior"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={(e) => goPreview(1, e)}
+              className="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85"
+              aria-label="Próxima foto"
+            >
+              ›
+            </button>
+          </>
+        ) : null}
+        <div className="pointer-events-none absolute left-3 top-3">
           <ItemStatusTone status={item.status} />
         </div>
       </div>

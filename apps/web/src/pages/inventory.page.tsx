@@ -202,11 +202,12 @@ export const InventoryPage = () => {
           {itemsQuery.data.map((item) => (
             <div key={item.id}>
               <ProductCard
+                key={item.id}
                 item={item}
                 subtitle={`${item.categoria.replaceAll("_", " ")} / ${item.subcategoria}`}
                 priceLabel={formatCurrency(item.precoVenda)}
                 onImageClick={
-                  (item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl)
+                  (item.fotoPreviews?.length || item.fotoCapaThumbnailUrl || item.fotoCapaUrl)
                     ? () => {
                         setExpandedItemId(item.id);
                       }

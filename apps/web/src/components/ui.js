@@ -60,11 +60,41 @@ export const ItemStatusTone = ({ status, compact = false }) => {
     return (_jsx("span", { className: cx("inline-flex rounded-full font-bold uppercase tracking-wider", tone.bg, tone.text, compact ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-[9px]"), children: tone.label }));
 };
 export const ProductCard = ({ item, subtitle, priceLabel, children, onImageClick }) => {
+    const previews = item.fotoPreviews;
+    const hasPreviews = Boolean(previews?.length);
+    const previewKey = previews?.map((p) => p.id).join("|") ?? "";
+    const [previewIndex, setPreviewIndex] = useState(0);
     const [imageBroken, setImageBroken] = useState(false);
-    const displaySrc = item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl ?? null;
+    useEffect(() => {
+        setImageBroken(false);
+        if (!previews?.length) {
+            setPreviewIndex(0);
+            return;
+        }
+        const coverIdx = item.fotoCapaId ? previews.findIndex((p) => p.id === item.fotoCapaId) : 0;
+        setPreviewIndex(coverIdx >= 0 ? coverIdx : 0);
+    }, [item.fotoCapaId, previewKey]);
+    const fallbackSrc = item.fotoCapaThumbnailUrl ?? item.fotoCapaUrl ?? null;
+    const displaySrc = hasPreviews ? (previews[previewIndex]?.displayUrl ?? null) : fallbackSrc;
     const hasImage = Boolean(displaySrc) && !imageBroken;
-    const image = hasImage ? (_jsx("img", { src: displaySrc ?? undefined, alt: `Foto da peça ${item.nome}`, className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105", loading: "lazy", onError: () => setImageBroken(true) })) : (_jsx("div", { className: "flex h-full w-full items-center justify-center text-xs font-bold text-outline", children: "Sem foto" }));
-    return (_jsxs("article", { className: "group", children: [_jsxs("div", { className: "relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low", children: [onImageClick && hasImage ? (_jsx("button", { type: "button", onClick: onImageClick, className: "block h-full w-full cursor-zoom-in p-0", children: image })) : (image), _jsx("div", { className: "absolute left-3 top-3", children: _jsx(ItemStatusTone, { status: item.status }) })] }), _jsx("p", { className: "mb-1 text-[9px] font-bold uppercase tracking-widest text-outline", children: subtitle }), _jsx("h3", { className: "mb-1 text-sm font-bold leading-tight tracking-tight text-on-background", children: item.nome }), priceLabel && _jsx("p", { className: "text-sm font-bold text-on-background", children: priceLabel }), children] }));
+    const goPreview = (delta, e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!previews?.length) {
+            return;
+        }
+        const n = previews.length;
+        setPreviewIndex((i) => (i + delta + n) % n);
+    };
+    const image = hasImage
+        ? _jsx("img", { src: displaySrc ?? undefined, alt: `Foto da peça ${item.nome}`, className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105", loading: "lazy", onError: () => setImageBroken(true) })
+        : _jsx("div", { className: "flex h-full w-full items-center justify-center text-xs font-bold text-outline", children: "Sem foto" });
+    const showCarouselControls = hasPreviews && previews.length > 1;
+    return (_jsxs("article", { className: "group", children: [_jsxs("div", { className: "relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low", children: [onImageClick && hasImage ? (_jsx("button", { type: "button", onClick: onImageClick, className: "block h-full w-full cursor-zoom-in p-0", children: image })) : image, showCarouselControls
+                    ? _jsx("button", { type: "button", onClick: (e) => goPreview(-1, e), className: "absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85", "aria-label": "Foto anterior", children: "\u2039" })
+                    : null, showCarouselControls
+                    ? _jsx("button", { type: "button", onClick: (e) => goPreview(1, e), className: "absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85", "aria-label": "Pr\u00F3xima foto", children: "\u203A" })
+                    : null, _jsx("div", { className: "pointer-events-none absolute left-3 top-3", children: _jsx(ItemStatusTone, { status: item.status }) })] }), _jsx("p", { className: "mb-1 text-[9px] font-bold uppercase tracking-widest text-outline", children: subtitle }), _jsx("h3", { className: "mb-1 text-sm font-bold leading-tight tracking-tight text-on-background", children: item.nome }), priceLabel && _jsx("p", { className: "text-sm font-bold text-on-background", children: priceLabel }), children] }));
 };
 export const PhotoLightbox = ({ photos, initialIndex, title, onClose, coverPhotoId, onSetCover, setCoverPending = false }) => {
     const [index, setIndex] = useState(initialIndex);

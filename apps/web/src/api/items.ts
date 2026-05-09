@@ -19,6 +19,8 @@ export type Item = {
   acervoNome?: string | null;
   precoVenda?: string | number | null;
   marca?: string | null;
+  fotoCapaId?: string | null;
+  fotoPreviews?: Array<{ id: string; displayUrl: string }>;
   fotoCapaUrl?: string | null;
   fotoCapaThumbnailUrl?: string | null;
   ultimoStatus?: {
