@@ -22,6 +22,7 @@ import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, ItemStatusTone, PhotoLightbox, Section, Select } from "../components/ui";
+import { moneyInputValue, parseMoneyLike } from "../lib/money";
 
 const fotoFormSchema = z.object({
   url: z.string().trim().url("Informe uma URL válida (http ou https).")
@@ -88,15 +89,12 @@ const parsePreco = (value: string | undefined): number | null => {
   if (!raw) {
     return null;
   }
-  const parsed = Number(raw.replace(",", "."));
+  const parsed = parseMoneyLike(raw);
   return Number.isNaN(parsed) ? null : parsed;
 };
 
 const precoInputValue = (value: string | number | null | undefined) => {
-  if (value === null || value === undefined || value === "") {
-    return "";
-  }
-  return String(value).replace(",", ".");
+  return moneyInputValue(value);
 };
 
 export const ItemDetailPage = () => {

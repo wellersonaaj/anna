@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../api/auth";
+import { formatCurrencySafe } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
@@ -672,14 +673,7 @@ export const PhotoLightbox = ({
 };
 
 export const formatCurrency = (value: string | number | null | undefined): string => {
-  if (value === null || value === undefined || value === "") {
-    return "Preço a confirmar";
-  }
-  const asNumber = typeof value === "string" ? Number(value.replace(",", ".")) : Number(value);
-  if (Number.isNaN(asNumber)) {
-    return "Preço a confirmar";
-  }
-  return asNumber.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return formatCurrencySafe(value, "Preço a confirmar");
 };
 
 export const relativeAgeLabel = (createdAt: string): { label: string; tone: CSSProperties["color"] } => {

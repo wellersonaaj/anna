@@ -9,19 +9,7 @@ import { getItem, sellItem } from "../api/items";
 import { ClientPicker } from "../components/client-picker";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
-
-const parseDecimalBr = (value: string | number | null | undefined): number => {
-  if (value === null || value === undefined || value === "") {
-    return Number.NaN;
-  }
-
-  if (typeof value === "number") {
-    return value;
-  }
-
-  const cleaned = String(value).trim().replace(/\./g, "").replace(",", ".");
-  return Number.parseFloat(cleaned);
-};
+import { parseMoneyLike } from "../lib/money";
 
 const parseFreteFromText = (text: string | undefined): number => {
   if (!text?.trim()) {
@@ -30,11 +18,11 @@ const parseFreteFromText = (text: string | undefined): number => {
 
   const match = text.match(/R\$\s*([\d.,]+)/i);
   if (match?.[1]) {
-    const n = parseDecimalBr(match[1]);
+    const n = parseMoneyLike(match[1]);
     return Number.isNaN(n) ? 0 : n;
   }
 
-  const numbers = [...text.matchAll(/(\d+[.,]\d+|\d+)/g)].map((m) => parseDecimalBr(m[1]));
+  const numbers = [...text.matchAll(/(\d+[.,]\d+|\d+)/g)].map((m) => parseMoneyLike(m[1]));
   if (!numbers.length) {
     return 0;
   }
@@ -144,7 +132,7 @@ export const SellPage = () => {
       return;
     }
 
-    const preco = parseDecimalBr(item.precoVenda);
+    const preco = parseMoneyLike(item.precoVenda);
     const nextPreco = Number.isNaN(preco) || preco <= 0 ? 0 : preco;
 
     if (selectedCliente) {

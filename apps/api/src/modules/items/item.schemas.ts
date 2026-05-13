@@ -1,5 +1,10 @@
 import { z } from "zod";
+import { normalizeMoneyInput } from "../../lib/money.js";
 import { clienteContatoSchema } from "../clients/client.schemas.js";
+
+const moneyNonNegativeSchema = z.preprocess(normalizeMoneyInput, z.number().nonnegative());
+const moneyPositiveSchema = z.preprocess(normalizeMoneyInput, z.number().positive());
+const moneyNullableNonNegativeSchema = z.preprocess(normalizeMoneyInput, z.number().nonnegative().nullable());
 
 export const createItemSchema = z.object({
   nome: z.string().min(2),
@@ -10,7 +15,7 @@ export const createItemSchema = z.object({
   condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
   tamanho: z.string().min(1),
   marca: z.string().optional(),
-  precoVenda: z.coerce.number().nonnegative().optional(),
+  precoVenda: moneyNonNegativeSchema.optional(),
   acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]).default("PROPRIO"),
   acervoNome: z.string().trim().min(2).max(80).optional()
 });
@@ -25,7 +30,7 @@ export const updateItemSchema = z
     condicao: z.enum(["OTIMO", "BOM", "REGULAR"]).optional(),
     tamanho: z.string().trim().min(1).optional(),
     marca: z.string().trim().max(80).optional(),
-    precoVenda: z.coerce.number().nonnegative().nullable().optional(),
+    precoVenda: moneyNullableNonNegativeSchema.optional(),
     acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]).optional(),
     acervoNome: z.string().trim().max(80).nullable().optional()
   })
@@ -48,9 +53,9 @@ export const reserveItemSchema = z.object({
 
 export const sellItemSchema = z.object({
   cliente: clienteContatoSchema,
-  precoVenda: z.coerce.number().positive(),
+  precoVenda: moneyPositiveSchema,
   freteTexto: z.string().optional(),
-  freteValor: z.coerce.number().nonnegative().optional()
+  freteValor: moneyNonNegativeSchema.optional()
 });
 
 export const listItemsQuerySchema = z.object({
@@ -133,7 +138,7 @@ export const submitDraftFeedbackSchema = z.object({
     condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
     tamanho: z.string().trim().min(1),
     marca: z.string().trim().optional(),
-    precoVenda: z.coerce.number().nonnegative().optional(),
+    precoVenda: moneyNonNegativeSchema.optional(),
     acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
     acervoNome: z.string().trim().max(80).optional()
   })

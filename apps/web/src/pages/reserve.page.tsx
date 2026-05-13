@@ -8,6 +8,7 @@ import { ClientPicker } from "../components/client-picker";
 import { getItem, joinItemFila } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
+import { parseMoneyLike } from "../lib/money";
 
 const reserveFormSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome."),
@@ -39,7 +40,7 @@ const formatPreco = (value: string | number | null | undefined): string => {
     return "—";
   }
 
-  const num = typeof value === "string" ? Number(value.replace(",", ".")) : Number(value);
+  const num = parseMoneyLike(value);
   if (Number.isNaN(num)) {
     return String(value);
   }

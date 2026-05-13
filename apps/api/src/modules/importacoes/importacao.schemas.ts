@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { normalizeMoneyInput } from "../../lib/money.js";
+
+const moneyNonNegativeSchema = z.preprocess(normalizeMoneyInput, z.number().nonnegative());
 
 export const presignImportFotoSchema = z.object({
   contentType: z.string().trim().min(1),
@@ -33,7 +36,7 @@ const itemFormValuesSchema = z.object({
   condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
   tamanho: z.string().min(1),
   marca: z.string().optional(),
-  precoVenda: z.coerce.number().nonnegative().optional(),
+  precoVenda: moneyNonNegativeSchema.optional(),
   acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
   acervoNome: z.string().trim().min(2).max(80).optional()
 });

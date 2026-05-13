@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { listItems, listSalesDelivered, listSalesPendingDelivery } from "../api/items";
 import { AppShell, Section, formatCurrency } from "../components/ui";
+import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 
 const daysSince = (isoDate: string) => Math.floor((Date.now() - new Date(isoDate).getTime()) / (1000 * 60 * 60 * 24));
@@ -33,7 +34,7 @@ export const ReportsPage = () => {
   const stockCount = items.filter((item) => inStockStatuses.has(item.status)).length;
   const soldMonthEstimate = deliveredRows.length + pendingRows.length;
   const grossRevenue = deliveredRows.reduce((sum, row) => {
-    const asNumber = typeof row.ganhosTotal === "string" ? Number(row.ganhosTotal.replace(",", ".")) : Number(row.ganhosTotal);
+    const asNumber = parseMoneyLike(row.ganhosTotal);
     return sum + (Number.isNaN(asNumber) ? 0 : asNumber);
   }, 0);
   const staleItems = items

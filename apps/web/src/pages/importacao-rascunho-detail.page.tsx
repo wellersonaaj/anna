@@ -5,6 +5,7 @@ import { getImportacaoLote, patchImportacaoRascunho, publicarImportacaoRascunho 
 import { listAcervoSuggestions, type ItemCategoria } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section, Select } from "../components/ui";
+import { parseMoneyLike } from "../lib/money";
 
 type FormValues = {
   nome: string;
@@ -34,12 +35,15 @@ const emptyForm: FormValues = {
   acervoNome: ""
 };
 
-const formValuesForApi = (f: FormValues) => ({
-  ...f,
-  precoVenda: f.precoVenda.trim() ? Number(f.precoVenda.replace(",", ".")) : undefined,
-  marca: f.marca.trim() || undefined,
-  acervoNome: f.acervoNome.trim() || undefined
-});
+const formValuesForApi = (f: FormValues) => {
+  const precoFromForm = f.precoVenda.trim() ? parseMoneyLike(f.precoVenda) : Number.NaN;
+  return {
+    ...f,
+    precoVenda: Number.isNaN(precoFromForm) ? undefined : precoFromForm,
+    marca: f.marca.trim() || undefined,
+    acervoNome: f.acervoNome.trim() || undefined
+  };
+};
 
 export const ImportacaoRascunhoDetailPage = () => {
   const { loteId, rascunhoId } = useParams<{ loteId: string; rascunhoId: string }>();

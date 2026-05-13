@@ -2,13 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { getClientById } from "../api/clients";
 import { AppShell, formatCurrency } from "../components/ui";
+import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 
 const toNumber = (value: string | number | null | undefined) => {
   if (value === null || value === undefined) {
     return 0;
   }
-  const parsed = typeof value === "string" ? Number(value.replace(",", ".")) : Number(value);
+  const parsed = parseMoneyLike(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 

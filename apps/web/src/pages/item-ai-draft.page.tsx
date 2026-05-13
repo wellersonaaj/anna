@@ -14,6 +14,7 @@ import {
 import { ApiError } from "../api/client";
 import { AppShell, Button, Field, Input, Section, Select } from "../components/ui";
 import { resizeImageToJpeg } from "../lib/imageResize";
+import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 import { useItemAIDraftStore } from "../store/item-ai-draft.store";
 
@@ -441,6 +442,7 @@ export const ItemAIDraftPage = () => {
         throw new Error(`Complete os campos obrigatórios: ${requiredMissing.join(", ")}.`);
       }
 
+      const precoFromForm = formValues.precoVenda.trim() ? parseMoneyLike(formValues.precoVenda) : Number.NaN;
       const finalValues = {
         nome: formValues.nome.trim(),
         categoria: formValues.categoria,
@@ -450,9 +452,7 @@ export const ItemAIDraftPage = () => {
         condicao: formValues.condicao,
         tamanho: formValues.tamanho.trim(),
         marca: formValues.marca.trim() || undefined,
-        precoVenda: formValues.precoVenda.trim()
-          ? Number(formValues.precoVenda.replace(",", "."))
-          : undefined,
+        precoVenda: Number.isNaN(precoFromForm) ? undefined : precoFromForm,
         acervoTipo: formValues.acervoTipo,
         acervoNome: formValues.acervoNome.trim() || undefined
       };
