@@ -492,12 +492,6 @@ export const ItemDetailPage = () => {
               <Button type="button" onClick={openPhotoModal} disabled={isUploadingPhoto}>
                 {isUploadingPhoto ? "Enviando..." : "Adicionar foto"}
               </Button>
-              <Link
-                to={`/items/${item.id}/fotos/upload`}
-                className="inline-flex h-11 items-center rounded-xl border border-rose-100 px-4 text-sm font-bold text-primary no-underline"
-              >
-                Abrir upload avançado
-              </Link>
             </div>
             {photoUploadHint && <small style={{ color: "#0d6b2e" }}>{photoUploadHint}</small>}
             {photoActionError && <small style={{ color: "#b60e3d" }}>{photoActionError}</small>}
