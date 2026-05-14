@@ -87,7 +87,7 @@ export const ReservePage = () => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
-      navigate("/");
+      navigate(`/items/${itemId}#fila`);
     }
   });
 

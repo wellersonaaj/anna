@@ -553,7 +553,7 @@ export const ItemDetailPage = () => {
             </div>
           </Section>
 
-          <Section title="Fila de interessados">
+          <Section title={<span id="fila">Fila de interessados</span>}>
             {canQueue ? (
               <form
                 className="grid grid-cols-1 gap-3"
