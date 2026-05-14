@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { ClientPicker } from "../components/client-picker";
-import { getItem, joinItemFila } from "../api/items";
+import { getItem, joinItemFila, type FilaInteressadoEntry, type ItemDetail } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
@@ -60,8 +60,9 @@ export const ReservePage = () => {
     queryFn: () => getItem(brechoId, itemId!),
     enabled: Boolean(itemId)
   });
+  const itemQueryKey = ["item", brechoId, itemId] as const;
 
-  const { register, handleSubmit, setValue, formState, watch } = useForm<ReserveFormData>({
+  const { register, handleSubmit, setValue, formState, watch, reset } = useForm<ReserveFormData>({
     resolver: zodResolver(reserveFormSchema),
     defaultValues: {
       nome: "",
@@ -84,10 +85,77 @@ export const ReservePage = () => {
         }
       });
     },
-    onSuccess: async () => {
+    onMutate: async (data) => {
+      if (!itemId) {
+        return { previousItem: undefined as ItemDetail | undefined, optimisticId: undefined as string | undefined };
+      }
+
+      await queryClient.cancelQueries({ queryKey: itemQueryKey });
+      const previousItem = queryClient.getQueryData<ItemDetail>(itemQueryKey);
+      const optimisticId = `fila-optimistic-${Date.now()}`;
+      const optimisticEntry: FilaInteressadoEntry = {
+        id: optimisticId,
+        pecaId: itemId,
+        clienteId: optimisticId,
+        posicao: previousItem?.filaInteressados?.length ?? 0,
+        criadoEm: new Date().toISOString(),
+        cliente: {
+          id: optimisticId,
+          nome: data.nome.trim(),
+          whatsapp: data.whatsapp?.trim() || null,
+          instagram: data.instagram?.trim() || null
+        }
+      };
+
+      queryClient.setQueryData<ItemDetail>(itemQueryKey, (current) => {
+        if (!current) {
+          return current;
+        }
+        return {
+          ...current,
+          status: current.status === "DISPONIVEL" ? "RESERVADO" : current.status,
+          filaInteressados: [...(current.filaInteressados ?? []), optimisticEntry]
+        };
+      });
+
+      return { previousItem, optimisticId };
+    },
+    onError: (_error, _data, context) => {
+      if (!itemId) {
+        return;
+      }
+      if (context?.previousItem) {
+        queryClient.setQueryData(itemQueryKey, context.previousItem);
+      }
+    },
+    onSuccess: (createdEntry, _data, context) => {
+      if (!itemId) {
+        return;
+      }
+
+      queryClient.setQueryData<ItemDetail>(itemQueryKey, (current) => {
+        if (!current) {
+          return current;
+        }
+
+        const withoutOptimistic = (current.filaInteressados ?? []).filter((entry) => entry.id !== context?.optimisticId);
+        const nextQueue = [...withoutOptimistic, createdEntry].map((entry, index) => ({
+          ...entry,
+          posicao: index
+        }));
+
+        return {
+          ...current,
+          status: "RESERVADO",
+          filaInteressados: nextQueue
+        };
+      });
+
+      reset({ nome: "", whatsapp: "", instagram: "" });
+      setShowAdjustFields(false);
+    },
+    onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
-      await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
-      navigate(`/reserve/${itemId}`, { replace: true });
     }
   });
 
@@ -264,6 +332,40 @@ export const ReservePage = () => {
           </div>
           {formState.errors.root && <small>{formState.errors.root.message}</small>}
         </form>
+      </Section>
+
+      <Section title="Fila de interessados">
+        {!canQueue ? (
+          <p style={{ opacity: 0.85 }}>A fila só pode ser gerenciada em peças disponíveis ou reservadas.</p>
+        ) : (
+          <div className="stack" style={{ gap: 8 }}>
+            {(item?.filaInteressados ?? []).length === 0 ? (
+              <p style={{ opacity: 0.8 }}>Ninguém na fila.</p>
+            ) : (
+              (item?.filaInteressados ?? []).map((entry) => (
+                <div
+                  key={entry.id}
+                  className="card"
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                >
+                  <div>
+                    <strong>
+                      {entry.posicao + 1}º — {entry.cliente.nome}
+                    </strong>
+                    {entry.posicao === 0 && item?.status === "RESERVADO" && (
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                        Reserva ativa
+                      </span>
+                    )}
+                    <div style={{ fontSize: 13, opacity: 0.85 }}>
+                      {[entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato"}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </Section>
     </AppShell>
   );
