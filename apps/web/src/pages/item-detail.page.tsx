@@ -1,14 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
 import {
   addItemFoto,
   analisarItemFoto,
+  createFotoLote,
   deleteItemFoto,
   getItem,
+  presignFotoLoteUpload,
+  putToPresignedUrl,
   setItemCoverFoto,
   updateItem,
   updateItemStatus,
@@ -19,11 +22,8 @@ import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, ItemStatusTone, PhotoLightbox, Section, Select } from "../components/ui";
+import { resizeImageDetailed } from "../lib/imageResize";
 import { moneyInputValue, parseMoneyLike } from "../lib/money";
-
-const fotoFormSchema = z.object({
-  url: z.string().trim().url("Informe uma URL válida (http ou https).")
-});
 
 const editFormSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome."),
@@ -39,7 +39,6 @@ const editFormSchema = z.object({
   acervoNome: z.string().optional()
 });
 
-type FotoFormData = z.infer<typeof fotoFormSchema>;
 type EditFormData = z.infer<typeof editFormSchema>;
 
 const categoriaLabels: Record<ItemCategoria, string> = {
@@ -74,16 +73,19 @@ export const ItemDetailPage = () => {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [uploadLoteId, setUploadLoteId] = useState<string | null>(null);
+  const [photoActionError, setPhotoActionError] = useState<string | null>(null);
+  const [photoUploadHint, setPhotoUploadHint] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const pasteBoxRef = useRef<HTMLDivElement>(null);
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
     queryFn: () => getItem(brechoId, itemId!),
     enabled: Boolean(itemId)
-  });
-
-  const fotoForm = useForm<FotoFormData>({
-    resolver: zodResolver(fotoFormSchema),
-    defaultValues: { url: "" }
   });
 
   const editForm = useForm<EditFormData>({
@@ -137,17 +139,27 @@ export const ItemDetailPage = () => {
     });
   }, [editForm, item]);
 
+  useEffect(() => {
+    setUploadLoteId(null);
+  }, [itemId]);
+
+  useEffect(() => {
+    if (!photoModalOpen) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      pasteBoxRef.current?.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [photoModalOpen]);
+
   const invalidateItem = async () => {
     await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
     await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
   };
 
   const addFotoMutation = useMutation({
-    mutationFn: (url: string) => addItemFoto(brechoId, itemId!, { url }),
-    onSuccess: async () => {
-      await invalidateItem();
-      fotoForm.reset();
-    }
+    mutationFn: (payload: Parameters<typeof addItemFoto>[2]) => addItemFoto(brechoId, itemId!, payload)
   });
 
   const deleteFotoMutation = useMutation({
@@ -190,6 +202,111 @@ export const ItemDetailPage = () => {
     mutationFn: (status: "DISPONIVEL" | "INDISPONIVEL") => updateItemStatus(brechoId, itemId!, status),
     onSuccess: invalidateItem
   });
+
+  const ensureUploadLoteId = async () => {
+    if (uploadLoteId) {
+      return uploadLoteId;
+    }
+    const lote = await createFotoLote(brechoId, itemId!, {});
+    setUploadLoteId(lote.id);
+    return lote.id;
+  };
+
+  const uploadResizedPair = async (source: Blob, options?: { skipInvalidate?: boolean }) => {
+    const loteId = await ensureUploadLoteId();
+    const [main, thumb] = await Promise.all([
+      resizeImageDetailed(source, { maxSide: 1600, quality: 0.78, mime: "image/jpeg" }),
+      resizeImageDetailed(source, { maxSide: 360, quality: 0.72, mime: "image/jpeg" })
+    ]);
+    const signedMain = await presignFotoLoteUpload(brechoId, itemId!, loteId, {
+      tipo: "imagem",
+      contentType: "image/jpeg",
+      extensao: "jpeg",
+      tamanhoBytes: main.blob.size
+    });
+    await putToPresignedUrl(signedMain.uploadUrl, main.blob, "image/jpeg");
+    const signedThumb = await presignFotoLoteUpload(brechoId, itemId!, loteId, {
+      tipo: "imagem",
+      contentType: "image/jpeg",
+      extensao: "jpeg",
+      tamanhoBytes: thumb.blob.size
+    });
+    await putToPresignedUrl(signedThumb.uploadUrl, thumb.blob, "image/jpeg");
+    await addFotoMutation.mutateAsync({
+      url: signedMain.publicUrl,
+      thumbnailUrl: signedThumb.publicUrl,
+      thumbnailTamanhoBytes: thumb.blob.size,
+      largura: main.width,
+      altura: main.height,
+      loteId
+    });
+    if (!options?.skipInvalidate) {
+      await invalidateItem();
+    }
+  };
+
+  const uploadFromFiles = async (files: File[]) => {
+    if (!files.length) {
+      return;
+    }
+    const currentCount = item?.fotos?.length ?? 0;
+    if (currentCount >= 15) {
+      setPhotoActionError("Limite de 15 fotos atingido para esta peça.");
+      return;
+    }
+    setIsUploadingPhoto(true);
+    setPhotoActionError(null);
+    setPhotoUploadHint(null);
+    let uploaded = 0;
+    try {
+      for (const file of files) {
+        if (currentCount + uploaded >= 15) {
+          break;
+        }
+        await uploadResizedPair(file, { skipInvalidate: true });
+        uploaded += 1;
+      }
+      await invalidateItem();
+      if (uploaded > 0) {
+        setPhotoUploadHint(uploaded === 1 ? "Foto adicionada." : `${uploaded} fotos adicionadas.`);
+      }
+      if (uploaded < files.length && currentCount + uploaded >= 15) {
+        setPhotoActionError("Limite de 15 fotos atingido. Algumas fotos não foram enviadas.");
+      }
+    } catch (error) {
+      setPhotoActionError(error instanceof ApiError ? error.message : "Não foi possível enviar a foto.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const onGalleryChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    await uploadFromFiles(files);
+    event.target.value = "";
+  };
+
+  const onPastePhoto = async (event: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = Array.from(event.clipboardData.items ?? []);
+    const imageItem = items.find((item) => item.type.startsWith("image/"));
+    if (!imageItem) {
+      setPhotoActionError("Não encontramos imagem para colar.");
+      return;
+    }
+    event.preventDefault();
+    const file = imageItem.getAsFile();
+    if (!file) {
+      setPhotoActionError("Não foi possível ler a imagem colada.");
+      return;
+    }
+    await uploadFromFiles([file]);
+  };
+
+  const openPhotoModal = () => {
+    setPhotoModalOpen(true);
+    setPhotoActionError(null);
+    setPhotoUploadHint(null);
+  };
 
   if (!itemId) {
     return (
@@ -375,32 +492,21 @@ export const ItemDetailPage = () => {
 
           <Section title="Fotos">
             <p className="mt-0 text-sm text-on-surface-variant">
-              <Link to={`/items/${item.id}/fotos/upload`}>Enviar fotos (câmera, galeria, nota em texto ou voz)</Link>
-              {" · "}
-              Ou cole uma URL pública abaixo.
+              Cole uma foto, escolha da galeria ou tire uma nova.
             </p>
-            <form
-              className="stack"
-              style={{ gap: 12, marginBottom: 16 }}
-              onSubmit={fotoForm.handleSubmit((data) => addFotoMutation.mutate(data.url))}
-            >
-              <Field label="URL da imagem">
-                <Input {...fotoForm.register("url")} placeholder="https://..." />
-              </Field>
-              {fotoForm.formState.errors.url && (
-                <small style={{ color: "#b60e3d" }}>{fotoForm.formState.errors.url.message}</small>
-              )}
-              <Button type="submit" disabled={addFotoMutation.isPending}>
-                {addFotoMutation.isPending ? "Adicionando..." : "Adicionar foto"}
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Button type="button" onClick={openPhotoModal} disabled={isUploadingPhoto}>
+                {isUploadingPhoto ? "Enviando..." : "Adicionar foto"}
               </Button>
-              {addFotoMutation.isError && (
-                <small style={{ color: "#b60e3d" }}>
-                  {addFotoMutation.error instanceof ApiError
-                    ? addFotoMutation.error.message
-                    : "Não foi possível adicionar a foto."}
-                </small>
-              )}
-            </form>
+              <Link
+                to={`/items/${item.id}/fotos/upload`}
+                className="inline-flex h-11 items-center rounded-xl border border-rose-100 px-4 text-sm font-bold text-primary no-underline"
+              >
+                Abrir upload avançado
+              </Link>
+            </div>
+            {photoUploadHint && <small style={{ color: "#0d6b2e" }}>{photoUploadHint}</small>}
+            {photoActionError && <small style={{ color: "#b60e3d" }}>{photoActionError}</small>}
             <div className="grid gap-3">
               {(item.fotos ?? []).length === 0 ? (
                 <p style={{ opacity: 0.8 }}>Nenhuma foto ainda.</p>
@@ -483,6 +589,75 @@ export const ItemDetailPage = () => {
           </Section>
 
         </>
+      )}
+      {photoModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            aria-label="Fechar modal de fotos"
+            onClick={() => setPhotoModalOpen(false)}
+          />
+          <div className="relative z-10 w-full rounded-t-3xl border border-rose-100 bg-white p-4 shadow-lg sm:max-w-lg sm:rounded-3xl">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="m-0 font-headline text-lg font-extrabold tracking-tight">Adicionar foto</h3>
+              <button
+                type="button"
+                className="rounded-full border border-rose-100 px-3 py-1 text-xs font-bold text-on-surface-variant"
+                onClick={() => setPhotoModalOpen(false)}
+              >
+                Fechar
+              </button>
+            </div>
+            <div
+              ref={pasteBoxRef}
+              onPaste={(event) => void onPastePhoto(event)}
+              tabIndex={0}
+              role="button"
+              aria-label="Área para colar foto"
+              className="mb-3 rounded-2xl border border-dashed border-rose-200 bg-rose-50/40 p-4 text-sm text-on-surface-variant outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            >
+              Cole a foto aqui com Cmd/Ctrl+V.
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Button
+                type="button"
+                className="w-full"
+                disabled={isUploadingPhoto}
+                onClick={() => galleryInputRef.current?.click()}
+              >
+                Galeria
+              </Button>
+              <Button
+                type="button"
+                className="w-full bg-zinc-700"
+                disabled={isUploadingPhoto}
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                Tirar nova foto
+              </Button>
+            </div>
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              hidden
+              onChange={(event) => void onGalleryChange(event)}
+            />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              hidden
+              onChange={(event) => void onGalleryChange(event)}
+            />
+            {isUploadingPhoto && <small className="mt-3 block text-on-surface-variant">Enviando foto...</small>}
+            {photoUploadHint && <small className="mt-3 block text-[#0d6b2e]">{photoUploadHint}</small>}
+            {photoActionError && <small className="mt-3 block text-primary">{photoActionError}</small>}
+          </div>
+        </div>
       )}
       {lightboxIndex !== null && photos.length > 0 && (
         <PhotoLightbox
