@@ -1,4 +1,5 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/auth";
 import { ApiError } from "../api/client";
@@ -13,8 +14,23 @@ export const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
   const forgotPasswordWhatsappUrl =
-    "https://wa.me/5511961971106?text=" + encodeURIComponent("Fale com a Cátia");
+    "https://wa.me/5511961971107?text=" +
+    encodeURIComponent("Oi, esqueci minha senha para logar na Miranda, me ajuda!");
+
+  useEffect(() => {
+    if (!isForgotPasswordModalOpen) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsForgotPasswordModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isForgotPasswordModalOpen]);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -60,15 +76,55 @@ export const LoginPage = () => {
         <Button type="submit" disabled={isSubmitting} className="mt-6 w-full">
           {isSubmitting ? "Entrando..." : "Entrar"}
         </Button>
-        <a
-          href={forgotPasswordWhatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 block text-center text-sm font-semibold text-primary underline-offset-2 hover:underline"
+        <button
+          type="button"
+          onClick={() => setIsForgotPasswordModalOpen(true)}
+          className="mt-3 block w-full text-center text-sm font-semibold text-primary underline-offset-2 hover:underline"
         >
           Esqueceu a senha?
-        </a>
+        </button>
       </form>
+      {isForgotPasswordModalOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              aria-label="Fechar modal"
+              className="fixed inset-0 z-[200] bg-black/35"
+              onClick={() => setIsForgotPasswordModalOpen(false)}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="forgot-password-title"
+              className="fixed bottom-0 left-0 right-0 z-[201] rounded-t-3xl border border-rose-100 bg-white p-5 shadow-[0_-8px_32px_rgba(26,26,46,0.12)]"
+            >
+              <div className="mx-auto w-full max-w-sm">
+                <h2 id="forgot-password-title" className="font-headline text-xl font-extrabold tracking-tight text-on-background">
+                  Esqueceu a senha?
+                </h2>
+                <p className="mt-2 text-sm text-on-surface-variant">Fale com a Cátia para recuperar seu acesso.</p>
+                <a
+                  href={forgotPasswordWhatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white transition-opacity active:scale-[0.98]"
+                >
+                  Falar com a cátia!
+                </a>
+                <button
+                  type="button"
+                  className="mt-2 h-11 w-full rounded-xl text-sm font-bold text-on-surface-variant underline-offset-2 hover:underline"
+                  onClick={() => setIsForgotPasswordModalOpen(false)}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
     </main>
   );
 };
