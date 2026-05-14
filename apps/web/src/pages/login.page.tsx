@@ -13,6 +13,8 @@ export const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const forgotPasswordWhatsappUrl =
+    "https://wa.me/5511961971106?text=" + encodeURIComponent("Fale com a Cátia");
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -58,6 +60,14 @@ export const LoginPage = () => {
         <Button type="submit" disabled={isSubmitting} className="mt-6 w-full">
           {isSubmitting ? "Entrando..." : "Entrar"}
         </Button>
+        <a
+          href={forgotPasswordWhatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 block text-center text-sm font-semibold text-primary underline-offset-2 hover:underline"
+        >
+          Esqueceu a senha?
+        </a>
       </form>
     </main>
   );
