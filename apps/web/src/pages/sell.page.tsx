@@ -5,7 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import type { ItemDetail } from "../api/items";
-import { getItem, sellItem } from "../api/items";
+import { getItem, leaveItemFila, sellItem } from "../api/items";
 import { ClientPicker } from "../components/client-picker";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
@@ -85,6 +85,7 @@ export const SellPage = () => {
     queryFn: () => getItem(brechoId, itemId!),
     enabled: Boolean(itemId)
   });
+  const itemQueryKey = ["item", brechoId, itemId] as const;
 
   const item = itemQuery.data;
   const queueEntries = item?.filaInteressados ?? [];
@@ -202,6 +203,57 @@ export const SellPage = () => {
       navigate("/");
     }
   });
+  const leaveFilaMutation = useMutation({
+    mutationFn: (entradaId: string) => {
+      if (!itemId) {
+        throw new Error("Item não informado.");
+      }
+      return leaveItemFila(brechoId, itemId, entradaId);
+    },
+    onMutate: async (entradaId) => {
+      await queryClient.cancelQueries({ queryKey: itemQueryKey });
+      const previousItem = queryClient.getQueryData<ItemDetail>(itemQueryKey);
+      let nextSelectedEntryId: string | null = null;
+
+      queryClient.setQueryData<ItemDetail>(itemQueryKey, (current) => {
+        if (!current) {
+          return current;
+        }
+
+        const nextQueue = (current.filaInteressados ?? [])
+          .filter((entry) => entry.id !== entradaId)
+          .map((entry, index) => ({ ...entry, posicao: index }));
+
+        if (saleMode === "queue" && selectedQueueEntryId === entradaId) {
+          nextSelectedEntryId = nextQueue[0]?.id ?? null;
+        }
+
+        return {
+          ...current,
+          filaInteressados: nextQueue
+        };
+      });
+
+      if (saleMode === "queue" && selectedQueueEntryId === entradaId) {
+        setSelectedQueueEntryId(nextSelectedEntryId);
+        if (!nextSelectedEntryId) {
+          setSaleMode("manual");
+          setShowAdjustManualCliente(false);
+        }
+      }
+
+      return { previousItem };
+    },
+    onError: (_error, _entradaId, context) => {
+      if (context?.previousItem) {
+        queryClient.setQueryData(itemQueryKey, context.previousItem);
+      }
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: itemQueryKey });
+      await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
+    }
+  });
 
   return (
     <AppShell>
@@ -272,31 +324,41 @@ export const SellPage = () => {
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {queueEntries.map((entry) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => {
-                      setSaleMode("queue");
-                      setSelectedQueueEntryId(entry.id);
-                      setShowAdjustManualCliente(false);
-                    }}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                      border: selectedQueueEntryId === entry.id && saleMode === "queue" ? "2px solid #b60e3d" : "1px solid #e2bec0",
-                      background: "#fff",
-                      textAlign: "left",
-                      cursor: "pointer"
-                    }}
-                  >
-                    <strong>
-                      {entry.posicao + 1}º da fila: {entry.cliente.nome}
-                    </strong>
-                    {entry.posicao === 0 ? " · primeira pessoa" : null}
-                    <div style={{ fontSize: 12, color: "#5a4042" }}>
-                      {[entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato"}
-                    </div>
-                  </button>
+                  <div key={entry.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSaleMode("queue");
+                        setSelectedQueueEntryId(entry.id);
+                        setShowAdjustManualCliente(false);
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: selectedQueueEntryId === entry.id && saleMode === "queue" ? "2px solid #b60e3d" : "1px solid #e2bec0",
+                        background: "#fff",
+                        textAlign: "left",
+                        cursor: "pointer"
+                      }}
+                    >
+                      <strong>
+                        {entry.posicao + 1}º da fila: {entry.cliente.nome}
+                      </strong>
+                      {entry.posicao === 0 ? " · primeira pessoa" : null}
+                      <div style={{ fontSize: 12, color: "#5a4042" }}>
+                        {[entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato"}
+                      </div>
+                    </button>
+                    <Button
+                      type="button"
+                      className="bg-zinc-700"
+                      onClick={() => leaveFilaMutation.mutate(entry.id)}
+                      disabled={leaveFilaMutation.isPending}
+                    >
+                      Remover
+                    </Button>
+                  </div>
                 ))}
                 <button
                   type="button"

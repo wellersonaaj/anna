@@ -1,11 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { ClientPicker } from "../components/client-picker";
-import { getItem, joinItemFila, type FilaInteressadoEntry, type ItemDetail } from "../api/items";
+import { getItem, joinItemFila, leaveItemFila, type FilaInteressadoEntry, type ItemDetail } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
@@ -54,6 +54,16 @@ export const ReservePage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showAdjustFields, setShowAdjustFields] = useState(false);
+  const [showSuccessBadge, setShowSuccessBadge] = useState(false);
+  const successTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) {
+        window.clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
@@ -153,8 +163,51 @@ export const ReservePage = () => {
 
       reset({ nome: "", whatsapp: "", instagram: "" });
       setShowAdjustFields(false);
+      setShowSuccessBadge(true);
+      if (successTimerRef.current) {
+        window.clearTimeout(successTimerRef.current);
+      }
+      successTimerRef.current = window.setTimeout(() => {
+        setShowSuccessBadge(false);
+      }, 1800);
     },
     onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
+    }
+  });
+  const leaveFilaMutation = useMutation({
+    mutationFn: (entradaId: string) => {
+      if (!itemId) {
+        throw new Error("Peça não informada.");
+      }
+      return leaveItemFila(brechoId, itemId, entradaId);
+    },
+    onMutate: async (entradaId) => {
+      await queryClient.cancelQueries({ queryKey: itemQueryKey });
+      const previousItem = queryClient.getQueryData<ItemDetail>(itemQueryKey);
+
+      queryClient.setQueryData<ItemDetail>(itemQueryKey, (current) => {
+        if (!current) {
+          return current;
+        }
+        const nextQueue = (current.filaInteressados ?? [])
+          .filter((entry) => entry.id !== entradaId)
+          .map((entry, index) => ({ ...entry, posicao: index }));
+        return {
+          ...current,
+          filaInteressados: nextQueue
+        };
+      });
+
+      return { previousItem };
+    },
+    onError: (_error, _entradaId, context) => {
+      if (context?.previousItem) {
+        queryClient.setQueryData(itemQueryKey, context.previousItem);
+      }
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: itemQueryKey });
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
     }
   });
@@ -307,6 +360,23 @@ export const ReservePage = () => {
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+            {showSuccessBadge && (
+              <div
+                role="status"
+                aria-live="polite"
+                style={{
+                  borderRadius: 10,
+                  border: "1px solid #86efac",
+                  background: "#dcfce7",
+                  color: "#166534",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  padding: "8px 10px"
+                }}
+              >
+                Cliente adicionado na fila com sucesso.
+              </div>
+            )}
             <Button type="submit" disabled={reserveMutation.isPending || !item || !canQueue}>
               {reserveMutation.isPending
                 ? "Confirmando..."
@@ -361,6 +431,13 @@ export const ReservePage = () => {
                       {[entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato"}
                     </div>
                   </div>
+                  <Button
+                    type="button"
+                    onClick={() => leaveFilaMutation.mutate(entry.id)}
+                    disabled={leaveFilaMutation.isPending}
+                  >
+                    Remover
+                  </Button>
                 </div>
               ))
             )}
