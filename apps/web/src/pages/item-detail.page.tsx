@@ -6,7 +6,6 @@ import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
 import {
   addItemFoto,
-  analisarItemFoto,
   createFotoLote,
   deleteItemFoto,
   getItem,
@@ -169,11 +168,6 @@ export const ItemDetailPage = () => {
 
   const setCoverMutation = useMutation({
     mutationFn: (fotoId: string) => setItemCoverFoto(brechoId, itemId!, fotoId),
-    onSuccess: invalidateItem
-  });
-
-  const analyzeFotoMutation = useMutation({
-    mutationFn: (fotoId: string) => analisarItemFoto(brechoId, itemId!, fotoId),
     onSuccess: invalidateItem
   });
 
@@ -552,17 +546,6 @@ export const ItemDetailPage = () => {
                           )}
                         </div>
                         <div className="flex flex-col gap-2">
-                          {!latestAi && (
-                            <Button
-                              type="button"
-                              onClick={() => analyzeFotoMutation.mutate(foto.id)}
-                              disabled={analyzeFotoMutation.isPending}
-                            >
-                              {analyzeFotoMutation.isPending && analyzeFotoMutation.variables === foto.id
-                                ? "Analisando..."
-                                : "Sugerir com IA"}
-                            </Button>
-                          )}
                           <Button
                             type="button"
                             className="bg-zinc-700"
@@ -573,13 +556,6 @@ export const ItemDetailPage = () => {
                           </Button>
                         </div>
                       </div>
-                      {analyzeFotoMutation.isError && analyzeFotoMutation.variables === foto.id && (
-                        <small style={{ color: "#b60e3d" }}>
-                          {analyzeFotoMutation.error instanceof ApiError
-                            ? analyzeFotoMutation.error.message
-                            : "Não foi possível analisar a foto."}
-                        </small>
-                      )}
                       {latestAi && <FotoAiSuggestionsCard analysis={latestAi} />}
                     </div>
                   );
