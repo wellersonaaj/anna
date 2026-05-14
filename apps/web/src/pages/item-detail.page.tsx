@@ -9,15 +9,12 @@ import {
   analisarItemFoto,
   deleteItemFoto,
   getItem,
-  joinItemFila,
-  leaveItemFila,
   setItemCoverFoto,
   updateItem,
   updateItemStatus,
   type ItemCategoria,
   type ItemCondicao
 } from "../api/items";
-import { ClientPicker } from "../components/client-picker";
 import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
 import { useSessionStore } from "../store/session.store";
@@ -27,24 +24,6 @@ import { moneyInputValue, parseMoneyLike } from "../lib/money";
 const fotoFormSchema = z.object({
   url: z.string().trim().url("Informe uma URL válida (http ou https).")
 });
-
-const filaFormSchema = z
-  .object({
-    nome: z.string().trim().min(2),
-    whatsapp: z.string().optional(),
-    instagram: z.string().optional()
-  })
-  .superRefine((data, ctx) => {
-    const w = data.whatsapp?.replace(/\s/g, "") ?? "";
-    const i = data.instagram?.replace(/^@+/, "").trim() ?? "";
-    if (!w && !i) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Informe WhatsApp ou Instagram.",
-        path: ["whatsapp"]
-      });
-    }
-  });
 
 const editFormSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome."),
@@ -61,15 +40,7 @@ const editFormSchema = z.object({
 });
 
 type FotoFormData = z.infer<typeof fotoFormSchema>;
-type FilaFormData = z.infer<typeof filaFormSchema>;
 type EditFormData = z.infer<typeof editFormSchema>;
-
-const needsAdjustFieldsForFila = (data: FilaFormData): boolean => {
-  const nomeOk = data.nome.trim().length >= 2;
-  const w = data.whatsapp?.replace(/\s/g, "") ?? "";
-  const i = data.instagram?.replace(/^@+/, "").trim() ?? "";
-  return !nomeOk || (!w && !i);
-};
 
 const categoriaLabels: Record<ItemCategoria, string> = {
   ROUPA_FEMININA: "Roupa feminina",
@@ -103,7 +74,6 @@ export const ItemDetailPage = () => {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showAdjustFilaFields, setShowAdjustFilaFields] = useState(false);
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
@@ -114,11 +84,6 @@ export const ItemDetailPage = () => {
   const fotoForm = useForm<FotoFormData>({
     resolver: zodResolver(fotoFormSchema),
     defaultValues: { url: "" }
-  });
-
-  const filaForm = useForm<FilaFormData>({
-    resolver: zodResolver(filaFormSchema),
-    defaultValues: { nome: "", whatsapp: "", instagram: "" }
   });
 
   const editForm = useForm<EditFormData>({
@@ -152,21 +117,6 @@ export const ItemDetailPage = () => {
   const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
   const canSell = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
   const coverPhotoId = item?.fotos?.find((foto) => foto.isCover)?.id ?? null;
-  const filaContact = {
-    nome: filaForm.watch("nome") ?? "",
-    whatsapp: filaForm.watch("whatsapp") ?? "",
-    instagram: filaForm.watch("instagram") ?? ""
-  };
-  const fillFilaContact = (cliente: FilaFormData) => {
-    filaForm.setValue("nome", cliente.nome, { shouldValidate: true, shouldDirty: true });
-    filaForm.setValue("whatsapp", cliente.whatsapp ?? "", { shouldValidate: true, shouldDirty: true });
-    filaForm.setValue("instagram", cliente.instagram ?? "", { shouldValidate: true, shouldDirty: true });
-  };
-
-  const hasFilaContact =
-    Boolean(filaContact.nome.trim()) ||
-    Boolean(filaContact.whatsapp.trim()) ||
-    Boolean(filaContact.instagram.trim());
 
   useEffect(() => {
     if (!item) {
@@ -212,27 +162,6 @@ export const ItemDetailPage = () => {
 
   const analyzeFotoMutation = useMutation({
     mutationFn: (fotoId: string) => analisarItemFoto(brechoId, itemId!, fotoId),
-    onSuccess: invalidateItem
-  });
-
-  const joinFilaMutation = useMutation({
-    mutationFn: (data: FilaFormData) =>
-      joinItemFila(brechoId, itemId!, {
-        cliente: {
-          nome: data.nome,
-          whatsapp: data.whatsapp?.trim() || undefined,
-          instagram: data.instagram?.trim() || undefined
-        }
-      }),
-    onSuccess: async () => {
-      await invalidateItem();
-      filaForm.reset();
-      setShowAdjustFilaFields(false);
-    }
-  });
-
-  const leaveFilaMutation = useMutation({
-    mutationFn: (entradaId: string) => leaveItemFila(brechoId, itemId!, entradaId),
     onSuccess: invalidateItem
   });
 
@@ -553,117 +482,6 @@ export const ItemDetailPage = () => {
             </div>
           </Section>
 
-          <Section title="Fila de interessados">
-            {canQueue ? (
-              <form
-                className="grid grid-cols-1 gap-3"
-                style={{ marginBottom: 16 }}
-                onSubmit={filaForm.handleSubmit((data) => joinFilaMutation.mutate(data))}
-              >
-                <ClientPicker
-                  brechoId={brechoId}
-                  selectedContact={filaContact}
-                  onSelect={(cliente) => {
-                    fillFilaContact(cliente);
-                    setShowAdjustFilaFields(needsAdjustFieldsForFila(cliente));
-                  }}
-                  onCreateNew={(cliente) => {
-                    fillFilaContact(cliente);
-                    setShowAdjustFilaFields(needsAdjustFieldsForFila(cliente));
-                  }}
-                  onClear={() => {
-                    fillFilaContact({ nome: "", whatsapp: "", instagram: "" });
-                    setShowAdjustFilaFields(false);
-                  }}
-                  title="Interessado"
-                />
-                {hasFilaContact && !showAdjustFilaFields && (
-                  <button
-                    type="button"
-                    className="w-full rounded-xl border border-rose-100 bg-white py-3 text-sm font-bold text-primary"
-                    onClick={() => setShowAdjustFilaFields(true)}
-                  >
-                    Ajustar nome, WhatsApp ou Instagram
-                  </button>
-                )}
-                {hasFilaContact && showAdjustFilaFields && (
-                  <button
-                    type="button"
-                    className="text-sm font-bold text-on-surface-variant underline"
-                    onClick={() => setShowAdjustFilaFields(false)}
-                  >
-                    Ocultar campos
-                  </button>
-                )}
-                <div className={hasFilaContact && showAdjustFilaFields ? "grid gap-3" : "hidden"}>
-                  <Field label="Nome">
-                    <Input {...filaForm.register("nome")} />
-                  </Field>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <Field label="WhatsApp">
-                      <Input {...filaForm.register("whatsapp")} />
-                    </Field>
-                    <Field label="Instagram">
-                      <Input {...filaForm.register("instagram")} placeholder="@usuario" />
-                    </Field>
-                  </div>
-                </div>
-                <Button type="submit" disabled={joinFilaMutation.isPending}>
-                  {joinFilaMutation.isPending
-                    ? "Entrando..."
-                    : item.status === "RESERVADO"
-                      ? "Adicionar à fila"
-                      : "Reservar"}
-                </Button>
-                {(filaForm.formState.errors.whatsapp || filaForm.formState.errors.root) && (
-                  <small style={{ color: "#b60e3d" }}>{filaForm.formState.errors.whatsapp?.message}</small>
-                )}
-                {joinFilaMutation.isError && (
-                  <small style={{ color: "#b60e3d" }}>
-                    {joinFilaMutation.error instanceof ApiError
-                      ? joinFilaMutation.error.message
-                      : "Não foi possível entrar na fila."}
-                  </small>
-                )}
-              </form>
-            ) : (
-              <p style={{ opacity: 0.85 }}>A fila só pode ser gerenciada em peças disponíveis ou reservadas.</p>
-            )}
-            <div className="stack" style={{ gap: 8 }}>
-              {(item.filaInteressados ?? []).length === 0 ? (
-                <p style={{ opacity: 0.8 }}>Ninguém na fila.</p>
-              ) : (
-                (item.filaInteressados ?? []).map((e) => (
-                  <div
-                    key={e.id}
-                    className="card"
-                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                  >
-                    <div>
-                      <strong>
-                        {e.posicao + 1}º — {e.cliente.nome}
-                      </strong>
-                      {e.posicao === 0 && item.status === "RESERVADO" && (
-                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                          Reserva ativa
-                        </span>
-                      )}
-                      <div style={{ fontSize: 13, opacity: 0.85 }}>
-                        {[e.cliente.whatsapp, e.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato"}
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => leaveFilaMutation.mutate(e.id)}
-                      disabled={leaveFilaMutation.isPending}
-                    >
-                      Remover
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </Section>
         </>
       )}
       {lightboxIndex !== null && photos.length > 0 && (
