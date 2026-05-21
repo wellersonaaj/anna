@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "pwa-192.png", "pwa-512.png", "apple-touch-icon.png"],
       manifest: {
-        name: "Anna",
-        short_name: "Anna",
+        name: "Miranda",
+        short_name: "Miranda",
         description: "Gestão para brechós",
         start_url: "/",
         scope: "/",

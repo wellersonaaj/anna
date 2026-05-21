@@ -34,7 +34,7 @@ export const ItemCreateChoicePage = () => {
 
       <Section title="Várias peças (importação)">
         <p className="mb-3 text-sm text-on-surface-variant">
-          Selecione muitas fotos; a Anna sugere grupos por peça. Você revisa os grupos, depois os dados, e publica no estoque.
+          Selecione muitas fotos; a Miranda sugere grupos por peça. Você revisa os grupos, depois os dados, e publica no estoque.
         </p>
         <Link
           to="/importacoes/criar"

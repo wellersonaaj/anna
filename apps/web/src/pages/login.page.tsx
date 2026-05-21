@@ -52,7 +52,7 @@ export const LoginPage = () => {
     <main className="flex min-h-screen items-center justify-center bg-background px-4 text-on-background">
       <form onSubmit={onSubmit} className="w-full max-w-sm rounded-3xl border border-rose-100 bg-white p-6 shadow-sm">
         <div className="mb-6">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Anna</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Miranda</p>
           <h1 className="mt-2 font-headline text-4xl font-extrabold tracking-tight">Entrar</h1>
           <p className="mt-2 text-sm text-on-surface-variant">Acesse com o telefone e senha provisória.</p>
         </div>

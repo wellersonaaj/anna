@@ -158,7 +158,7 @@ export const AppShell = ({
 }>) => {
   const brechoNomeTrim = useSessionStore((s) => s.activeBrecho?.nome?.trim());
   const resolvedTopBarTitle =
-    topBarTitle ?? (brechoNomeTrim && brechoNomeTrim.length > 0 ? brechoNomeTrim : "Anna");
+    topBarTitle ?? (brechoNomeTrim && brechoNomeTrim.length > 0 ? brechoNomeTrim : "Miranda");
 
   return (
     <div className="min-h-screen bg-background text-on-background">

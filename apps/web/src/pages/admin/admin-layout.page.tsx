@@ -21,7 +21,7 @@ export const AdminLayout = ({ children }: PropsWithChildren) => {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>
             <Link to="/admin/brechos" className="font-headline text-2xl font-extrabold text-primary">
-              Admin Anna
+              Admin Miranda
             </Link>
             <p className="text-xs font-semibold text-on-surface-variant">{user?.nome ?? user?.telefone}</p>
           </div>

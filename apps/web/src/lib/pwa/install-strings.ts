@@ -13,7 +13,7 @@ export type InstallStrings = {
 
 const STRINGS = {
   pt: {
-    title: "Adicione o Anna à tela inicial",
+    title: "Adicione a Miranda à tela inicial",
     step1IosChrome:
       "Na barra de endereço, toque no ícone de compartilhar do iPhone (quadrado com seta para cima), no canto superior direito.",
     step1IosSafari:
@@ -28,7 +28,7 @@ const STRINGS = {
     dismiss: "Agora não"
   },
   en: {
-    title: "Add Anna to your Home Screen",
+    title: "Add Miranda to your Home Screen",
     step1IosChrome:
       "In the address bar, tap the iPhone share icon (square with an up arrow), at the top right.",
     step1IosSafari:
@@ -43,7 +43,7 @@ const STRINGS = {
     dismiss: "Not now"
   },
   es: {
-    title: "Añade Anna a tu pantalla de inicio",
+    title: "Añade Miranda a tu pantalla de inicio",
     step1IosChrome:
       "En la barra de direcciones, toca el icono de compartir del iPhone (cuadrado con flecha hacia arriba), arriba a la derecha.",
     step1IosSafari:
