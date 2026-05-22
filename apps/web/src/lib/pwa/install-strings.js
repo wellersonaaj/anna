@@ -1,6 +1,6 @@
 const STRINGS = {
     pt: {
-        title: "Adicione o Anna à tela inicial",
+        title: "Adicione a Miranda à tela inicial",
         step1IosChrome: "Na barra de endereço, toque no ícone de compartilhar do iPhone (quadrado com seta para cima), no canto superior direito.",
         step1IosSafari: "Na barra inferior do Safari, toque no ícone de compartilhar (quadrado com seta para cima).",
         step1IosGeneric: "Toque no ícone de compartilhar do navegador (quadrado com seta para cima). Ele costuma ficar na barra superior ou inferior, conforme o app.",
@@ -12,7 +12,7 @@ const STRINGS = {
         dismiss: "Agora não"
     },
     en: {
-        title: "Add Anna to your Home Screen",
+        title: "Add Miranda to your Home Screen",
         step1IosChrome: "In the address bar, tap the iPhone share icon (square with an up arrow), at the top right.",
         step1IosSafari: "In Safari’s bottom bar, tap the share icon (square with an up arrow).",
         step1IosGeneric: "Tap your browser’s share icon (square with an up arrow). It’s usually on the top or bottom bar, depending on the app.",
@@ -24,7 +24,7 @@ const STRINGS = {
         dismiss: "Not now"
     },
     es: {
-        title: "Añade Anna a tu pantalla de inicio",
+        title: "Añade Miranda a tu pantalla de inicio",
         step1IosChrome: "En la barra de direcciones, toca el icono de compartir del iPhone (cuadrado con flecha hacia arriba), arriba a la derecha.",
         step1IosSafari: "En la barra inferior de Safari, toca el icono de compartir (cuadrado con flecha hacia arriba).",
         step1IosGeneric: "Toca el icono de compartir del navegador (cuadrado con flecha hacia arriba). Suele estar en la barra superior o inferior.",

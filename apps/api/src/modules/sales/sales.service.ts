@@ -1,14 +1,9 @@
-import { canTransitionStatus, itemStatus } from "@anna/shared";
-import type { PrismaClient, StatusPeca } from "@prisma/client";
+import { itemStatus } from "@anna/shared";
+import type { PrismaClient } from "@prisma/client";
 import { storageEnv } from "../../config/env.js";
 import { createPresignedGet, isStorageConfigured, resolveObjectKeyFromPublicUrl } from "../../lib/storage.js";
 import { resolveCoverFoto } from "../items/item.service.js";
-
-const ensureTransition = (from: StatusPeca, to: StatusPeca) => {
-  if (!canTransitionStatus(from, to)) {
-    throw new Error(`Invalid status transition: ${from} -> ${to}`);
-  }
-};
+import { sacolaService } from "../sacolas/sacola.service.js";
 
 const resolveDisplayImageUrl = async (url: string | null | undefined): Promise<string | null> => {
   if (!url) {
@@ -34,7 +29,8 @@ export const salesService = {
       where: {
         entrega: null,
         peca: {
-          brechoId
+          brechoId,
+          status: itemStatus.VENDIDO
         }
       },
       include: {
@@ -42,6 +38,7 @@ export const salesService = {
           select: {
             id: true,
             nome: true,
+            codigo: true,
             fotoCapaId: true,
             fotos: {
               select: {
@@ -74,6 +71,7 @@ export const salesService = {
           peca: {
             id: row.peca.id,
             nome: row.peca.nome,
+            codigo: row.peca.codigo,
             fotoCapaUrl: await resolveDisplayImageUrl(cover?.url ?? null),
             fotoCapaThumbnailUrl: await resolveDisplayImageUrl(thumbPrefer)
           }
@@ -107,6 +105,7 @@ export const salesService = {
             select: {
               id: true,
               nome: true,
+              codigo: true,
               fotoCapaId: true,
               fotos: {
                 select: {
@@ -146,6 +145,7 @@ export const salesService = {
           peca: {
             id: row.peca.id,
             nome: row.peca.nome,
+            codigo: row.peca.codigo,
             fotoCapaUrl: await resolveDisplayImageUrl(cover?.url ?? null),
             fotoCapaThumbnailUrl: await resolveDisplayImageUrl(thumbPrefer)
           }
@@ -161,49 +161,6 @@ export const salesService = {
   },
 
   async deliver(prisma: PrismaClient, brechoId: string, saleId: string, data: { codigoRastreio?: string; entregueEm?: string }) {
-    return prisma.$transaction(async (tx) => {
-      const sale = await tx.venda.findFirst({
-        where: {
-          id: saleId,
-          peca: {
-            brechoId
-          }
-        },
-        include: {
-          peca: true
-        }
-      });
-
-      if (!sale) {
-        throw new Error("Sale not found.");
-      }
-
-      ensureTransition(sale.peca.status, itemStatus.ENTREGUE);
-
-      await tx.entrega.create({
-        data: {
-          vendaId: saleId,
-          codigoRastreio: data.codigoRastreio,
-          entregueEm: data.entregueEm ? new Date(data.entregueEm) : new Date()
-        }
-      });
-
-      await tx.peca.update({
-        where: {
-          id: sale.pecaId
-        },
-        data: {
-          status: itemStatus.ENTREGUE
-        }
-      });
-
-      await tx.pecaStatusHistorico.create({
-        data: {
-          pecaId: sale.pecaId,
-          clienteId: sale.clienteId,
-          status: itemStatus.ENTREGUE
-        }
-      });
-    });
+    await sacolaService.deliverSingleSale(prisma, brechoId, saleId, data);
   }
 };

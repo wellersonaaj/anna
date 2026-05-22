@@ -21,6 +21,18 @@ export const clienteContatoSchema = z
 /** Alias: criacao direta usa o mesmo shape de contato da reserva/venda. */
 export const createClientSchema = clienteContatoSchema;
 
+export const updateClientSchema = z
+  .object({
+    nome: z.string().trim().min(2).max(120).optional(),
+    whatsapp: z.string().trim().max(40).optional(),
+    instagram: z.string().trim().max(80).optional()
+  })
+  .superRefine((data, ctx) => {
+    if (Object.keys(data).length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe ao menos um campo." });
+    }
+  });
+
 export const searchClientsQuerySchema = z.object({
   search: z
     .string()

@@ -93,6 +93,11 @@ enum ImportacaoRascunhoStatus {
   ERRO_CLASSIFICACAO
 }
 
+enum SacolaStatus {
+  ABERTA
+  FECHADA
+}
+
 model Brecho {
   id            String       @id @default(cuid())
   nome          String
@@ -115,6 +120,8 @@ model Brecho {
   memberships         BrechoMembership[]
   analyticsDias       AnalyticsBrechoDia[]
   analyticsCategorias AnalyticsCategoriaDia[]
+  pecaCodigoSequencias PecaCodigoSequencia[]
+  sacolasCliente      SacolaCliente[]
 }
 
 model User {
@@ -162,9 +169,20 @@ model AuthSession {
   @@index([userId, expiraEm])
 }
 
+model PecaCodigoSequencia {
+  brechoId  String
+  ano       Int
+  ultimoNum Int    @default(0)
+
+  brecho Brecho @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+
+  @@id([brechoId, ano])
+}
+
 model Peca {
   id             String     @id @default(cuid())
   brechoId       String
+  codigo         String?
   nome           String
   categoria      Categoria
   subcategoria   String
@@ -192,7 +210,9 @@ model Peca {
   filaInteressados    FilaInteressado[]
   aiDraftFeedbacks    AIDraftFeedback[]
   importacaoRascunhos ImportacaoRascunho[]
+  filaLink            PecaFilaLink?
 
+  @@unique([brechoId, codigo])
   @@index([brechoId, status, criadoEm])
   @@index([brechoId, categoria, subcategoria])
   @@index([brechoId, acervoTipo, acervoNome])
@@ -262,24 +282,58 @@ model Cliente {
   vendas          Venda[]
   filas           FilaInteressado[]
   historicoStatus PecaStatusHistorico[]
+  sacolas         SacolaCliente[]
 
   @@index([brechoId, nome])
 }
 
-model Venda {
-  id          String   @id @default(cuid())
-  pecaId      String   @unique
-  clienteId   String
-  precoVenda  Decimal  @db.Decimal(10, 2)
-  freteTexto  String?
-  freteValor  Decimal? @db.Decimal(10, 2)
-  /// Total da transacao: preco da peca + frete (frete somado).
-  ganhosTotal Decimal  @db.Decimal(10, 2)
-  criadoEm    DateTime @default(now())
+model SacolaCliente {
+  id           String       @id @default(cuid())
+  brechoId     String
+  clienteId    String
+  status       SacolaStatus @default(ABERTA)
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @updatedAt
 
-  peca    Peca     @relation(fields: [pecaId], references: [id])
-  cliente Cliente  @relation(fields: [clienteId], references: [id])
-  entrega Entrega?
+  brecho   Brecho    @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+  cliente  Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  vendas   Venda[]
+  remessas Remessa[]
+
+  @@index([brechoId, status])
+  @@index([clienteId, status])
+}
+
+model Remessa {
+  id              String   @id @default(cuid())
+  sacolaClienteId String
+  codigoRastreio  String?
+  freteTexto      String?
+  freteValor      Decimal? @db.Decimal(10, 2)
+  enviadaEm       DateTime @default(now())
+
+  sacola SacolaCliente @relation(fields: [sacolaClienteId], references: [id], onDelete: Cascade)
+  vendas Venda[]
+}
+
+model Venda {
+  id              String   @id @default(cuid())
+  pecaId          String   @unique
+  clienteId       String
+  sacolaClienteId String?
+  remessaId       String?
+  precoVenda      Decimal  @db.Decimal(10, 2)
+  freteTexto      String?
+  freteValor      Decimal? @db.Decimal(10, 2)
+  /// Total da transacao: preco da peca + frete (frete somado).
+  ganhosTotal     Decimal  @db.Decimal(10, 2)
+  criadoEm        DateTime @default(now())
+
+  peca          Peca           @relation(fields: [pecaId], references: [id])
+  cliente       Cliente        @relation(fields: [clienteId], references: [id])
+  sacolaCliente SacolaCliente? @relation(fields: [sacolaClienteId], references: [id], onDelete: SetNull)
+  remessa       Remessa?       @relation(fields: [remessaId], references: [id], onDelete: SetNull)
+  entrega       Entrega?
 }
 
 model Entrega {
@@ -304,6 +358,17 @@ model FilaInteressado {
   @@unique([pecaId, clienteId])
   @@unique([pecaId, posicao])
   @@index([pecaId, posicao])
+}
+
+model PecaFilaLink {
+  id         String    @id @default(cuid())
+  pecaId     String    @unique
+  tokenHash  String    @unique
+  ativo      Boolean   @default(true)
+  criadoEm   DateTime  @default(now())
+  revogadoEm DateTime?
+
+  peca Peca @relation(fields: [pecaId], references: [id], onDelete: Cascade)
 }
 
 model AIAnalysis {

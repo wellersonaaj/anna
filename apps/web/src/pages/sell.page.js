@@ -5,30 +5,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
-import { getItem, sellItem } from "../api/items";
+import { getItem, leaveItemFila, sellItem } from "../api/items";
 import { ClientPicker } from "../components/client-picker";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
-const parseDecimalBr = (value) => {
-    if (value === null || value === undefined || value === "") {
-        return Number.NaN;
-    }
-    if (typeof value === "number") {
-        return value;
-    }
-    const cleaned = String(value).trim().replace(/\./g, "").replace(",", ".");
-    return Number.parseFloat(cleaned);
-};
+import { parseMoneyLike } from "../lib/money";
 const parseFreteFromText = (text) => {
     if (!text?.trim()) {
         return 0;
     }
     const match = text.match(/R\$\s*([\d.,]+)/i);
     if (match?.[1]) {
-        const n = parseDecimalBr(match[1]);
+        const n = parseMoneyLike(match[1]);
         return Number.isNaN(n) ? 0 : n;
     }
-    const numbers = [...text.matchAll(/(\d+[.,]\d+|\d+)/g)].map((m) => parseDecimalBr(m[1]));
+    const numbers = [...text.matchAll(/(\d+[.,]\d+|\d+)/g)].map((m) => parseMoneyLike(m[1]));
     if (!numbers.length) {
         return 0;
     }
@@ -77,6 +68,7 @@ export const SellPage = () => {
         queryFn: () => getItem(brechoId, itemId),
         enabled: Boolean(itemId)
     });
+    const itemQueryKey = ["item", brechoId, itemId];
     const item = itemQuery.data;
     const queueEntries = item?.filaInteressados ?? [];
     const selectedQueueEntry = queueEntries.find((entry) => entry.id === selectedQueueEntryId) ?? queueEntries[0];
@@ -116,7 +108,7 @@ export const SellPage = () => {
         if (!item) {
             return;
         }
-        const preco = parseDecimalBr(item.precoVenda);
+        const preco = parseMoneyLike(item.precoVenda);
         const nextPreco = Number.isNaN(preco) || preco <= 0 ? 0 : preco;
         if (selectedCliente) {
             reset({
@@ -179,6 +171,51 @@ export const SellPage = () => {
             navigate("/");
         }
     });
+    const leaveFilaMutation = useMutation({
+        mutationFn: (entradaId) => {
+            if (!itemId) {
+                throw new Error("Item não informado.");
+            }
+            return leaveItemFila(brechoId, itemId, entradaId);
+        },
+        onMutate: async (entradaId) => {
+            await queryClient.cancelQueries({ queryKey: itemQueryKey });
+            const previousItem = queryClient.getQueryData(itemQueryKey);
+            let nextSelectedEntryId = null;
+            queryClient.setQueryData(itemQueryKey, (current) => {
+                if (!current) {
+                    return current;
+                }
+                const nextQueue = (current.filaInteressados ?? [])
+                    .filter((entry) => entry.id !== entradaId)
+                    .map((entry, index) => ({ ...entry, posicao: index }));
+                if (saleMode === "queue" && selectedQueueEntryId === entradaId) {
+                    nextSelectedEntryId = nextQueue[0]?.id ?? null;
+                }
+                return {
+                    ...current,
+                    filaInteressados: nextQueue
+                };
+            });
+            if (saleMode === "queue" && selectedQueueEntryId === entradaId) {
+                setSelectedQueueEntryId(nextSelectedEntryId);
+                if (!nextSelectedEntryId) {
+                    setSaleMode("manual");
+                    setShowAdjustManualCliente(false);
+                }
+            }
+            return { previousItem };
+        },
+        onError: (_error, _entradaId, context) => {
+            if (context?.previousItem) {
+                queryClient.setQueryData(itemQueryKey, context.previousItem);
+            }
+        },
+        onSettled: async () => {
+            await queryClient.invalidateQueries({ queryKey: itemQueryKey });
+            await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
+        }
+    });
     return (_jsxs(AppShell, { children: [_jsxs("header", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }, children: [_jsx(Link, { to: "/", style: { color: "#5a4042", textDecoration: "none" }, children: "\u2190 Voltar" }), _jsx("h1", { style: { margin: 0, fontSize: "1.25rem" }, children: "Confirmar venda" })] }), _jsx("span", { style: { fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", color: "#b60e3d" }, children: "RESUMO DA VENDA" }), _jsx("h2", { style: { margin: "4px 0 16px", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em" }, children: "Confirmar venda" }), item && (_jsxs("div", { style: {
                     display: "flex",
                     gap: 20,
@@ -199,18 +236,19 @@ export const SellPage = () => {
                             justifyContent: "center",
                             fontSize: 12,
                             color: "#5a4042"
-                        }, children: "Foto" })), _jsx("div", { style: { display: "flex", flexDirection: "column", justifyContent: "center" }, children: _jsx("h3", { style: { margin: 0, fontSize: "1.35rem" }, children: item.nome }) })] })), _jsx(Section, { title: "Valores", children: _jsxs("form", { className: "stack", style: { gap: 20 }, onSubmit: handleSubmit((data) => sellMutation.mutate(data)), children: [queueEntries.length > 0 && (_jsxs("div", { style: { padding: 12, background: "#fff0f0", borderRadius: 12, fontSize: 14 }, children: [_jsx("strong", { children: "H\u00E1 fila para esta pe\u00E7a." }), _jsx("p", { style: { margin: "4px 0 12px", color: "#5a4042" }, children: "Escolha vender para a primeira pessoa, outra pessoa da fila ou uma venda manual." }), _jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [queueEntries.map((entry) => (_jsxs("button", { type: "button", onClick: () => {
-                                                setSaleMode("queue");
-                                                setSelectedQueueEntryId(entry.id);
-                                                setShowAdjustManualCliente(false);
-                                            }, style: {
-                                                padding: "10px 12px",
-                                                borderRadius: 12,
-                                                border: selectedQueueEntryId === entry.id && saleMode === "queue" ? "2px solid #b60e3d" : "1px solid #e2bec0",
-                                                background: "#fff",
-                                                textAlign: "left",
-                                                cursor: "pointer"
-                                            }, children: [_jsxs("strong", { children: [entry.posicao + 1, "\u00BA da fila: ", entry.cliente.nome] }), entry.posicao === 0 ? " · primeira pessoa" : null, _jsx("div", { style: { fontSize: 12, color: "#5a4042" }, children: [entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato" })] }, entry.id))), _jsx("button", { type: "button", onClick: () => {
+                        }, children: "Foto" })), _jsx("div", { style: { display: "flex", flexDirection: "column", justifyContent: "center" }, children: _jsx("h3", { style: { margin: 0, fontSize: "1.35rem" }, children: item.nome }) })] })), _jsx(Section, { title: "Valores", children: _jsxs("form", { className: "stack", style: { gap: 20 }, onSubmit: handleSubmit((data) => sellMutation.mutate(data)), children: [queueEntries.length > 0 && (_jsxs("div", { style: { padding: 12, background: "#fff0f0", borderRadius: 12, fontSize: 14 }, children: [_jsx("strong", { children: "H\u00E1 fila para esta pe\u00E7a." }), _jsx("p", { style: { margin: "4px 0 12px", color: "#5a4042" }, children: "Escolha vender para a primeira pessoa, outra pessoa da fila ou uma venda manual." }), _jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [queueEntries.map((entry) => (_jsxs("div", { style: { display: "flex", gap: 8, alignItems: "center" }, children: [_jsxs("button", { type: "button", onClick: () => {
+                                                        setSaleMode("queue");
+                                                        setSelectedQueueEntryId(entry.id);
+                                                        setShowAdjustManualCliente(false);
+                                                    }, style: {
+                                                        flex: 1,
+                                                        padding: "10px 12px",
+                                                        borderRadius: 12,
+                                                        border: selectedQueueEntryId === entry.id && saleMode === "queue" ? "2px solid #b60e3d" : "1px solid #e2bec0",
+                                                        background: "#fff",
+                                                        textAlign: "left",
+                                                        cursor: "pointer"
+                                                    }, children: [_jsxs("strong", { children: [entry.posicao + 1, "\u00BA da fila: ", entry.cliente.nome] }), entry.posicao === 0 ? " · primeira pessoa" : null, _jsx("div", { style: { fontSize: 12, color: "#5a4042" }, children: [entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato" })] }), _jsx(Button, { type: "button", className: "bg-zinc-700", onClick: () => leaveFilaMutation.mutate(entry.id), disabled: leaveFilaMutation.isPending, children: "Remover" })] }, entry.id))), _jsx("button", { type: "button", onClick: () => {
                                                 setSaleMode("manual");
                                                 setSelectedQueueEntryId(null);
                                                 setShowAdjustManualCliente(false);

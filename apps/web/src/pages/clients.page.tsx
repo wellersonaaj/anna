@@ -1,3 +1,4 @@
+import { isClientContactEnriched } from "@anna/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -55,6 +56,11 @@ export const ClientsPage = () => {
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-gray-900">{client.nome}</h3>
+              {!isClientContactEnriched(client) && (
+                <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                  Perfil incompleto
+                </span>
+              )}
               <div className="mt-1 grid gap-0.5 text-xs font-semibold text-gray-500">
                 <span>WhatsApp {client.whatsapp || "não informado"}</span>
                 <span>Instagram {client.instagram ? `@${client.instagram}` : "não informado"}</span>

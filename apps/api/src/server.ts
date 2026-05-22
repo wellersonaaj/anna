@@ -10,6 +10,8 @@ import { adminRoutes } from "./modules/admin/admin.routes.js";
 import { clientRoutes } from "./modules/clients/client.routes.js";
 import { itemRoutes } from "./modules/items/item.routes.js";
 import { salesRoutes } from "./modules/sales/sales.routes.js";
+import { sacolaRoutes } from "./modules/sacolas/sacola.routes.js";
+import { publicRoutes } from "./modules/public/public.routes.js";
 import { importacaoRoutes } from "./modules/importacoes/importacao.routes.js";
 import { ensureFounderFromEnv, shouldRunFounderBootstrapOnStart } from "./lib/founderBootstrap.js";
 
@@ -35,6 +37,7 @@ export const buildServer = () => {
 
   app.register(prismaPlugin);
   app.register(healthRoutes);
+  app.register(publicRoutes);
   app.register(brechoContextPlugin);
 
   app.addHook("onResponse", async (request, reply) => {
@@ -59,6 +62,7 @@ export const buildServer = () => {
   app.register(itemRoutes);
   app.register(importacaoRoutes);
   app.register(salesRoutes);
+  app.register(sacolaRoutes);
 
   return app;
 };

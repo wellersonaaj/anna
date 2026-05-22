@@ -1,3 +1,4 @@
+import { isClientContactComplete, isClientContactEnriched } from "@anna/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { ClientRow } from "../api/clients";
@@ -49,7 +50,7 @@ const contactFromClient = (client: ClientRow): ClientContact => ({
 });
 
 const hasSelectedContact = (contact?: ClientContact | null) =>
-  Boolean(contact?.nome.trim() || contact?.whatsapp.trim() || contact?.instagram.trim());
+  Boolean(contact && isClientContactComplete(contact));
 
 export const ClientPicker = ({
   brechoId,
@@ -77,12 +78,18 @@ export const ClientPicker = ({
   });
 
   if (hasSelectedContact(selectedContact)) {
+    const enriched = selectedContact && isClientContactEnriched(selectedContact);
     return (
       <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-primary">{title} selecionado</p>
-            <strong className="block text-base text-gray-900">{selectedContact?.nome || "Nome não informado"}</strong>
+            <strong className="block text-base text-gray-900">{selectedContact?.nome}</strong>
+            {!enriched && (
+              <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                Perfil incompleto
+              </span>
+            )}
           </div>
           {onClear && (
             <button type="button" className="text-sm font-bold text-primary" onClick={onClear}>

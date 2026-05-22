@@ -6,6 +6,7 @@ export type ItemCondicao = "OTIMO" | "BOM" | "REGULAR";
 
 export type Item = {
   id: string;
+  codigo?: string | null;
   nome: string;
   categoria: ItemCategoria;
   subcategoria: string;
@@ -579,6 +580,31 @@ export const sellItem = async (
   }
 ): Promise<Item> => {
   return request<Item>(`/items/${itemId}/sell`, {
+    method: "POST",
+    brechoId,
+    body: payload
+  });
+};
+
+export const sellBatch = async (
+  brechoId: string,
+  payload: {
+    cliente: ClienteContato;
+    itens: Array<{ pecaId: string; precoVenda: number; freteTexto?: string; freteValor?: number }>;
+  }
+) => {
+  return request<{ soldCount: number; pecaIds: string[] }>("/sales/batch", {
+    method: "POST",
+    brechoId,
+    body: payload
+  });
+};
+
+export const reserveBatch = async (
+  brechoId: string,
+  payload: { cliente: ClienteContato; pecaIds: string[] }
+) => {
+  return request("/items/reserve-batch", {
     method: "POST",
     brechoId,
     body: payload

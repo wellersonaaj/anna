@@ -203,7 +203,7 @@ export const InventoryPage = () => {
               <ProductCard
                 key={item.id}
                 item={item}
-                subtitle={`${item.categoria.replaceAll("_", " ")} / ${item.subcategoria}`}
+                subtitle={`${item.codigo ? `${item.codigo} · ` : ""}${item.categoria.replaceAll("_", " ")} / ${item.subcategoria}`}
                 priceLabel={formatCurrency(item.precoVenda)}
                 onImageClick={
                   (item.fotoPreviews?.length || item.fotoCapaThumbnailUrl || item.fotoCapaUrl)

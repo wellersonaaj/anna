@@ -20,3 +20,10 @@ export const createClient = async (brechoId, payload) => {
 export const getClientById = async (brechoId, clientId) => {
     return request(`/clients/${clientId}`, { brechoId });
 };
+export const updateClient = async (brechoId, clientId, payload) => {
+    return request(`/clients/${clientId}`, {
+        method: "PATCH",
+        brechoId,
+        body: payload
+    });
+};

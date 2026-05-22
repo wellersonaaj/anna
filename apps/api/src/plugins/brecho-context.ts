@@ -9,7 +9,7 @@ export const brechoContextPlugin = fp(async (app) => {
     }
 
     const path = request.url.split("?")[0] ?? "";
-    if (path === "/health" || path === "/auth/login") {
+    if (path === "/health" || path === "/auth/login" || path.startsWith("/public/")) {
       return;
     }
 

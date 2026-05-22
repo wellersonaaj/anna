@@ -1,4 +1,5 @@
 import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
+import { isClientContactComplete, isClientContactEnriched } from "@anna/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { searchClients } from "../api/clients";
@@ -33,7 +34,7 @@ const contactFromClient = (client) => ({
     whatsapp: client.whatsapp ?? "",
     instagram: client.instagram ?? ""
 });
-const hasSelectedContact = (contact) => Boolean(contact?.nome.trim() || contact?.whatsapp.trim() || contact?.instagram.trim());
+const hasSelectedContact = (contact) => Boolean(contact && isClientContactComplete(contact));
 export const ClientPicker = ({ brechoId, selectedContact, onSelect, onCreateNew, onClear, title = "Cliente" }) => {
     const [search, setSearch] = useState("");
     const trimmedSearch = search.trim();
@@ -44,7 +45,8 @@ export const ClientPicker = ({ brechoId, selectedContact, onSelect, onCreateNew,
         enabled: canSearch && !hasSelectedContact(selectedContact)
     });
     if (hasSelectedContact(selectedContact)) {
-        return (_jsxs("div", { className: "rounded-2xl border border-rose-100 bg-rose-50 p-4", children: [_jsxs("div", { className: "mb-3 flex items-start justify-between gap-3", children: [_jsxs("div", { children: [_jsxs("p", { className: "text-[10px] font-bold uppercase tracking-wider text-primary", children: [title, " selecionado"] }), _jsx("strong", { className: "block text-base text-gray-900", children: selectedContact?.nome || "Nome não informado" })] }), onClear && (_jsx("button", { type: "button", className: "text-sm font-bold text-primary", onClick: onClear, children: "Trocar" }))] }), _jsxs("div", { className: "grid gap-1 text-sm text-on-surface-variant", children: [_jsx("span", { children: displayWhatsapp(selectedContact?.whatsapp) }), _jsx("span", { children: displayInstagram(selectedContact?.instagram) })] })] }));
+        const enriched = selectedContact && isClientContactEnriched(selectedContact);
+        return (_jsxs("div", { className: "rounded-2xl border border-rose-100 bg-rose-50 p-4", children: [_jsxs("div", { className: "mb-3 flex items-start justify-between gap-3", children: [_jsxs("div", { children: [_jsxs("p", { className: "text-[10px] font-bold uppercase tracking-wider text-primary", children: [title, " selecionado"] }), _jsx("strong", { className: "block text-base text-gray-900", children: selectedContact?.nome }), !enriched && (_jsx("span", { className: "mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800", children: "Perfil incompleto" }))] }), onClear && (_jsx("button", { type: "button", className: "text-sm font-bold text-primary", onClick: onClear, children: "Trocar" }))] }), _jsxs("div", { className: "grid gap-1 text-sm text-on-surface-variant", children: [_jsx("span", { children: displayWhatsapp(selectedContact?.whatsapp) }), _jsx("span", { children: displayInstagram(selectedContact?.instagram) })] })] }));
     }
     const createContact = guessClientContactFromSearch(trimmedSearch);
     return (_jsxs("div", { className: "grid gap-3", children: [_jsxs("div", { children: [_jsx("label", { className: "mb-1 block text-xs font-semibold text-on-surface-variant", children: "Buscar por nome, WhatsApp ou Instagram" }), _jsx(Input, { value: search, onChange: (event) => setSearch(event.target.value), placeholder: "Digite nome, telefone ou @instagram", className: "h-14 w-full rounded-2xl text-base" })] }), clientsQuery.isFetching && _jsx("p", { className: "text-sm text-on-surface-variant", children: "Buscando clientes parecidos..." }), canSearch && Boolean(clientsQuery.data?.length) && (_jsxs("div", { className: "grid gap-2", children: [_jsx("p", { className: "text-xs font-bold uppercase tracking-wider text-on-surface-variant", children: "Clientes parecidos" }), clientsQuery.data?.map((client) => (_jsxs("button", { type: "button", onClick: () => {

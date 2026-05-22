@@ -1,7 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { isClientContactEnriched } from "@anna/shared";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getClientById } from "../api/clients";
-import { AppShell, formatCurrency } from "../components/ui";
+import { getClientById, updateClient } from "../api/clients";
+import { ClientContactFields } from "../components/client-contact-fields";
+import { AppShell, Button, formatCurrency } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 
@@ -16,6 +19,9 @@ const toNumber = (value: string | number | null | undefined) => {
 export const ClientDetailPage = () => {
   const { clientId } = useParams<{ clientId: string }>();
   const brechoId = useSessionStore((state) => state.brechoId);
+  const queryClient = useQueryClient();
+  const [editingContact, setEditingContact] = useState(false);
+  const [contactDraft, setContactDraft] = useState({ nome: "", whatsapp: "", instagram: "" });
 
   const clientQuery = useQuery({
     queryKey: ["client", brechoId, clientId],
@@ -23,8 +29,29 @@ export const ClientDetailPage = () => {
     enabled: Boolean(clientId)
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (payload: { nome?: string; whatsapp?: string; instagram?: string }) =>
+      updateClient(brechoId, clientId!, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["client", brechoId, clientId] });
+      setEditingContact(false);
+    }
+  });
+
   const client = clientQuery.data;
+  const openSacola = client?.sacolas?.[0];
   const totalSpent = (client?.vendas ?? []).reduce((sum, sale) => sum + toNumber(sale.ganhosTotal), 0);
+  const profileIncomplete = client && !isClientContactEnriched(client);
+
+  const startEditContact = () => {
+    if (!client) return;
+    setContactDraft({
+      nome: client.nome,
+      whatsapp: client.whatsapp ?? "",
+      instagram: client.instagram ?? ""
+    });
+    setEditingContact(true);
+  };
 
   return (
     <AppShell showTopBar showBottomNav activeTab="clientes" topBarTitle={client?.nome ?? "Cliente"}>
@@ -48,9 +75,44 @@ export const ClientDetailPage = () => {
               {client.nome.slice(0, 1).toUpperCase()}
             </div>
             <h2 className="text-center font-headline text-2xl font-extrabold text-gray-900">{client.nome}</h2>
-            <p className="mb-5 text-sm font-medium text-gray-500">
+            {profileIncomplete && (
+              <span className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                Perfil incompleto
+              </span>
+            )}
+            <p className="mb-5 mt-2 text-sm font-medium text-gray-500">
               Cliente desde {new Date(client.criadoEm ?? Date.now()).toLocaleDateString("pt-BR")}
             </p>
+            {!editingContact ? (
+              <Button type="button" className="mb-4 !h-9 !min-h-0 text-xs" onClick={startEditContact}>
+                Completar contato
+              </Button>
+            ) : (
+              <div className="mb-4 w-full space-y-3">
+                <ClientContactFields
+                  values={contactDraft}
+                  onChange={(field, value) => setContactDraft((prev) => ({ ...prev, [field]: value }))}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    disabled={updateMutation.isPending}
+                    onClick={() =>
+                      updateMutation.mutate({
+                        nome: contactDraft.nome.trim(),
+                        whatsapp: contactDraft.whatsapp.trim() || undefined,
+                        instagram: contactDraft.instagram.trim() || undefined
+                      })
+                    }
+                  >
+                    Salvar
+                  </Button>
+                  <Button type="button" className="!bg-white !text-primary ring-1 ring-rose-100" onClick={() => setEditingContact(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="flex w-full gap-4">
               <a
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#25D366]/10 px-4 py-3 font-bold text-[#128C7E]"
@@ -58,7 +120,6 @@ export const ClientDetailPage = () => {
                 target="_blank"
                 rel="noreferrer"
               >
-                <span className="material-symbols-outlined">chat</span>
                 WhatsApp
               </a>
               <a
@@ -67,11 +128,28 @@ export const ClientDetailPage = () => {
                 target="_blank"
                 rel="noreferrer"
               >
-                <span className="material-symbols-outlined">photo_camera</span>
                 Instagram
               </a>
             </div>
           </section>
+
+          {openSacola && openSacola.vendas.length > 0 && (
+            <section className="mb-6 rounded-3xl border border-rose-100 bg-white p-4 shadow-sm">
+              <h3 className="mb-2 text-lg font-bold text-gray-800">Sacola aberta</h3>
+              <p className="mb-3 text-sm text-gray-500">{openSacola.vendas.length} peça(s) aguardando envio</p>
+              <ul className="space-y-1 text-sm">
+                {openSacola.vendas.map((v) => (
+                  <li key={v.id}>
+                    {v.peca.codigo ? `${v.peca.codigo} · ` : ""}
+                    {v.peca.nome}
+                  </li>
+                ))}
+              </ul>
+              <Link to="/vendas#aguardando" className="mt-3 inline-block text-sm font-bold text-primary">
+                Gerenciar envio →
+              </Link>
+            </section>
+          )}
 
           <section className="mb-6 grid grid-cols-2 gap-4">
             <div className="rounded-3xl border border-rose-50 bg-white p-4 shadow-sm">
@@ -87,7 +165,6 @@ export const ClientDetailPage = () => {
           <section>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-800">Histórico de Peças</h3>
-              <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase text-primary">Recentes</span>
             </div>
             <div className="space-y-3">
               {client.vendas.length === 0 && (
@@ -97,19 +174,24 @@ export const ClientDetailPage = () => {
               )}
               {client.vendas.map((sale) => (
                 <div key={sale.id} className="flex items-center gap-4 rounded-2xl border border-rose-50 bg-white p-3 shadow-sm">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-surface-container-low text-xs text-outline">
-                    Peça
-                  </div>
                   <div className="flex-1">
-                    <h4 className="font-bold text-gray-900">{sale.peca.nome}</h4>
+                    <h4 className="font-bold text-gray-900">
+                      {sale.peca.codigo ? `${sale.peca.codigo} · ` : ""}
+                      {sale.peca.nome}
+                    </h4>
                     <p className="text-xs font-medium text-gray-500">
-                      {new Date(sale.criadoEm).toLocaleDateString("pt-BR")} •{" "}
-                      {new Date(sale.criadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(sale.criadoEm).toLocaleDateString("pt-BR")}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="font-extrabold text-primary">{formatCurrency(sale.ganhosTotal)}</p>
-                    <span className="rounded-md bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-600">PAGO</span>
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                        sale.entrega ? "bg-green-50 text-green-600" : "bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {sale.entrega ? "ENTREGUE" : "AGUARDANDO ENVIO"}
+                    </span>
                   </div>
                 </div>
               ))}

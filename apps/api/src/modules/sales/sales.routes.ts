@@ -43,6 +43,10 @@ export const salesRoutes = async (app: FastifyInstance): Promise<void> => {
         return reply.code(404).send({ message });
       }
 
+      if (message === "Sale already delivered.") {
+        return reply.code(409).send({ message });
+      }
+
       if (message.startsWith("Invalid status transition:")) {
         return reply.code(409).send({ message });
       }

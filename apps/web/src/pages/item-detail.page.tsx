@@ -17,6 +17,7 @@ import {
   type ItemCategoria,
   type ItemCondicao
 } from "../api/items";
+import { createFilaLink } from "../api/public-queue";
 import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
 import { useSessionStore } from "../store/session.store";
@@ -71,6 +72,7 @@ export const ItemDetailPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
+  const [filaLinkCopied, setFilaLinkCopied] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [uploadLoteId, setUploadLoteId] = useState<string | null>(null);
@@ -195,6 +197,15 @@ export const ItemDetailPage = () => {
   const statusMutation = useMutation({
     mutationFn: (status: "DISPONIVEL" | "INDISPONIVEL") => updateItemStatus(brechoId, itemId!, status),
     onSuccess: invalidateItem
+  });
+
+  const filaLinkMutation = useMutation({
+    mutationFn: () => createFilaLink(brechoId, itemId!),
+    onSuccess: async (result) => {
+      await navigator.clipboard.writeText(result.url);
+      setFilaLinkCopied(true);
+      window.setTimeout(() => setFilaLinkCopied(false), 2500);
+    }
   });
 
   const ensureUploadLoteId = async () => {
@@ -322,6 +333,9 @@ export const ItemDetailPage = () => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <ItemStatusTone status={item.status} />
+                {item.codigo && (
+                  <p className="mt-1 text-xs font-bold uppercase tracking-wider text-primary">{item.codigo}</p>
+                )}
                 <h1 className="mt-2 font-headline text-3xl font-extrabold tracking-tight">{item.nome}</h1>
                 <p className="mt-1 text-sm text-on-surface-variant">
                   {categoriaLabels[item.categoria]} · {item.subcategoria}
@@ -352,6 +366,16 @@ export const ItemDetailPage = () => {
                 >
                   {item.status === "RESERVADO" ? "Adicionar à fila" : "Reservar"}
                 </Link>
+              )}
+              {canQueue && (
+                <Button
+                  type="button"
+                  className="!h-10 !min-h-0 !bg-white !px-4 !text-primary ring-1 ring-primary"
+                  disabled={filaLinkMutation.isPending}
+                  onClick={() => filaLinkMutation.mutate()}
+                >
+                  {filaLinkCopied ? "Link copiado!" : "Copiar link da fila"}
+                </Button>
               )}
               {(item.status === "DISPONIVEL" || item.status === "RESERVADO") && (
                 <Button

@@ -168,6 +168,20 @@ export const sellItem = async (brechoId, itemId, payload) => {
         body: payload
     });
 };
+export const sellBatch = async (brechoId, payload) => {
+    return request("/sales/batch", {
+        method: "POST",
+        brechoId,
+        body: payload
+    });
+};
+export const reserveBatch = async (brechoId, payload) => {
+    return request("/items/reserve-batch", {
+        method: "POST",
+        brechoId,
+        body: payload
+    });
+};
 export const listSalesPendingDelivery = async (brechoId) => {
     return request("/sales/pending-delivery", { brechoId });
 };

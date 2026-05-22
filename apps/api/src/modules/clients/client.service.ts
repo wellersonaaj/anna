@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { isClientContactComplete, normalizeInstagram, normalizeWhatsapp } from "@anna/shared";
 
 type DbLike = PrismaClient | Prisma.TransactionClient;
 
@@ -10,23 +11,6 @@ const normalizeSearchText = (value?: string | null): string =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase() ?? "";
-
-const normalizeWhatsapp = (raw?: string | null): string | null => {
-  if (!raw?.trim()) {
-    return null;
-  }
-
-  const digits = digitsOnly(raw);
-  return digits.length > 0 ? digits : null;
-};
-
-const normalizeInstagram = (raw?: string | null): string | null => {
-  if (!raw?.trim()) {
-    return null;
-  }
-
-  return raw.replace(/^@+/, "").trim().toLowerCase() || null;
-};
 
 const scoreTextMatch = (candidate: string, term: string): number => {
   if (!candidate || !term) {
@@ -189,12 +173,69 @@ export const clientService = {
             peca: {
               select: {
                 id: true,
-                nome: true
+                nome: true,
+                codigo: true
+              }
+            },
+            entrega: true
+          }
+        },
+        sacolas: {
+          where: { status: "ABERTA" },
+          include: {
+            vendas: {
+              where: { entrega: null },
+              include: {
+                peca: { select: { id: true, nome: true, codigo: true } }
               }
             }
-          }
+          },
+          take: 1
         }
       }
+    });
+  },
+
+  async updateCliente(
+    db: DbLike,
+    brechoId: string,
+    id: string,
+    input: { nome?: string; whatsapp?: string; instagram?: string }
+  ) {
+    const existing = await db.cliente.findFirst({ where: { id, brechoId } });
+    if (!existing) {
+      throw new Error("Client not found.");
+    }
+
+    const nome = input.nome?.trim() ?? existing.nome;
+    const whatsapp = input.whatsapp !== undefined ? normalizeWhatsapp(input.whatsapp) : existing.whatsapp;
+    const instagram = input.instagram !== undefined ? normalizeInstagram(input.instagram) : existing.instagram;
+
+    if (!isClientContactComplete({ nome, whatsapp, instagram })) {
+      throw new Error("Informe o nome e pelo menos WhatsApp ou Instagram.");
+    }
+
+    if (whatsapp) {
+      const conflict = await db.cliente.findFirst({
+        where: { brechoId, whatsapp, NOT: { id } }
+      });
+      if (conflict) {
+        throw new Error("WhatsApp já cadastrado para outra cliente.");
+      }
+    }
+
+    if (instagram) {
+      const conflict = await db.cliente.findFirst({
+        where: { brechoId, instagram, NOT: { id } }
+      });
+      if (conflict) {
+        throw new Error("Instagram já cadastrado para outra cliente.");
+      }
+    }
+
+    return db.cliente.update({
+      where: { id },
+      data: { nome, whatsapp, instagram }
     });
   }
 };

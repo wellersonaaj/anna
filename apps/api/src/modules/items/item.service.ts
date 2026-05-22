@@ -11,6 +11,8 @@ import {
   resolveObjectKeyFromPublicUrl
 } from "../../lib/storage.js";
 import { clientService } from "../clients/client.service.js";
+import { allocateCodigo } from "../../lib/peca-code.js";
+import { sacolaService } from "../sacolas/sacola.service.js";
 
 const ensureTransition = (from: StatusPeca, to: StatusPeca): void => {
   if (!canTransitionStatus(from, to)) {
@@ -339,10 +341,12 @@ export const itemService = {
     acervoNome?: string;
   }) {
     return prisma.$transaction(async (tx) => {
+      const codigo = await allocateCodigo(tx, brechoId);
       const item = await tx.peca.create({
         data: {
           ...data,
           brechoId,
+          codigo,
           acervoNome: data.acervoNome?.trim() || null,
           precoVenda: data.precoVenda ?? null
         }
@@ -380,6 +384,7 @@ export const itemService = {
           ? {
               OR: [
                 { nome: { contains: query.search, mode: "insensitive" } },
+                { codigo: { contains: query.search, mode: "insensitive" } },
                 { subcategoria: { contains: query.search, mode: "insensitive" } },
                 { marca: { contains: query.search, mode: "insensitive" } },
                 { acervoNome: { contains: query.search, mode: "insensitive" } }
@@ -432,6 +437,7 @@ export const itemService = {
         ).filter((p): p is { id: string; displayUrl: string } => p !== null);
         return {
           id: row.id,
+          codigo: row.codigo,
           nome: row.nome,
           categoria: row.categoria,
           subcategoria: row.subcategoria,
@@ -1548,6 +1554,9 @@ export const itemService = {
         }
       });
 
+      const venda = await tx.venda.findUniqueOrThrow({ where: { pecaId: itemId } });
+      await sacolaService.addVendaToOpenSacola(tx, brechoId, cliente.id, venda.id);
+
       const updatedItem = await tx.peca.update({
         where: { id: itemId },
         data: { status: itemStatus.VENDIDO }
@@ -1567,5 +1576,42 @@ export const itemService = {
 
       return updatedItem;
     });
+  },
+
+  async sellBatch(
+    prisma: PrismaClient,
+    brechoId: string,
+    payload: {
+      cliente: { nome: string; whatsapp?: string | null; instagram?: string | null };
+      itens: Array<{ pecaId: string; precoVenda: number; freteTexto?: string; freteValor?: number }>;
+    }
+  ) {
+    const sold: string[] = [];
+    for (const item of payload.itens) {
+      await itemService.sell(prisma, brechoId, item.pecaId, {
+        cliente: payload.cliente,
+        precoVenda: item.precoVenda,
+        freteTexto: item.freteTexto,
+        freteValor: item.freteValor
+      });
+      sold.push(item.pecaId);
+    }
+    return { soldCount: sold.length, pecaIds: sold };
+  },
+
+  async reserveBatch(
+    prisma: PrismaClient,
+    brechoId: string,
+    payload: {
+      cliente: { nome: string; whatsapp?: string | null; instagram?: string | null };
+      pecaIds: string[];
+    }
+  ) {
+    const entries = [];
+    for (const pecaId of payload.pecaIds) {
+      const entry = await itemService.joinFila(prisma, brechoId, pecaId, payload.cliente);
+      entries.push(entry);
+    }
+    return { reservedCount: entries.length, entries };
   }
 };

@@ -58,6 +58,26 @@ export const sellItemSchema = z.object({
   freteValor: moneyNonNegativeSchema.optional()
 });
 
+export const sellBatchSchema = z.object({
+  cliente: clienteContatoSchema,
+  itens: z
+    .array(
+      z.object({
+        pecaId: z.string().cuid(),
+        precoVenda: moneyPositiveSchema,
+        freteTexto: z.string().optional(),
+        freteValor: moneyNonNegativeSchema.optional()
+      })
+    )
+    .min(1)
+    .max(20)
+});
+
+export const reserveBatchSchema = z.object({
+  cliente: clienteContatoSchema,
+  pecaIds: z.array(z.string().cuid()).min(1).max(20)
+});
+
 export const listItemsQuerySchema = z.object({
   status: z.enum(["DISPONIVEL", "RESERVADO", "VENDIDO", "ENTREGUE", "INDISPONIVEL"]).optional(),
   categoria: z.enum(["ROUPA_FEMININA", "ROUPA_MASCULINA", "CALCADO", "ACESSORIO"]).optional(),

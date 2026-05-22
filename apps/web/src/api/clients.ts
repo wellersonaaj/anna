@@ -14,10 +14,19 @@ export type ClientDetail = ClientRow & {
     precoVenda: string | number;
     ganhosTotal: string | number;
     criadoEm: string;
+    entrega?: { entregueEm: string } | null;
     peca: {
       id: string;
       nome: string;
+      codigo?: string | null;
     };
+  }>;
+  sacolas?: Array<{
+    id: string;
+    vendas: Array<{
+      id: string;
+      peca: { id: string; nome: string; codigo?: string | null };
+    }>;
   }>;
 };
 
@@ -54,4 +63,16 @@ export const createClient = async (brechoId: string, payload: ClientContactPaylo
 
 export const getClientById = async (brechoId: string, clientId: string): Promise<ClientDetail> => {
   return request<ClientDetail>(`/clients/${clientId}`, { brechoId });
+};
+
+export const updateClient = async (
+  brechoId: string,
+  clientId: string,
+  payload: Partial<ClientContactPayload>
+): Promise<ClientRow> => {
+  return request<ClientRow>(`/clients/${clientId}`, {
+    method: "PATCH",
+    brechoId,
+    body: payload
+  });
 };

@@ -1,14 +1,15 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { ClientPicker } from "../components/client-picker";
-import { getItem, joinItemFila } from "../api/items";
+import { getItem, joinItemFila, leaveItemFila } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section } from "../components/ui";
+import { parseMoneyLike } from "../lib/money";
 const reserveFormSchema = z.object({
     nome: z.string().trim().min(2, "Informe o nome."),
     whatsapp: z.string().trim().optional(),
@@ -34,7 +35,7 @@ const formatPreco = (value) => {
     if (value === null || value === undefined || value === "") {
         return "—";
     }
-    const num = typeof value === "string" ? Number(value.replace(",", ".")) : Number(value);
+    const num = parseMoneyLike(value);
     if (Number.isNaN(num)) {
         return String(value);
     }
@@ -46,6 +47,15 @@ export const ReservePage = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [showAdjustFields, setShowAdjustFields] = useState(false);
+    const [showSuccessBadge, setShowSuccessBadge] = useState(false);
+    const successTimerRef = useRef(null);
+    useEffect(() => {
+        return () => {
+            if (successTimerRef.current) {
+                window.clearTimeout(successTimerRef.current);
+            }
+        };
+    }, []);
     const itemQuery = useQuery({
         queryKey: ["item", brechoId, itemId],
         queryFn: () => getItem(brechoId, itemId),
@@ -134,8 +144,49 @@ export const ReservePage = () => {
             });
             reset({ nome: "", whatsapp: "", instagram: "" });
             setShowAdjustFields(false);
+            setShowSuccessBadge(true);
+            if (successTimerRef.current) {
+                window.clearTimeout(successTimerRef.current);
+            }
+            successTimerRef.current = window.setTimeout(() => {
+                setShowSuccessBadge(false);
+            }, 1800);
         },
         onSettled: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
+        }
+    });
+    const leaveFilaMutation = useMutation({
+        mutationFn: (entradaId) => {
+            if (!itemId) {
+                throw new Error("Peça não informada.");
+            }
+            return leaveItemFila(brechoId, itemId, entradaId);
+        },
+        onMutate: async (entradaId) => {
+            await queryClient.cancelQueries({ queryKey: itemQueryKey });
+            const previousItem = queryClient.getQueryData(itemQueryKey);
+            queryClient.setQueryData(itemQueryKey, (current) => {
+                if (!current) {
+                    return current;
+                }
+                const nextQueue = (current.filaInteressados ?? [])
+                    .filter((entry) => entry.id !== entradaId)
+                    .map((entry, index) => ({ ...entry, posicao: index }));
+                return {
+                    ...current,
+                    filaInteressados: nextQueue
+                };
+            });
+            return { previousItem };
+        },
+        onError: (_error, _entradaId, context) => {
+            if (context?.previousItem) {
+                queryClient.setQueryData(itemQueryKey, context.previousItem);
+            }
+        },
+        onSettled: async () => {
+            await queryClient.invalidateQueries({ queryKey: itemQueryKey });
             await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
         }
     });
@@ -187,7 +238,15 @@ export const ReservePage = () => {
                                         justifyContent: "center",
                                         fontSize: 11,
                                         color: "#5a4042"
-                                    }, children: "Foto" })), _jsxs("div", { children: [_jsx("div", { style: { fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", color: "#b60e3d" }, children: item.status === "RESERVADO" ? "ADICIONANDO À FILA" : "RESERVANDO ITEM" }), _jsx("h3", { style: { margin: "4px 0", fontSize: "1.1rem" }, children: item.nome }), _jsx("div", { style: { fontSize: 13, fontWeight: 700 }, children: formatPreco(item.precoVenda) })] })] })), _jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }, children: [_jsx(Button, { type: "submit", disabled: reserveMutation.isPending || !item || !canQueue, children: reserveMutation.isPending
+                                    }, children: "Foto" })), _jsxs("div", { children: [_jsx("div", { style: { fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", color: "#b60e3d" }, children: item.status === "RESERVADO" ? "ADICIONANDO À FILA" : "RESERVANDO ITEM" }), _jsx("h3", { style: { margin: "4px 0", fontSize: "1.1rem" }, children: item.nome }), _jsx("div", { style: { fontSize: 13, fontWeight: 700 }, children: formatPreco(item.precoVenda) })] })] })), _jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }, children: [showSuccessBadge && (_jsx("div", { role: "status", "aria-live": "polite", style: {
+                                        borderRadius: 10,
+                                        border: "1px solid #86efac",
+                                        background: "#dcfce7",
+                                        color: "#166534",
+                                        fontWeight: 700,
+                                        fontSize: 13,
+                                        padding: "8px 10px"
+                                    }, children: "Cliente adicionado na fila com sucesso." })), _jsx(Button, { type: "submit", disabled: reserveMutation.isPending || !item || !canQueue, children: reserveMutation.isPending
                                         ? "Confirmando..."
                                         : item?.status === "RESERVADO"
                                             ? "Adicionar à fila"
@@ -199,5 +258,5 @@ export const ReservePage = () => {
                                         color: "#5a4042",
                                         cursor: "pointer",
                                         fontWeight: 600
-                                    }, children: "Descartar rascunho" })] }), formState.errors.root && _jsx("small", { children: formState.errors.root.message })] }) }), _jsx(Section, { title: "Fila de interessados", children: !canQueue ? (_jsx("p", { style: { opacity: 0.85 }, children: "A fila só pode ser gerenciada em peças disponíveis ou reservadas." })) : (_jsx("div", { className: "stack", style: { gap: 8 }, children: (item?.filaInteressados ?? []).length === 0 ? (_jsx("p", { style: { opacity: 0.8 }, children: "Ninguém na fila." })) : ((item?.filaInteressados ?? []).map((entry) => (_jsx("div", { className: "card", style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: _jsxs("div", { children: [_jsxs("strong", { children: [entry.posicao + 1, "º — ", entry.cliente.nome] }), entry.posicao === 0 && item?.status === "RESERVADO" && (_jsx("span", { className: "ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700", children: "Reserva ativa" })), _jsx("div", { style: { fontSize: 13, opacity: 0.85 }, children: [entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato" })] }) }, entry.id)))) })) })] }));
+                                    }, children: "Descartar rascunho" })] }), formState.errors.root && _jsx("small", { children: formState.errors.root.message })] }) }), _jsx(Section, { title: "Fila de interessados", children: !canQueue ? (_jsx("p", { style: { opacity: 0.85 }, children: "A fila s\u00F3 pode ser gerenciada em pe\u00E7as dispon\u00EDveis ou reservadas." })) : (_jsx("div", { className: "stack", style: { gap: 8 }, children: (item?.filaInteressados ?? []).length === 0 ? (_jsx("p", { style: { opacity: 0.8 }, children: "Ningu\u00E9m na fila." })) : ((item?.filaInteressados ?? []).map((entry) => (_jsxs("div", { className: "card", style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [_jsxs("div", { children: [_jsxs("strong", { children: [entry.posicao + 1, "\u00BA \u2014 ", entry.cliente.nome] }), entry.posicao === 0 && item?.status === "RESERVADO" && (_jsx("span", { className: "ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700", children: "Reserva ativa" })), _jsx("div", { style: { fontSize: 13, opacity: 0.85 }, children: [entry.cliente.whatsapp, entry.cliente.instagram].filter(Boolean).join(" · ") || "Sem contato" })] }), _jsx(Button, { type: "button", onClick: () => leaveFilaMutation.mutate(entry.id), disabled: leaveFilaMutation.isPending, children: "Remover" })] }, entry.id)))) })) })] }));
 };

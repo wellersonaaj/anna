@@ -25,6 +25,8 @@ import { LoginPage } from "./pages/login.page";
 import { AdminBrechosPage } from "./pages/admin/admin-brechos.page";
 import { AdminBrechoFormPage } from "./pages/admin/admin-brecho-form.page";
 import { AdminBrechoDetailPage } from "./pages/admin/admin-brecho-detail.page";
+import { SellBatchPage } from "./pages/sell-batch.page";
+import { PublicQueuePage } from "./pages/public-queue.page";
 import { AddToHomeScreenPrompt } from "./components/add-to-home-screen-prompt";
 import { useSessionStore } from "./store/session.store";
 
@@ -71,6 +73,7 @@ export const App = () => {
         <AddToHomeScreenPrompt />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/fila/:token" element={<PublicQueuePage />} />
           <Route path="/conta/senha" element={<RequireSession><AccountChangePasswordPage /></RequireSession>} />
           <Route path="/admin" element={<Navigate to="/admin/brechos" replace />} />
           <Route path="/admin/brechos" element={<RequireFounder><AdminBrechosPage /></RequireFounder>} />
@@ -89,6 +92,7 @@ export const App = () => {
           <Route path="/items/:itemId" element={<RequireAuth><ItemDetailPage /></RequireAuth>} />
           <Route path="/items/:itemId/fotos/upload" element={<RequireAuth><ItemFotoUploadPage /></RequireAuth>} />
           <Route path="/reserve/:itemId" element={<RequireAuth><ReservePage /></RequireAuth>} />
+          <Route path="/sell/batch" element={<RequireAuth><SellBatchPage /></RequireAuth>} />
           <Route path="/sell/:itemId" element={<RequireAuth><SellPage /></RequireAuth>} />
           <Route path="/vendas" element={<RequireAuth><SalesHubPage /></RequireAuth>} />
           <Route path="/deliveries" element={<RequireAuth><DeliveriesPage /></RequireAuth>} />

@@ -1,9 +1,75 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { createPortal } from "react-dom";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "../api/auth";
+import { formatCurrencySafe } from "../lib/money";
+import { useSessionStore } from "../store/session.store";
 const cx = (...parts) => parts.filter(Boolean).join(" ");
-export const AppShell = ({ children, showTopBar = false, topBarTitle = "Agente", topBarAction, showBottomNav = false, activeTab = "estoque", fabLink = "/items/new", maxWidthClass = "max-w-5xl" }) => {
-    return (_jsxs("div", { className: "min-h-screen bg-background text-on-background", children: [showTopBar && (_jsx("header", { className: "fixed inset-x-0 top-0 z-40 border-b border-rose-100 bg-[#fff8f7]/90 backdrop-blur-md", children: _jsxs("div", { className: cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass), children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("div", { className: "h-9 w-9 overflow-hidden rounded-full bg-surface-container-high" }), _jsx("span", { className: "font-headline text-lg font-bold text-primary", children: topBarTitle })] }), _jsx("div", { children: topBarAction })] }) })), _jsx("div", { className: cx("mx-auto px-4 pb-8 pt-6", maxWidthClass, showTopBar && "pt-24", showBottomNav && "pb-36"), children: _jsx("div", { className: "flex flex-col gap-4", children: children }) }), showBottomNav && _jsx(BottomNav, { activeTab: activeTab, fabLink: fabLink })] }));
+const AppShellAccountMenu = () => {
+    const [open, setOpen] = useState(false);
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+    const btnRef = useRef(null);
+    const navigate = useNavigate();
+    const user = useSessionStore((s) => s.user);
+    const activeBrecho = useSessionStore((s) => s.activeBrecho);
+    const clearSession = useSessionStore((s) => s.clearSession);
+    useLayoutEffect(() => {
+        if (!open || !btnRef.current) {
+            return;
+        }
+        const update = () => {
+            if (!btnRef.current) {
+                return;
+            }
+            const r = btnRef.current.getBoundingClientRect();
+            setMenuPos({ top: r.bottom + 4, left: r.left });
+        };
+        update();
+        window.addEventListener("resize", update);
+        window.addEventListener("scroll", update, true);
+        return () => {
+            window.removeEventListener("resize", update);
+            window.removeEventListener("scroll", update, true);
+        };
+    }, [open]);
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+        const onKey = (e) => {
+            if (e.key === "Escape") {
+                setOpen(false);
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [open]);
+    const avatarUrl = activeBrecho?.avatarUrl;
+    const trimmedBrechoNome = activeBrecho?.nome?.trim();
+    const trimmedUserNome = user?.nome?.trim();
+    const initialSource = trimmedBrechoNome && trimmedBrechoNome.length > 0
+        ? trimmedBrechoNome[0]
+        : trimmedUserNome && trimmedUserNome.length > 0
+            ? trimmedUserNome[0]
+            : user?.telefone?.[0] ?? "?";
+    const initial = initialSource.toUpperCase();
+    const onLogout = async () => {
+        await logout().catch(() => undefined);
+        clearSession();
+        navigate("/login", { replace: true });
+    };
+    const menuPortal = open &&
+        createPortal(_jsxs(_Fragment, { children: [_jsx("button", { type: "button", className: "fixed inset-0 z-[100] cursor-default bg-black/20", "aria-label": "Fechar menu", onClick: () => setOpen(false) }), _jsxs("div", { role: "menu", className: "fixed z-[101] min-w-[208px] overflow-hidden rounded-2xl border border-rose-100 bg-white py-1 shadow-lg", style: { top: menuPos.top, left: menuPos.left }, children: [_jsx(Link, { role: "menuitem", to: "/conta/senha", className: "block px-4 py-3 text-sm font-bold text-on-background no-underline hover:bg-rose-50", onClick: () => setOpen(false), children: "Trocar senha" }), _jsx("button", { role: "menuitem", type: "button", className: "block w-full border-t border-rose-100 px-4 py-3 text-left text-sm font-bold text-on-background hover:bg-rose-50", onClick: () => {
+                                setOpen(false);
+                                void onLogout();
+                            }, children: "Sair" })] })] }), document.body);
+    return (_jsxs("div", { className: "relative flex shrink-0 items-center", children: [_jsx("button", { ref: btnRef, type: "button", className: "flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-container-high text-xs font-extrabold text-primary outline-none ring-primary focus-visible:ring-2", "aria-expanded": open, "aria-haspopup": "menu", "aria-label": "Conta e sess\u00E3o \u2014 toque para trocar senha ou sair", onClick: () => setOpen((o) => !o), children: avatarUrl ? (_jsx("img", { src: avatarUrl, alt: "", className: "h-full w-full object-cover" })) : (_jsx("span", { "aria-hidden": true, children: initial })) }), menuPortal] }));
+};
+export const AppShell = ({ children, showTopBar = false, topBarTitle, topBarAction, showBottomNav = false, activeTab = "estoque", fabLink = "/items/new", maxWidthClass = "max-w-5xl" }) => {
+    const brechoNomeTrim = useSessionStore((s) => s.activeBrecho?.nome?.trim());
+    const resolvedTopBarTitle = topBarTitle ?? (brechoNomeTrim && brechoNomeTrim.length > 0 ? brechoNomeTrim : "Miranda");
+    return (_jsxs("div", { className: "min-h-screen bg-background text-on-background", children: [showTopBar && (_jsx("header", { className: "fixed inset-x-0 top-0 z-40 border-b border-rose-100 bg-[#fff8f7]/90 backdrop-blur-md", children: _jsxs("div", { className: cx("mx-auto flex h-16 items-center justify-between px-4", maxWidthClass), children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx(AppShellAccountMenu, {}), _jsx("span", { className: "font-headline text-lg font-bold text-primary", children: resolvedTopBarTitle })] }), _jsx("div", { children: topBarAction })] }) })), _jsx("div", { className: cx("mx-auto px-4 pb-8 pt-6", maxWidthClass, showTopBar && "pt-24", showBottomNav && "pb-36"), children: _jsx("div", { className: "flex flex-col gap-4", children: children }) }), showBottomNav && _jsx(BottomNav, { activeTab: activeTab, fabLink: fabLink })] }));
 };
 export const Section = ({ title, children }) => {
     return (_jsxs("section", { className: "rounded-3xl border border-rose-100 bg-white p-4 shadow-sm", children: [_jsx("h2", { className: "m-0 mb-3 font-headline text-lg font-extrabold tracking-tight", children: title }), children] }));
@@ -108,21 +174,11 @@ export const ProductCard = ({ item, subtitle, priceLabel, children, onImageClick
     };
     const showCarouselControls = hasPreviews && previews.length > 1;
     const showPreviewLoadingOverlay = Boolean(hasImage && !previewImageReady);
-    const image = hasImage
-        ? _jsx("img", { src: displaySrc ?? undefined, alt: `Foto da peça ${item.nome}`, className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105", loading: showCarouselControls ? "eager" : "lazy", onLoad: () => setPreviewImageReady(true), onError: () => {
-                setImageBroken(true);
-                setPreviewImageReady(true);
-            } })
-        : _jsx("div", { className: "flex h-full w-full items-center justify-center text-xs font-bold text-outline", children: "Sem foto" });
-    return (_jsxs("article", { className: "group", children: [_jsxs("div", { className: "relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low", "aria-busy": showPreviewLoadingOverlay, children: [onImageClick && hasImage
-                    ? _jsx("button", { type: "button", onClick: onImageClick, className: "relative z-0 block h-full w-full cursor-zoom-in p-0", children: image })
-                    : _jsx("div", { className: "relative z-0 h-full w-full", children: image }), showPreviewLoadingOverlay
-                    ? _jsx("div", { className: "pointer-events-none absolute inset-0 z-[8] flex items-center justify-center bg-black/10", "aria-hidden": true, children: _jsx("span", { className: "inline-block h-9 w-9 animate-spin rounded-full border-2 border-white/40 border-t-white/90 shadow-sm" }) })
-                    : null, showCarouselControls
-                    ? _jsx("button", { type: "button", onClick: (e) => goPreview(-1, e), className: "absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85", "aria-label": "Foto anterior", children: "\u2039" })
-                    : null, showCarouselControls
-                    ? _jsx("button", { type: "button", onClick: (e) => goPreview(1, e), className: "absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85", "aria-label": "Pr\u00F3xima foto", children: "\u203A" })
-                    : null, _jsx("div", { className: "pointer-events-none absolute left-3 top-3 z-20", children: _jsx(ItemStatusTone, { status: item.status }) })] }), _jsx("p", { className: "mb-1 text-[9px] font-bold uppercase tracking-widest text-outline", children: subtitle }), _jsx("h3", { className: "mb-1 text-sm font-bold leading-tight tracking-tight text-on-background", children: item.nome }), priceLabel && _jsx("p", { className: "text-sm font-bold text-on-background", children: priceLabel }), children] }));
+    const image = hasImage ? (_jsx("img", { src: displaySrc ?? undefined, alt: `Foto da peça ${item.nome}`, className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105", loading: showCarouselControls ? "eager" : "lazy", onLoad: () => setPreviewImageReady(true), onError: () => {
+            setImageBroken(true);
+            setPreviewImageReady(true);
+        } })) : (_jsx("div", { className: "flex h-full w-full items-center justify-center text-xs font-bold text-outline", children: "Sem foto" }));
+    return (_jsxs("article", { className: "group", children: [_jsxs("div", { className: "relative mb-3 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-low", "aria-busy": showPreviewLoadingOverlay, children: [onImageClick && hasImage ? (_jsx("button", { type: "button", onClick: onImageClick, className: "relative z-0 block h-full w-full cursor-zoom-in p-0", children: image })) : (_jsx("div", { className: "relative z-0 h-full w-full", children: image })), showPreviewLoadingOverlay ? (_jsx("div", { className: "pointer-events-none absolute inset-0 z-[8] flex items-center justify-center bg-black/10", "aria-hidden": true, children: _jsx("span", { className: "inline-block h-9 w-9 animate-spin rounded-full border-2 border-white/40 border-t-white/90 shadow-sm" }) })) : null, showCarouselControls ? (_jsxs(_Fragment, { children: [_jsx("button", { type: "button", onClick: (e) => goPreview(-1, e), className: "absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85", "aria-label": "Foto anterior", children: "\u2039" }), _jsx("button", { type: "button", onClick: (e) => goPreview(1, e), className: "absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 px-2 py-1.5 text-lg font-bold leading-none text-white opacity-65 shadow-md backdrop-blur-[2px] transition-opacity hover:opacity-100 group-hover:opacity-85", "aria-label": "Pr\u00F3xima foto", children: "\u203A" })] })) : null, _jsx("div", { className: "pointer-events-none absolute left-3 top-3 z-20", children: _jsx(ItemStatusTone, { status: item.status }) })] }), _jsx("p", { className: "mb-1 text-[9px] font-bold uppercase tracking-widest text-outline", children: subtitle }), _jsx("h3", { className: "mb-1 text-sm font-bold leading-tight tracking-tight text-on-background", children: item.nome }), priceLabel && _jsx("p", { className: "text-sm font-bold text-on-background", children: priceLabel }), children] }));
 };
 export const PhotoLightbox = ({ photos, initialIndex, title, onClose, coverPhotoId, onSetCover, setCoverPending = false }) => {
     const [index, setIndex] = useState(initialIndex);
@@ -152,14 +208,7 @@ export const PhotoLightbox = ({ photos, initialIndex, title, onClose, coverPhoto
                                 (photo.id === coverPhotoId ? (_jsx("span", { className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white/80", children: "Capa" })) : (_jsx("button", { type: "button", onClick: () => onSetCover(photo.id), disabled: setCoverPending, className: "rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white disabled:opacity-60", children: setCoverPending ? "Salvando..." : "Definir como capa" }))), _jsx("button", { type: "button", onClick: onClose, className: "rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white", children: "Fechar" })] })] }), _jsxs("div", { className: "flex min-h-0 flex-1 items-center justify-center gap-2", children: [total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index - 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Foto anterior", children: "\u2039" })), _jsxs("div", { className: "relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden", children: [showPreviewUnder ? (_jsx("img", { src: photo.thumbnailUrl ?? undefined, alt: "", draggable: false, className: "pointer-events-none absolute max-h-full max-w-full select-none rounded-2xl object-contain opacity-90", "aria-hidden": true })) : null, _jsx("img", { src: photo.url, alt: photo.alt ?? title, draggable: false, className: "relative max-h-full min-w-0 select-none rounded-2xl object-contain", onLoad: () => setFullLoaded(true) })] }), total > 1 && (_jsx("button", { type: "button", onClick: () => goTo(index + 1), className: "rounded-full bg-white/10 px-3 py-3 text-2xl font-bold", "aria-label": "Pr\u00F3xima foto", children: "\u203A" }))] })] }));
 };
 export const formatCurrency = (value) => {
-    if (value === null || value === undefined || value === "") {
-        return "Preço a confirmar";
-    }
-    const asNumber = typeof value === "string" ? Number(value.replace(",", ".")) : Number(value);
-    if (Number.isNaN(asNumber)) {
-        return "Preço a confirmar";
-    }
-    return asNumber.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return formatCurrencySafe(value, "Preço a confirmar");
 };
 export const relativeAgeLabel = (createdAt) => {
     const hours = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60)));

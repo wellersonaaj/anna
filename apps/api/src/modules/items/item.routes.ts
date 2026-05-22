@@ -12,6 +12,8 @@ import {
   presignFotoLoteSchema,
   reserveItemSchema,
   sellItemSchema,
+  sellBatchSchema,
+  reserveBatchSchema,
   submitDraftFeedbackSchema,
   updateItemSchema,
   updateItemStatusSchema
@@ -353,6 +355,53 @@ export const itemRoutes = async (app: FastifyInstance): Promise<void> => {
       const payload = sellItemSchema.parse(request.body);
       const item = await itemService.sell(app.prisma, request.brechoId, params.id, payload);
       return reply.send(item);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.post("/sales/batch", async (request, reply) => {
+    try {
+      const payload = sellBatchSchema.parse(request.body);
+      const result = await itemService.sellBatch(app.prisma, request.brechoId, payload);
+      return reply.code(201).send(result);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.post("/items/reserve-batch", async (request, reply) => {
+    try {
+      const payload = reserveBatchSchema.parse(request.body);
+      const result = await itemService.reserveBatch(app.prisma, request.brechoId, payload);
+      return reply.send(result);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.post("/items/:id/fila-link", async (request, reply) => {
+    try {
+      const params = request.params as { id: string };
+      const origin = request.headers.origin ?? request.headers.referer?.replace(/\/[^/]*$/, "") ?? "http://localhost:5173";
+      const { filaLinkService } = await import("../public/public.service.js");
+      const result = await filaLinkService.createOrRotate(app.prisma, request.brechoId, params.id, origin);
+      return reply.send(result);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.delete("/items/:id/fila-link", async (request, reply) => {
+    try {
+      const params = request.params as { id: string };
+      const { filaLinkService } = await import("../public/public.service.js");
+      await filaLinkService.revoke(app.prisma, request.brechoId, params.id);
+      return reply.code(204).send();
     } catch (error) {
       const normalized = handleError(error, app);
       return reply.code(normalized.statusCode).send(normalized.body);

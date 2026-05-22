@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
-import { createClientSchema, searchClientsQuerySchema } from "./client.schemas.js";
+import { createClientSchema, searchClientsQuerySchema, updateClientSchema } from "./client.schemas.js";
 import { clientService } from "./client.service.js";
 
 const handleError = (error: unknown, app: FastifyInstance) => {
@@ -13,6 +13,10 @@ const handleError = (error: unknown, app: FastifyInstance) => {
 
   if (message === "Client not found.") {
     return { statusCode: 404, body: { message } };
+  }
+
+  if (message.includes("já cadastrado")) {
+    return { statusCode: 409, body: { message } };
   }
 
   return { statusCode: 400, body: { message } };
@@ -55,6 +59,18 @@ export const clientRoutes = async (app: FastifyInstance): Promise<void> => {
         return reply.code(404).send({ message: "Client not found." });
       }
 
+      return reply.send(client);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.patch("/clients/:id", async (request, reply) => {
+    try {
+      const params = request.params as { id: string };
+      const payload = updateClientSchema.parse(request.body);
+      const client = await clientService.updateCliente(app.prisma, request.brechoId, params.id, payload);
       return reply.send(client);
     } catch (error) {
       const normalized = handleError(error, app);

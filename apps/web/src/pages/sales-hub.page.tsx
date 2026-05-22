@@ -2,13 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  deliverSale,
   listItems,
   listSalesDelivered,
-  listSalesPendingDelivery,
   type DeliveredSale,
   type Item
 } from "../api/items";
+import { listPendingSacolas, shipSacola, type PendingSacola } from "../api/sacolas";
 import {
   AppShell,
   Button,
@@ -30,7 +29,8 @@ export const SalesHubPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const queryClient = useQueryClient();
 
-  const [rastreioPorVenda, setRastreioPorVenda] = useState<Record<string, string>>({});
+  const [rastreioPorSacola, setRastreioPorSacola] = useState<Record<string, string>>({});
+  const [selectedVendas, setSelectedVendas] = useState<Record<string, string[]>>({});
   const [deliveredOffset, setDeliveredOffset] = useState(0);
   const [deliveredRows, setDeliveredRows] = useState<DeliveredSale[]>([]);
 
@@ -39,9 +39,9 @@ export const SalesHubPage = () => {
     queryFn: () => listItems(brechoId, { status: "RESERVADO" })
   });
 
-  const pendingSalesQuery = useQuery({
-    queryKey: ["pending-sales", brechoId],
-    queryFn: () => listSalesPendingDelivery(brechoId)
+  const pendingSacolasQuery = useQuery({
+    queryKey: ["pending-sacolas", brechoId],
+    queryFn: () => listPendingSacolas(brechoId)
   });
 
   const deliveredSalesQuery = useQuery({
@@ -74,19 +74,23 @@ export const SalesHubPage = () => {
     [reservedItemsQuery.data]
   );
 
-  const deliverMutation = useMutation({
-    mutationFn: (vars: { saleId: string; codigoRastreio?: string }) =>
-      deliverSale(brechoId, vars.saleId, {
-        codigoRastreio: vars.codigoRastreio?.trim() || undefined,
-        entregueEm: new Date().toISOString()
+  const shipSacolaMutation = useMutation({
+    mutationFn: (vars: { sacolaId: string; vendaIds?: string[]; codigoRastreio?: string }) =>
+      shipSacola(brechoId, vars.sacolaId, {
+        vendaIds: vars.vendaIds,
+        codigoRastreio: vars.codigoRastreio?.trim() || undefined
       }),
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["pending-sacolas", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["pending-sales", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
       setDeliveredOffset(0);
       await queryClient.invalidateQueries({ queryKey: ["delivered-sales", brechoId] });
     }
   });
+
+  const pendingSacolas = pendingSacolasQuery.data ?? [];
+  const totalPecasPendentes = pendingSacolas.reduce((sum, s) => sum + s.totalPecas, 0);
 
   return (
     <AppShell showTopBar showBottomNav activeTab="vendas">
@@ -173,65 +177,75 @@ export const SalesHubPage = () => {
         <div className="mb-4 flex items-center justify-between px-1">
           <h2 className="font-headline text-2xl font-extrabold text-primary">Aguardando Entrega</h2>
           <span className="rounded-full bg-rose-100 px-2 py-1 text-xs font-semibold text-primary">
-            {pendingSalesQuery.data?.length ?? 0} peças
+            {totalPecasPendentes} peças · {pendingSacolas.length} sacolas
           </span>
         </div>
         <div className="space-y-4">
-          {pendingSalesQuery.isLoading && <p>Carregando entregas pendentes...</p>}
-          {!pendingSalesQuery.isLoading && !pendingSalesQuery.data?.length && (
+          {pendingSacolasQuery.isLoading && <p>Carregando sacolas...</p>}
+          {!pendingSacolasQuery.isLoading && pendingSacolas.length === 0 && (
             <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
               Nenhuma venda aguardando entrega.
             </p>
           )}
-          {pendingSalesQuery.data?.map((sale) => {
-            const pecaImg = sale.peca.fotoCapaThumbnailUrl ?? sale.peca.fotoCapaUrl;
+          {pendingSacolas.map((sacola: PendingSacola) => {
+            const selected = selectedVendas[sacola.id] ?? sacola.vendas.map((v) => v.id);
             return (
-            <article key={sale.id} className="rounded-3xl border border-rose-50 bg-white p-4 shadow-sm">
-              <div className="flex gap-4">
-                {pecaImg ? (
-                  <img
-                    src={pecaImg}
-                    alt={`Foto da peça ${sale.peca.nome}`}
-                    className="h-20 w-20 rounded-2xl object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-surface-container-low text-xs text-outline">
-                    Sem foto
+              <article key={sacola.id} className="rounded-3xl border border-rose-50 bg-white p-4 shadow-sm">
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-bold text-gray-900">{sacola.cliente.nome}</h3>
+                    <p className="text-sm text-gray-500">{sacola.totalPecas} peça(s) na sacola</p>
                   </div>
-                )}
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900">{sale.peca.nome}</h3>
-                  <p className="text-sm text-gray-500">Cliente: {sale.cliente.nome}</p>
-                  <div className="mt-3">
-                    <Input
-                      placeholder="Código de rastreio (opcional)"
-                      value={rastreioPorVenda[sale.id] ?? ""}
-                      onChange={(event) =>
-                        setRastreioPorVenda((prev) => ({
-                          ...prev,
-                          [sale.id]: event.target.value
-                        }))
-                      }
-                    />
-                  </div>
+                  <Link to={`/clientes/${sacola.cliente.id}`} className="text-xs font-bold text-primary">
+                    Ver cliente
+                  </Link>
                 </div>
-              </div>
-              <div className="mt-4 flex items-center justify-end border-t border-gray-50 pt-4">
-                <Button
-                  type="button"
-                  disabled={deliverMutation.isPending}
-                  onClick={() =>
-                    deliverMutation.mutate({
-                      saleId: sale.id,
-                      codigoRastreio: rastreioPorVenda[sale.id]
-                    })
+                <ul className="mb-3 space-y-2">
+                  {sacola.vendas.map((venda) => (
+                    <li key={venda.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(venda.id)}
+                        onChange={(e) => {
+                          setSelectedVendas((prev) => {
+                            const current = prev[sacola.id] ?? sacola.vendas.map((v) => v.id);
+                            const next = e.target.checked
+                              ? [...current, venda.id]
+                              : current.filter((id) => id !== venda.id);
+                            return { ...prev, [sacola.id]: next };
+                          });
+                        }}
+                      />
+                      <span>
+                        {venda.peca.codigo ? `${venda.peca.codigo} · ` : ""}
+                        {venda.peca.nome}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <Input
+                  placeholder="Código de rastreio (opcional)"
+                  value={rastreioPorSacola[sacola.id] ?? ""}
+                  onChange={(event) =>
+                    setRastreioPorSacola((prev) => ({ ...prev, [sacola.id]: event.target.value }))
                   }
-                >
-                  Marcar como Entregue
-                </Button>
-              </div>
-            </article>
+                />
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    disabled={shipSacolaMutation.isPending || selected.length === 0}
+                    onClick={() =>
+                      shipSacolaMutation.mutate({
+                        sacolaId: sacola.id,
+                        vendaIds: selected.length === sacola.vendas.length ? undefined : selected,
+                        codigoRastreio: rastreioPorSacola[sacola.id]
+                      })
+                    }
+                  >
+                    Enviar {selected.length === sacola.vendas.length ? "sacola" : `${selected.length} peça(s)`}
+                  </Button>
+                </div>
+              </article>
             );
           })}
         </div>
