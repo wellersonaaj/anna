@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "npm run build -w @anna/shared",
     "build": "tsc -b && vite build",
+    "prelint": "npm run build -w @anna/shared",
     "icons:pwa": "node scripts/generate-pwa-icons.mjs",
     "dev": "vite",
     "lint": "tsc --noEmit",
