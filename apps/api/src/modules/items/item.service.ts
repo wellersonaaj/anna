@@ -14,6 +14,8 @@ import { clientService } from "../clients/client.service.js";
 import { allocateCodigo } from "../../lib/peca-code.js";
 import { sacolaService } from "../sacolas/sacola.service.js";
 
+export const MAX_PHOTOS_PER_ITEM = 30;
+
 const ensureTransition = (from: StatusPeca, to: StatusPeca): void => {
   if (!canTransitionStatus(from, to)) {
     throw new Error(`Invalid status transition: ${from} -> ${to}`);
@@ -673,7 +675,7 @@ export const itemService = {
       where: { pecaId: itemId }
     });
 
-    if (existingCount >= 15) {
+    if (existingCount >= MAX_PHOTOS_PER_ITEM) {
       throw new Error("Photo limit reached.");
     }
 

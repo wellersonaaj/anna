@@ -25,6 +25,8 @@ import { AppShell, Button, Field, Input, ItemStatusTone, PhotoLightbox, Section,
 import { resizeImageDetailed } from "../lib/imageResize";
 import { moneyInputValue, parseMoneyLike } from "../lib/money";
 
+const MAX_PHOTOS = 30;
+
 const editFormSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome."),
   categoria: z.enum(["ROUPA_FEMININA", "ROUPA_MASCULINA", "CALCADO", "ACESSORIO"]),
@@ -255,8 +257,8 @@ export const ItemDetailPage = () => {
       return;
     }
     const currentCount = item?.fotos?.length ?? 0;
-    if (currentCount >= 15) {
-      setPhotoActionError("Limite de 15 fotos atingido para esta peça.");
+    if (currentCount >= MAX_PHOTOS) {
+      setPhotoActionError(`Limite de ${MAX_PHOTOS} fotos atingido para esta peça.`);
       return;
     }
     setIsUploadingPhoto(true);
@@ -265,7 +267,7 @@ export const ItemDetailPage = () => {
     let uploaded = 0;
     try {
       for (const file of files) {
-        if (currentCount + uploaded >= 15) {
+        if (currentCount + uploaded >= MAX_PHOTOS) {
           break;
         }
         await uploadResizedPair(file, { skipInvalidate: true });
@@ -275,8 +277,8 @@ export const ItemDetailPage = () => {
       if (uploaded > 0) {
         setPhotoUploadHint(uploaded === 1 ? "Foto adicionada." : `${uploaded} fotos adicionadas.`);
       }
-      if (uploaded < files.length && currentCount + uploaded >= 15) {
-        setPhotoActionError("Limite de 15 fotos atingido. Algumas fotos não foram enviadas.");
+      if (uploaded < files.length && currentCount + uploaded >= MAX_PHOTOS) {
+        setPhotoActionError(`Limite de ${MAX_PHOTOS} fotos atingido. Algumas fotos não foram enviadas.`);
       }
     } catch (error) {
       setPhotoActionError(error instanceof ApiError ? error.message : "Não foi possível enviar a foto.");

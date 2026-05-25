@@ -10,7 +10,7 @@ import {
   isStorageConfigured,
   resolveObjectKeyFromPublicUrl
 } from "../../lib/storage.js";
-import { itemService } from "../items/item.service.js";
+import { itemService, MAX_PHOTOS_PER_ITEM } from "../items/item.service.js";
 
 const MAX_GROUPING_LLM = 15;
 const maxDraftAnalyzePayloadBytes = 32 * 1024 * 1024;
@@ -511,8 +511,8 @@ export const importacaoService = {
     const used = new Set<string>();
 
     for (const g of body.grupos) {
-      if (g.fotoIds.length > 15) {
-        throw new Error("No maximo 15 fotos por grupo.");
+      if (g.fotoIds.length > MAX_PHOTOS_PER_ITEM) {
+        throw new Error(`No maximo ${MAX_PHOTOS_PER_ITEM} fotos por grupo.`);
       }
       for (const id of g.fotoIds) {
         if (!fotoIdSet.has(id)) {

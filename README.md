@@ -64,7 +64,7 @@ Este repositório inicia o MVP v1 com foco em:
 - `GET /items` (filtros opcionais: `?status=&categoria=&search=`)
 - `GET /items/:id` (detalhe com `fotos`, `fotoLotes`, `filaInteressados`)
 - `POST /items/:id/foto-lotes`, `PATCH .../foto-lotes/:loteId`, `POST .../foto-lotes/:loteId/presign`, `POST .../foto-lotes/:loteId/transcribe`
-- `POST /items/:id/fotos` / `DELETE /items/:id/fotos/:fotoId` (body de foto aceita `loteId` opcional; máx. 15 fotos por peça)
+- `POST /items/:id/fotos` / `DELETE /items/:id/fotos/:fotoId` (body de foto aceita `loteId` opcional; máx. 30 fotos por peça)
 - `POST /items/:id/fotos/:fotoId/analisar` (IA visão; persiste `AIAnalysis` + snapshot em `PecaFoto`)
 - `POST /items/analisar-rascunho` (IA de rascunho com múltiplas fotos, pipeline em 2 estágios: extractor + reviewer)
 - `POST /items/analisar-rascunho/:analysisId/feedback` (feedback in-app com helpfulness + motivos opcionais + diff passivo)
