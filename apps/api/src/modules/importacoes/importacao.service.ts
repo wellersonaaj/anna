@@ -12,7 +12,7 @@ import {
 } from "../../lib/storage.js";
 import { itemService, MAX_PHOTOS_PER_ITEM } from "../items/item.service.js";
 
-const MAX_GROUPING_LLM = 15;
+const MAX_GROUPING_LLM = 30;
 const maxDraftAnalyzePayloadBytes = 32 * 1024 * 1024;
 
 const resolveDisplayImageUrl = async (url: string | null | undefined): Promise<string | null> => {
