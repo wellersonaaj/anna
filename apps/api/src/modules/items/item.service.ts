@@ -202,10 +202,10 @@ const normalizeMarca = (value: string | null | undefined): string | null => {
   return raw;
 };
 
-const normalizeTamanho = (value: string | null | undefined): string | null => {
+const normalizeTamanho = (value: string | null | undefined): string => {
   const raw = value?.trim();
   if (!raw) {
-    return null;
+    return "NA";
   }
   return raw;
 };

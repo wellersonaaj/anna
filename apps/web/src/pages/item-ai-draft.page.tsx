@@ -433,7 +433,7 @@ export const ItemAIDraftPage = () => {
     !formValues.categoria ? "categoria" : null,
     !formValues.cor.trim() ? "cor" : null,
     !formValues.condicao ? "condição" : null,
-    !formValues.tamanho.trim() ? "tamanho" : null
+    null // tamanho agora é opcional (default NA)
   ].filter(Boolean);
 
   const submitMutation = useMutation({
@@ -863,8 +863,8 @@ export const ItemAIDraftPage = () => {
               <option value="REGULAR">Regular</option>
             </Select>
           </Field>
-          <Field label="Tamanho">
-            <Input value={formValues.tamanho} onChange={(event) => setFormField("tamanho", event.target.value)} />
+          <Field label="Tamanho (opcional)">
+            <Input value={formValues.tamanho} onChange={(event) => setFormField("tamanho", event.target.value)} placeholder="Deixe em branco para salvar como NA" />
           </Field>
           <Field label="Marca">
             <Input value={formValues.marca} onChange={(event) => setFormField("marca", event.target.value)} />

@@ -32,7 +32,7 @@ const editFormSchema = z.object({
   cor: z.string().trim().min(2, "Informe a cor."),
   estampa: z.boolean(),
   condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
-  tamanho: z.string().trim().min(1, "Informe o tamanho."),
+  tamanho: z.string().trim().optional(),
   marca: z.string().optional(),
   precoVenda: z.string().optional(),
   acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
@@ -486,7 +486,7 @@ export const ItemDetailPage = () => {
                 </div>
                 <div>
                   <dt className="font-bold text-on-surface-variant">Tamanho</dt>
-                  <dd>{item.tamanho}</dd>
+                  <dd>{item.tamanho && item.tamanho !== "NA" ? item.tamanho : "—"}</dd>
                 </div>
                 <div>
                   <dt className="font-bold text-on-surface-variant">Marca</dt>

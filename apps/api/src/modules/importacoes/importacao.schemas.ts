@@ -34,7 +34,7 @@ const itemFormValuesSchema = z.object({
   cor: z.string().min(2),
   estampa: z.boolean(),
   condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
-  tamanho: z.string().min(1),
+  tamanho: z.string().trim().optional().default("NA"),
   marca: z.string().optional(),
   precoVenda: moneyNonNegativeSchema.optional(),
   acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),

@@ -52,7 +52,8 @@ Problema central: operacao de brecho com peca unica, equipe pequena, vendas via 
 
 Campos:
 
-- Obrigatorios: foto, nome, categoria, cor/estampa, condicao, tamanho.
+- Obrigatorios: foto, nome, categoria, cor/estampa, condicao.
+- Tamanho e marca sao opcionais (default 'NA' quando omitidos).
 - Opcionais: marca, preco de venda, acervo, tabela de medidas.
 - Acervo (MVP): `tipo` (proprio/consignado) e `nome do acervo` com sugestao automatica baseada nos nomes ja usados no mesmo brecho.
 

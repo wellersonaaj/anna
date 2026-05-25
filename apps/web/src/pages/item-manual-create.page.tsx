@@ -15,7 +15,7 @@ const createItemFormSchema = z.object({
   cor: z.string().min(2),
   estampa: z.boolean().default(false),
   condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
-  tamanho: z.string().min(1),
+  tamanho: z.string().trim().optional().default(""),
   marca: z.string().optional(),
   precoVenda: z.coerce.number().optional(),
   acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
@@ -106,8 +106,8 @@ export const ItemManualCreatePage = () => {
               <option value="REGULAR">Regular</option>
             </Select>
           </Field>
-          <Field label="Tamanho">
-            <Input {...register("tamanho")} />
+          <Field label="Tamanho (opcional)">
+            <Input {...register("tamanho")} placeholder="Deixe em branco para salvar como NA" />
           </Field>
           <Field label="Marca">
             <Input {...register("marca")} />

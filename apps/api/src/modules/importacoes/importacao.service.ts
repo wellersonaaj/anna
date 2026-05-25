@@ -81,7 +81,7 @@ const formValuesFromSuggestions = (s: SuggestionsShape): Prisma.InputJsonValue =
     cor: s.corPrincipal ?? "",
     estampa: s.estampado,
     condicao: s.condicao ?? "OTIMO",
-    tamanho: s.tamanho ?? "",
+    tamanho: s.tamanho?.trim() || "NA",
     marca: s.marca ?? "",
     precoVenda: undefined,
     acervoTipo: "PROPRIO",
