@@ -266,7 +266,7 @@ export type UpdateItemPayload = Partial<{
   estampa: boolean;
   condicao: ItemCondicao;
   tamanho: string;
-  marca: string;
+  marca: string | null;
   precoVenda: number | null;
   acervoTipo: "PROPRIO" | "CONSIGNACAO";
   acervoNome: string | null;

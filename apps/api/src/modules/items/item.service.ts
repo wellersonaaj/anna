@@ -601,7 +601,7 @@ export const itemService = {
         ...(payload.cor !== undefined ? { cor: payload.cor.trim() } : {}),
         ...(payload.estampa !== undefined ? { estampa: payload.estampa } : {}),
         ...(payload.condicao !== undefined ? { condicao: payload.condicao } : {}),
-        ...(payload.tamanho !== undefined ? { tamanho: payload.tamanho.trim() } : {}),
+        ...(payload.tamanho !== undefined ? { tamanho: normalizeTamanho(payload.tamanho) } : {}),
         ...(payload.marca !== undefined ? { marca: payload.marca.trim() || null } : {}),
         ...(payload.precoVenda !== undefined ? { precoVenda: payload.precoVenda } : {}),
         ...(payload.acervoTipo !== undefined ? { acervoTipo: payload.acervoTipo } : {}),

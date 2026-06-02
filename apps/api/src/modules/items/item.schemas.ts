@@ -6,6 +6,19 @@ const moneyNonNegativeSchema = z.preprocess(normalizeMoneyInput, z.number().nonn
 const moneyPositiveSchema = z.preprocess(normalizeMoneyInput, z.number().positive());
 const moneyNullableNonNegativeSchema = z.preprocess(normalizeMoneyInput, z.number().nonnegative().nullable());
 
+const emptyToNa = (value: unknown): unknown =>
+  typeof value === "string" && !value.trim() ? "NA" : value;
+
+const emptyToUndefined = (value: unknown): unknown =>
+  typeof value === "string" && !value.trim() ? undefined : value;
+
+const tamanhoSchema = z.preprocess(emptyToNa, z.string().trim().min(1));
+const tamanhoOptionalSchema = z.preprocess(emptyToNa, z.string().trim().min(1).optional());
+const marcaOptionalSchema = z.preprocess(
+  emptyToUndefined,
+  z.string().trim().max(80).optional()
+);
+
 export const createItemSchema = z.object({
   nome: z.string().min(2),
   categoria: z.enum(["ROUPA_FEMININA", "ROUPA_MASCULINA", "CALCADO", "ACESSORIO"]),
@@ -13,8 +26,8 @@ export const createItemSchema = z.object({
   cor: z.string().min(2),
   estampa: z.boolean().default(false),
   condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
-  tamanho: z.string().trim().optional().default("NA"),
-  marca: z.string().optional(),
+  tamanho: tamanhoSchema.optional().default("NA"),
+  marca: marcaOptionalSchema,
   precoVenda: moneyNonNegativeSchema.optional(),
   acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]).default("PROPRIO"),
   acervoNome: z.string().trim().min(2).max(80).optional()
@@ -28,8 +41,8 @@ export const updateItemSchema = z
     cor: z.string().trim().min(2).optional(),
     estampa: z.boolean().optional(),
     condicao: z.enum(["OTIMO", "BOM", "REGULAR"]).optional(),
-    tamanho: z.string().trim().min(1).optional(),
-    marca: z.string().trim().max(80).optional(),
+    tamanho: tamanhoOptionalSchema,
+    marca: marcaOptionalSchema,
     precoVenda: moneyNullableNonNegativeSchema.optional(),
     acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]).optional(),
     acervoNome: z.string().trim().max(80).nullable().optional()
