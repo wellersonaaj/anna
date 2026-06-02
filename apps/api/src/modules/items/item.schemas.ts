@@ -91,8 +91,28 @@ export const reserveBatchSchema = z.object({
   pecaIds: z.array(z.string().cuid()).min(1).max(20)
 });
 
+const itemStatusEnum = z.enum(["DISPONIVEL", "RESERVADO", "VENDIDO", "ENTREGUE", "INDISPONIVEL"]);
+
+const parseStatusIn = (value: unknown): string[] | undefined => {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => (typeof entry === "string" ? entry.split(",") : [])).map((s) => s.trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return undefined;
+};
+
 export const listItemsQuerySchema = z.object({
-  status: z.enum(["DISPONIVEL", "RESERVADO", "VENDIDO", "ENTREGUE", "INDISPONIVEL"]).optional(),
+  status: itemStatusEnum.optional(),
+  statusIn: z.preprocess(parseStatusIn, z.array(itemStatusEnum).optional()),
+  soldWithinDays: z.coerce.number().int().min(1).max(365).optional(),
   categoria: z.enum(["ROUPA_FEMININA", "ROUPA_MASCULINA", "CALCADO", "ACESSORIO"]).optional(),
   search: z.string().optional(),
   acervoNome: z.string().trim().max(80).optional(),

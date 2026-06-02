@@ -21,6 +21,7 @@ import { ClientsPage } from "./pages/clients.page";
 import { ClientDetailPage } from "./pages/client-detail.page";
 import { ReportsPage } from "./pages/reports.page";
 import { AccountChangePasswordPage } from "./pages/account-change-password.page";
+import { AccountPreferencesPage } from "./pages/account-preferences.page";
 import { LoginPage } from "./pages/login.page";
 import { AdminBrechosPage } from "./pages/admin/admin-brechos.page";
 import { AdminBrechoFormPage } from "./pages/admin/admin-brecho-form.page";
@@ -79,6 +80,7 @@ export const App = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/fila/:token" element={<PublicQueuePage />} />
           <Route path="/conta/senha" element={<RequireSession><AccountChangePasswordPage /></RequireSession>} />
+          <Route path="/conta/preferencias" element={<RequireSession><AccountPreferencesPage /></RequireSession>} />
           <Route path="/admin" element={<Navigate to="/admin/brechos" replace />} />
           <Route path="/admin/brechos" element={<RequireFounder><AdminBrechosPage /></RequireFounder>} />
           <Route path="/admin/brechos/new" element={<RequireFounder><AdminBrechoFormPage /></RequireFounder>} />

@@ -94,6 +94,14 @@ const AppShellAccountMenu = () => {
         >
           <Link
             role="menuitem"
+            to="/conta/preferencias"
+            className="block px-4 py-3 text-sm font-bold text-on-background no-underline hover:bg-rose-50"
+            onClick={() => setOpen(false)}
+          >
+            Preferências
+          </Link>
+          <Link
+            role="menuitem"
             to="/conta/senha"
             className="block px-4 py-3 text-sm font-bold text-on-background no-underline hover:bg-rose-50"
             onClick={() => setOpen(false)}

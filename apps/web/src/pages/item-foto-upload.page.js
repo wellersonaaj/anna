@@ -6,6 +6,7 @@ import { addItemFoto, analisarItemFoto, createFotoLote, getItem, patchFotoLote, 
 import { ApiError } from "../api/client";
 import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { resizeImageDetailed } from "../lib/imageResize";
+const MAX_PHOTOS = 30;
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Section } from "../components/ui";
 const pickAudioMime = () => {
@@ -44,7 +45,7 @@ export const ItemFotoUploadPage = () => {
         enabled: Boolean(itemId)
     });
     const fotoCount = itemQuery.data?.fotos?.length ?? 0;
-    const remaining = Math.max(0, 15 - fotoCount);
+    const remaining = Math.max(0, MAX_PHOTOS - fotoCount);
     const createLoteMutation = useMutation({
         mutationFn: () => createFotoLote(brechoId, itemId, { textoNota: textoNota.trim() || undefined }),
         onSuccess: (lote) => {
@@ -214,7 +215,7 @@ export const ItemFotoUploadPage = () => {
         let n = itemQuery.data?.fotos?.length ?? 0;
         try {
             for (const file of Array.from(files)) {
-                if (n >= 15) {
+                if (n >= MAX_PHOTOS) {
                     break;
                 }
                 await uploadResizedPairForLote(file, { skipInvalidate: true });
@@ -297,14 +298,14 @@ export const ItemFotoUploadPage = () => {
     }
     const item = itemQuery.data;
     const currentLote = item?.fotoLotes?.find((l) => l.id === loteId);
-    return (_jsxs(AppShell, { children: [_jsx(Link, { to: `/items/${itemId}`, children: "\u2190 Voltar \u00E0 pe\u00E7a" }), itemQuery.isLoading && _jsx("p", { children: "Carregando..." }), itemQuery.isError && _jsx("p", { children: "N\u00E3o foi poss\u00EDvel carregar a pe\u00E7a." }), item && (_jsxs(_Fragment, { children: [_jsxs("header", { children: [_jsxs("h1", { style: { marginBottom: 4 }, children: ["Fotos \u2014 ", item.nome] }), _jsxs("p", { style: { marginTop: 0, opacity: 0.85 }, children: ["M\u00E1ximo 15 fotos na pe\u00E7a. Agora: ", fotoCount, "/15. Neste lote voc\u00EA pode enviar at\u00E9 ", remaining, " ", "nova(s)."] })] }), actionError && (_jsx("p", { style: { color: "#b60e3d", fontSize: 14 }, role: "alert", children: actionError })), !loteId ? (_jsxs(Section, { title: "1. Iniciar lote", children: [_jsxs("p", { style: { fontSize: 14, opacity: 0.9 }, children: ["O texto ou \u00E1udio abaixo descrevem ", _jsx("strong", { children: "este conjunto" }), " de fotos (batch), n\u00E3o cada arquivo separado."] }), _jsx(Field, { label: "Nota em texto (opcional)", children: _jsx("textarea", { value: textoNota, onChange: (e) => setTextoNota(e.target.value), rows: 4, style: {
+    return (_jsxs(AppShell, { children: [_jsx(Link, { to: `/items/${itemId}`, children: "\u2190 Voltar \u00E0 pe\u00E7a" }), itemQuery.isLoading && _jsx("p", { children: "Carregando..." }), itemQuery.isError && _jsx("p", { children: "N\u00E3o foi poss\u00EDvel carregar a pe\u00E7a." }), item && (_jsxs(_Fragment, { children: [_jsxs("header", { children: [_jsxs("h1", { style: { marginBottom: 4 }, children: ["Fotos \u2014 ", item.nome] }), _jsxs("p", { style: { marginTop: 0, opacity: 0.85 }, children: ["M\u00E1ximo ", MAX_PHOTOS, " fotos na pe\u00E7a. Agora: ", fotoCount, "/", MAX_PHOTOS, ". Neste lote voc\u00EA pode enviar at\u00E9 ", remaining, " ", "nova(s)."] })] }), actionError && (_jsx("p", { style: { color: "#b60e3d", fontSize: 14 }, role: "alert", children: actionError })), !loteId ? (_jsxs(Section, { title: "1. Iniciar lote", children: [_jsxs("p", { style: { fontSize: 14, opacity: 0.9 }, children: ["O texto ou \u00E1udio abaixo descrevem ", _jsx("strong", { children: "este conjunto" }), " de fotos (batch), n\u00E3o cada arquivo separado."] }), _jsx(Field, { label: "Nota em texto (opcional)", children: _jsx("textarea", { value: textoNota, onChange: (e) => setTextoNota(e.target.value), rows: 4, style: {
                                         width: "100%",
                                         border: "1px solid #d9b9bc",
                                         borderRadius: 10,
                                         padding: 12,
                                         fontFamily: "inherit",
                                         fontSize: 15
-                                    }, placeholder: "Ex.: pe\u00E7a com brilho na frente, costas com mancha leve..." }) }), _jsx(Button, { type: "button", onClick: () => createLoteMutation.mutate(), disabled: createLoteMutation.isPending || remaining === 0, children: createLoteMutation.isPending ? "Criando..." : "Começar envio de fotos" }), remaining === 0 && _jsx("p", { children: "Voc\u00EA j\u00E1 atingiu 15 fotos nesta pe\u00E7a." })] })) : (_jsxs(_Fragment, { children: [_jsxs(Section, { title: "2. Contexto do lote (batch)", children: [_jsx(Field, { label: "Nota em texto", children: _jsx("textarea", { value: textoNota, onChange: (e) => setTextoNota(e.target.value), rows: 3, style: {
+                                    }, placeholder: "Ex.: pe\u00E7a com brilho na frente, costas com mancha leve..." }) }), _jsx(Button, { type: "button", onClick: () => createLoteMutation.mutate(), disabled: createLoteMutation.isPending || remaining === 0, children: createLoteMutation.isPending ? "Criando..." : "Começar envio de fotos" }), remaining === 0 && _jsxs("p", { children: ["Voc\u00EA j\u00E1 atingiu ", MAX_PHOTOS, " fotos nesta pe\u00E7a."] })] })) : (_jsxs(_Fragment, { children: [_jsxs(Section, { title: "2. Contexto do lote (batch)", children: [_jsx(Field, { label: "Nota em texto", children: _jsx("textarea", { value: textoNota, onChange: (e) => setTextoNota(e.target.value), rows: 3, style: {
                                                 width: "100%",
                                                 border: "1px solid #d9b9bc",
                                                 borderRadius: 10,

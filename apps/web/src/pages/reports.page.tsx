@@ -138,13 +138,18 @@ export const ReportsPage = () => {
         </div>
       </section>
 
-      <Section title="Conta e segurança">
+      <Section title="Conta">
         <p className="mb-3 text-sm text-on-surface-variant">
-          Altere a senha do seu acesso ao app sem depender do suporte.
+          Ajuste preferências do estoque ou altere a senha do seu acesso ao app.
         </p>
-        <Link to="/conta/senha" className="inline-flex text-sm font-bold text-primary underline">
-          Trocar senha
-        </Link>
+        <div className="flex flex-col gap-2">
+          <Link to="/conta/preferencias" className="inline-flex text-sm font-bold text-primary underline">
+            Preferências do estoque
+          </Link>
+          <Link to="/conta/senha" className="inline-flex text-sm font-bold text-primary underline">
+            Trocar senha
+          </Link>
+        </div>
       </Section>
     </AppShell>
   );

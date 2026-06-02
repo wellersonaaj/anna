@@ -22,6 +22,61 @@ const ensureTransition = (from: StatusPeca, to: StatusPeca): void => {
   }
 };
 
+const ACTIVE_ITEM_STATUSES: StatusPeca[] = ["DISPONIVEL", "RESERVADO", "INDISPONIVEL"];
+const SOLD_ITEM_STATUSES: StatusPeca[] = ["VENDIDO", "ENTREGUE"];
+
+const resolveListStatusIn = (query: {
+  status?: StatusPeca;
+  statusIn?: StatusPeca[];
+}): StatusPeca[] | undefined => {
+  if (query.statusIn !== undefined) {
+    return query.statusIn;
+  }
+  if (query.status) {
+    return [query.status];
+  }
+  return undefined;
+};
+
+const buildListStatusFilter = (
+  statusIn: StatusPeca[] | undefined,
+  soldWithinDays?: number
+): Prisma.PecaWhereInput | undefined => {
+  if (statusIn === undefined) {
+    return undefined;
+  }
+  if (statusIn.length === 0) {
+    return { id: { in: [] } };
+  }
+
+  const activeSelected = statusIn.filter((status) => ACTIVE_ITEM_STATUSES.includes(status));
+  const soldSelected = statusIn.filter((status) => SOLD_ITEM_STATUSES.includes(status));
+  const clauses: Prisma.PecaWhereInput[] = [];
+
+  if (activeSelected.length > 0) {
+    clauses.push({ status: { in: activeSelected } });
+  }
+
+  if (soldSelected.length > 0) {
+    const soldClause: Prisma.PecaWhereInput = {
+      status: { in: soldSelected },
+      venda:
+        soldWithinDays !== undefined
+          ? { criadoEm: { gte: new Date(Date.now() - soldWithinDays * 86_400_000) } }
+          : { isNot: null }
+    };
+    clauses.push(soldClause);
+  }
+
+  if (clauses.length === 0) {
+    return { id: { in: [] } };
+  }
+  if (clauses.length === 1) {
+    return clauses[0];
+  }
+  return { OR: clauses };
+};
+
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
 export type CoverFotoCandidate = {
@@ -367,16 +422,22 @@ export const itemService = {
 
   async list(prisma: PrismaClient, brechoId: string, query: {
     status?: StatusPeca;
+    statusIn?: StatusPeca[];
+    soldWithinDays?: number;
     categoria?: "ROUPA_FEMININA" | "ROUPA_MASCULINA" | "CALCADO" | "ACESSORIO";
     search?: string;
     acervoNome?: string;
     acervoTipo?: "PROPRIO" | "CONSIGNACAO";
   }) {
     const acervoNomeFilter = query.acervoNome?.trim();
+    const statusIn = resolveListStatusIn(query);
+    const soldWithinDays =
+      statusIn?.some((status) => SOLD_ITEM_STATUSES.includes(status)) ? query.soldWithinDays : undefined;
+    const statusFilter = buildListStatusFilter(statusIn, soldWithinDays);
     const rows = await prisma.peca.findMany({
       where: {
         brechoId,
-        status: query.status,
+        ...(statusFilter ?? {}),
         categoria: query.categoria,
         acervoTipo: query.acervoTipo,
         ...(acervoNomeFilter

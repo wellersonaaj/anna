@@ -1,8 +1,14 @@
 import { request } from "./client";
 export const listItems = async (brechoId, filters) => {
     const params = new URLSearchParams();
-    if (filters?.status) {
+    if (filters?.statusIn?.length) {
+        params.set("statusIn", filters.statusIn.join(","));
+    }
+    else if (filters?.status) {
         params.set("status", filters.status);
+    }
+    if (filters?.soldWithinDays !== undefined) {
+        params.set("soldWithinDays", String(filters.soldWithinDays));
     }
     if (filters?.categoria) {
         params.set("categoria", filters.categoria);

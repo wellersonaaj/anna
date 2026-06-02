@@ -252,6 +252,8 @@ export type DeliveredSale = {
 
 export type ListItemsFilters = {
   status?: Item["status"];
+  statusIn?: Item["status"][];
+  soldWithinDays?: number;
   categoria?: ItemCategoria;
   search?: string;
   acervoNome?: string;
@@ -274,8 +276,13 @@ export type UpdateItemPayload = Partial<{
 
 export const listItems = async (brechoId: string, filters?: ListItemsFilters): Promise<Item[]> => {
   const params = new URLSearchParams();
-  if (filters?.status) {
+  if (filters?.statusIn?.length) {
+    params.set("statusIn", filters.statusIn.join(","));
+  } else if (filters?.status) {
     params.set("status", filters.status);
+  }
+  if (filters?.soldWithinDays !== undefined) {
+    params.set("soldWithinDays", String(filters.soldWithinDays));
   }
   if (filters?.categoria) {
     params.set("categoria", filters.categoria);

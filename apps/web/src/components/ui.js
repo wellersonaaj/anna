@@ -60,7 +60,7 @@ const AppShellAccountMenu = () => {
         navigate("/login", { replace: true });
     };
     const menuPortal = open &&
-        createPortal(_jsxs(_Fragment, { children: [_jsx("button", { type: "button", className: "fixed inset-0 z-[100] cursor-default bg-black/20", "aria-label": "Fechar menu", onClick: () => setOpen(false) }), _jsxs("div", { role: "menu", className: "fixed z-[101] min-w-[208px] overflow-hidden rounded-2xl border border-rose-100 bg-white py-1 shadow-lg", style: { top: menuPos.top, left: menuPos.left }, children: [_jsx(Link, { role: "menuitem", to: "/conta/senha", className: "block px-4 py-3 text-sm font-bold text-on-background no-underline hover:bg-rose-50", onClick: () => setOpen(false), children: "Trocar senha" }), _jsx("button", { role: "menuitem", type: "button", className: "block w-full border-t border-rose-100 px-4 py-3 text-left text-sm font-bold text-on-background hover:bg-rose-50", onClick: () => {
+        createPortal(_jsxs(_Fragment, { children: [_jsx("button", { type: "button", className: "fixed inset-0 z-[100] cursor-default bg-black/20", "aria-label": "Fechar menu", onClick: () => setOpen(false) }), _jsxs("div", { role: "menu", className: "fixed z-[101] min-w-[208px] overflow-hidden rounded-2xl border border-rose-100 bg-white py-1 shadow-lg", style: { top: menuPos.top, left: menuPos.left }, children: [_jsx(Link, { role: "menuitem", to: "/conta/preferencias", className: "block px-4 py-3 text-sm font-bold text-on-background no-underline hover:bg-rose-50", onClick: () => setOpen(false), children: "Prefer\u00EAncias" }), _jsx(Link, { role: "menuitem", to: "/conta/senha", className: "block px-4 py-3 text-sm font-bold text-on-background no-underline hover:bg-rose-50", onClick: () => setOpen(false), children: "Trocar senha" }), _jsx("button", { role: "menuitem", type: "button", className: "block w-full border-t border-rose-100 px-4 py-3 text-left text-sm font-bold text-on-background hover:bg-rose-50", onClick: () => {
                                 setOpen(false);
                                 void onLogout();
                             }, children: "Sair" })] })] }), document.body);
@@ -74,8 +74,8 @@ export const AppShell = ({ children, showTopBar = false, topBarTitle, topBarActi
 export const Section = ({ title, children }) => {
     return (_jsxs("section", { className: "rounded-3xl border border-rose-100 bg-white p-4 shadow-sm", children: [_jsx("h2", { className: "m-0 mb-3 font-headline text-lg font-extrabold tracking-tight", children: title }), children] }));
 };
-export const Field = ({ label, children }) => {
-    return (_jsxs("label", { className: "flex flex-col gap-1", children: [_jsx("span", { className: "text-xs font-semibold text-on-surface-variant", children: label }), children] }));
+export const Field = ({ label, error, children }) => {
+    return (_jsxs("label", { className: "flex flex-col gap-1", children: [_jsx("span", { className: "text-xs font-semibold text-on-surface-variant", children: label }), children, error ? _jsx("span", { className: "text-xs font-semibold text-primary", children: error }) : null] }));
 };
 export const Input = (props) => {
     const { className, style, ...rest } = props;

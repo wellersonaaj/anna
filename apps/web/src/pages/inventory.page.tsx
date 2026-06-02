@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { countImportacoesPendentes } from "../api/importacoes";
 import {
@@ -8,15 +8,33 @@ import {
   listItems,
   setItemCoverFoto,
   type Item,
-  type ItemCategoria
+  type ItemCategoria,
+  type ItemStatus
 } from "../api/items";
+import {
+  includesSoldStatuses,
+  readInventoryPrefs,
+  SOLD_ITEM_STATUSES,
+  writeInventoryPrefs
+} from "../lib/inventory-prefs";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Input, PhotoLightbox, PillButton, ProductCard, formatCurrency } from "../components/ui";
+
+const STATUS_FILTER_OPTIONS: Array<{ key: ItemStatus; label: string }> = [
+  { key: "DISPONIVEL", label: "Disponível" },
+  { key: "RESERVADO", label: "Reservado" },
+  { key: "INDISPONIVEL", label: "Indisponível" },
+  { key: "VENDIDO", label: "Vendido" },
+  { key: "ENTREGUE", label: "Entregue" }
+];
 
 export const InventoryPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const queryClient = useQueryClient();
-  const [filterStatus, setFilterStatus] = useState<"" | Item["status"]>("");
+  const [filterStatusIn, setFilterStatusIn] = useState<ItemStatus[]>(() =>
+    brechoId ? readInventoryPrefs(brechoId).statusIn : []
+  );
+  const soldWithinDays = brechoId ? readInventoryPrefs(brechoId).soldWithinDays : 30;
   const [filterCategoria, setFilterCategoria] = useState<"" | ItemCategoria>("");
   const [filterAcervoTipo, setFilterAcervoTipo] = useState<"" | Item["acervoTipo"]>("");
   const [filterAcervoNome, setFilterAcervoNome] = useState("");
@@ -24,15 +42,36 @@ export const InventoryPage = () => {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const acervoSuggestionsListId = useId();
 
+  useEffect(() => {
+    if (!brechoId) {
+      return;
+    }
+    const prefs = readInventoryPrefs(brechoId);
+    setFilterStatusIn(prefs.statusIn);
+  }, [brechoId]);
+
+  const toggleStatusFilter = (status: ItemStatus) => {
+    setFilterStatusIn((current) => {
+      const next = current.includes(status) ? current.filter((entry) => entry !== status) : [...current, status];
+      if (brechoId) {
+        writeInventoryPrefs(brechoId, { statusIn: next });
+      }
+      return next;
+    });
+  };
+
+  const showSoldStatuses = includesSoldStatuses(filterStatusIn);
+
   const listFilters = useMemo(
     () => ({
-      ...(filterStatus ? { status: filterStatus } : {}),
+      statusIn: filterStatusIn,
+      ...(showSoldStatuses ? { soldWithinDays } : {}),
       ...(filterCategoria ? { categoria: filterCategoria } : {}),
       ...(filterSearch.trim() ? { search: filterSearch.trim() } : {}),
       ...(filterAcervoTipo ? { acervoTipo: filterAcervoTipo } : {}),
       ...(filterAcervoNome.trim() ? { acervoNome: filterAcervoNome.trim() } : {})
     }),
-    [filterStatus, filterCategoria, filterSearch, filterAcervoTipo, filterAcervoNome]
+    [filterStatusIn, showSoldStatuses, soldWithinDays, filterCategoria, filterSearch, filterAcervoTipo, filterAcervoNome]
   );
 
   const acervoSuggestionsQuery = useQuery({
@@ -69,13 +108,6 @@ export const InventoryPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["item", brechoId, expandedItemId] });
     }
   });
-
-  const statusFilters: Array<{ key: "" | Item["status"]; label: string }> = [
-    { key: "", label: "Todos" },
-    { key: "DISPONIVEL", label: "Disponível" },
-    { key: "RESERVADO", label: "Reservado" },
-    { key: "INDISPONIVEL", label: "Indisponível" }
-  ];
 
   const categoryFilters: Array<{ key: "" | ItemCategoria; label: string }> = [
     { key: "", label: "Todas" },
@@ -135,17 +167,30 @@ export const InventoryPage = () => {
       <div className="space-y-5">
         <div>
           <label className="mb-3 block text-[9px] font-bold uppercase tracking-widest text-outline">Status</label>
-          <div className="no-scrollbar flex gap-2 overflow-x-auto">
-            {statusFilters.map((statusFilter) => (
-              <PillButton
-                key={statusFilter.label}
-                active={filterStatus === statusFilter.key}
-                onClick={() => setFilterStatus(statusFilter.key)}
+          <div className="flex flex-wrap gap-3">
+            {STATUS_FILTER_OPTIONS.map((statusFilter) => (
+              <label
+                key={statusFilter.key}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-rose-100 bg-white px-3 py-2 text-sm font-semibold text-on-surface-variant"
               >
+                <input
+                  type="checkbox"
+                  checked={filterStatusIn.includes(statusFilter.key)}
+                  onChange={() => toggleStatusFilter(statusFilter.key)}
+                  className="h-4 w-4 accent-primary"
+                />
                 {statusFilter.label}
-              </PillButton>
+              </label>
             ))}
           </div>
+          {showSoldStatuses ? (
+            <p className="mt-2 text-xs text-on-surface-variant">
+              Mostrando {SOLD_ITEM_STATUSES.filter((status) => filterStatusIn.includes(status)).map((status) => (status === "VENDIDO" ? "vendidos" : "entregues")).join(" e ")} dos últimos {soldWithinDays} dias.{" "}
+              <Link to="/conta/preferencias" className="font-bold text-primary underline">
+                Ajustar prazo
+              </Link>
+            </p>
+          ) : null}
         </div>
         <div>
           <label className="mb-3 block text-[9px] font-bold uppercase tracking-widest text-outline">Categoria</label>
