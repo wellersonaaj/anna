@@ -199,12 +199,14 @@ export const Section = ({ title, children }: PropsWithChildren<{ title: ReactNod
 
 export const Field = ({
   label,
+  error,
   children
-}: PropsWithChildren<{ label: string }>) => {
+}: PropsWithChildren<{ label: string; error?: string }>) => {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs font-semibold text-on-surface-variant">{label}</span>
       {children}
+      {error ? <span className="text-xs font-semibold text-primary">{error}</span> : null}
     </label>
   );
 };

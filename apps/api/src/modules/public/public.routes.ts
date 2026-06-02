@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 import { z } from "zod";
+import { formatZodValidationError } from "../../lib/validation-error.js";
 import { clienteContatoSchema } from "../clients/client.schemas.js";
 import { publicQueueService } from "./public.service.js";
 
@@ -52,7 +53,7 @@ export const publicRoutes = async (app: FastifyInstance): Promise<void> => {
       return reply.code(201).send(result);
     } catch (error) {
       if (error instanceof ZodError) {
-        return reply.code(400).send({ message: "Validation failed.", issues: error.issues });
+        return reply.code(400).send(formatZodValidationError(error));
       }
       const message = error instanceof Error ? error.message : "Unexpected error.";
       if (message === "Link not found.") {

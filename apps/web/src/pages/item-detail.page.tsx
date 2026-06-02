@@ -20,6 +20,7 @@ import {
 import { createFilaLink } from "../api/public-queue";
 import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
+import { applyApiFormErrors, getApiErrorMessage } from "../lib/api-form-errors";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, ItemStatusTone, PhotoLightbox, Section, Select } from "../components/ui";
 import { resizeImageDetailed } from "../lib/imageResize";
@@ -42,6 +43,20 @@ const editFormSchema = z.object({
 });
 
 type EditFormData = z.infer<typeof editFormSchema>;
+
+const editFormFields = [
+  "nome",
+  "categoria",
+  "subcategoria",
+  "cor",
+  "tamanho",
+  "marca",
+  "precoVenda",
+  "acervoTipo",
+  "acervoNome",
+  "estampa",
+  "condicao"
+] as const;
 
 const categoriaLabels: Record<ItemCategoria, string> = {
   ROUPA_FEMININA: "Roupa feminina",
@@ -193,6 +208,9 @@ export const ItemDetailPage = () => {
     onSuccess: async () => {
       await invalidateItem();
       setEditing(false);
+    },
+    onError: (error) => {
+      applyApiFormErrors(editForm.setError, error, editFormFields);
     }
   });
 
@@ -403,13 +421,13 @@ export const ItemDetailPage = () => {
                 className="grid gap-3 md:grid-cols-2"
                 onSubmit={editForm.handleSubmit((data) => updateMutation.mutate(data))}
               >
-                <Field label="Nome">
+                <Field label="Nome" error={editForm.formState.errors.nome?.message}>
                   <Input {...editForm.register("nome")} />
                 </Field>
-                <Field label="Preço (R$)">
+                <Field label="Preço (R$)" error={editForm.formState.errors.precoVenda?.message}>
                   <Input type="number" step="0.01" min={0} {...editForm.register("precoVenda")} />
                 </Field>
-                <Field label="Categoria">
+                <Field label="Categoria" error={editForm.formState.errors.categoria?.message}>
                   <Select {...editForm.register("categoria")}>
                     {Object.entries(categoriaLabels).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -418,16 +436,16 @@ export const ItemDetailPage = () => {
                     ))}
                   </Select>
                 </Field>
-                <Field label="Subcategoria">
+                <Field label="Subcategoria" error={editForm.formState.errors.subcategoria?.message}>
                   <Input {...editForm.register("subcategoria")} />
                 </Field>
-                <Field label="Cor">
+                <Field label="Cor" error={editForm.formState.errors.cor?.message}>
                   <Input {...editForm.register("cor")} />
                 </Field>
-                <Field label="Tamanho">
-                  <Input {...editForm.register("tamanho")} />
+                <Field label="Tamanho" error={editForm.formState.errors.tamanho?.message}>
+                  <Input {...editForm.register("tamanho")} placeholder="Opcional (vazio = não informado)" />
                 </Field>
-                <Field label="Condição">
+                <Field label="Condição" error={editForm.formState.errors.condicao?.message}>
                   <Select {...editForm.register("condicao")}>
                     {Object.entries(condicaoLabels).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -436,16 +454,16 @@ export const ItemDetailPage = () => {
                     ))}
                   </Select>
                 </Field>
-                <Field label="Marca">
+                <Field label="Marca" error={editForm.formState.errors.marca?.message}>
                   <Input {...editForm.register("marca")} />
                 </Field>
-                <Field label="Acervo">
+                <Field label="Acervo" error={editForm.formState.errors.acervoTipo?.message}>
                   <Select {...editForm.register("acervoTipo")}>
                     <option value="PROPRIO">Próprio</option>
                     <option value="CONSIGNACAO">Consignação</option>
                   </Select>
                 </Field>
-                <Field label="Nome do acervo/consignante">
+                <Field label="Nome do acervo/consignante" error={editForm.formState.errors.acervoNome?.message}>
                   <Input {...editForm.register("acervoNome")} />
                 </Field>
                 <label className="flex items-center gap-2 text-sm font-semibold text-on-surface-variant">
@@ -465,11 +483,9 @@ export const ItemDetailPage = () => {
                   </button>
                 </div>
                 {updateMutation.isError && (
-                  <small className="text-primary md:col-span-2">
-                    {updateMutation.error instanceof ApiError
-                      ? updateMutation.error.message
-                      : "Não foi possível salvar a peça."}
-                  </small>
+                  <p className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700 md:col-span-2" role="alert">
+                    {getApiErrorMessage(updateMutation.error, "Não foi possível salvar a peça.")}
+                  </p>
                 )}
               </form>
             ) : (

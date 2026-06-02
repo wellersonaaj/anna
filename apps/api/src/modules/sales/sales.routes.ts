@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
+import { formatZodValidationError } from "../../lib/validation-error.js";
 import { deliverSaleSchema, listDeliveredSalesQuerySchema } from "./sales.schemas.js";
 import { salesService } from "./sales.service.js";
 
@@ -16,7 +17,7 @@ export const salesRoutes = async (app: FastifyInstance): Promise<void> => {
       return reply.send(delivered);
     } catch (error) {
       if (error instanceof ZodError) {
-        return reply.code(400).send({ message: "Validation failed.", issues: error.issues });
+        return reply.code(400).send(formatZodValidationError(error));
       }
 
       const message = error instanceof Error ? error.message : "Unexpected error.";
@@ -33,7 +34,7 @@ export const salesRoutes = async (app: FastifyInstance): Promise<void> => {
       return reply.code(204).send();
     } catch (error) {
       if (error instanceof ZodError) {
-        return reply.code(400).send({ message: "Validation failed.", issues: error.issues });
+        return reply.code(400).send(formatZodValidationError(error));
       }
 
       const message = error instanceof Error ? error.message : "Unexpected error.";

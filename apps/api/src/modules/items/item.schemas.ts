@@ -35,10 +35,10 @@ export const createItemSchema = z.object({
 
 export const updateItemSchema = z
   .object({
-    nome: z.string().trim().min(2).optional(),
+    nome: z.string().trim().min(2, "Informe o nome com pelo menos 2 caracteres.").optional(),
     categoria: z.enum(["ROUPA_FEMININA", "ROUPA_MASCULINA", "CALCADO", "ACESSORIO"]).optional(),
-    subcategoria: z.string().trim().min(2).optional(),
-    cor: z.string().trim().min(2).optional(),
+    subcategoria: z.string().trim().min(2, "Informe a subcategoria.").optional(),
+    cor: z.string().trim().min(2, "Informe a cor.").optional(),
     estampa: z.boolean().optional(),
     condicao: z.enum(["OTIMO", "BOM", "REGULAR"]).optional(),
     tamanho: tamanhoOptionalSchema,

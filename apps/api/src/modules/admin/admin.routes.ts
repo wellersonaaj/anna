@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
+import { validationErrorResponse } from "../../lib/validation-error.js";
 import {
   createBrechoSchema,
   createBrechoUserSchema,
@@ -12,7 +13,7 @@ import { adminService } from "./admin.service.js";
 
 const handleError = (error: unknown, app: FastifyInstance) => {
   if (error instanceof ZodError) {
-    return { statusCode: 400, body: { message: "Validation failed.", issues: error.issues } };
+    return validationErrorResponse(error);
   }
 
   const message = error instanceof Error ? error.message : "Unexpected error.";
