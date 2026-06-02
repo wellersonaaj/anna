@@ -373,12 +373,14 @@ export const PillButton = ({
 
 export const ItemStatusTone = ({
   status,
-  compact = false
+  compact = false,
+  variant = "soft"
 }: {
   status: keyof typeof statusColorMap;
   compact?: boolean;
+  variant?: "soft" | "overlay";
 }) => {
-  const toneMap: Record<keyof typeof statusColorMap, { bg: string; text: string; label: string }> = {
+  const softToneMap: Record<keyof typeof statusColorMap, { bg: string; text: string; label: string }> = {
     DISPONIVEL: { bg: "bg-[#006a39]/10", text: "text-[#006a39]", label: "Disponível" },
     RESERVADO: { bg: "bg-amber-500/10", text: "text-amber-700", label: "Reservado" },
     VENDIDO: { bg: "bg-violet-500/10", text: "text-violet-700", label: "Vendido" },
@@ -386,13 +388,22 @@ export const ItemStatusTone = ({
     INDISPONIVEL: { bg: "bg-zinc-400/10", text: "text-zinc-600", label: "Indisponível" }
   };
 
-  const tone = toneMap[status];
+  const overlayToneMap: Record<keyof typeof statusColorMap, { bg: string; text: string; label: string }> = {
+    DISPONIVEL: { bg: "bg-[#006a39]", text: "text-white", label: "Disponível" },
+    RESERVADO: { bg: "bg-[#8a6d00]", text: "text-white", label: "Reservado" },
+    VENDIDO: { bg: "bg-[#5e2d86]", text: "text-white", label: "Vendido" },
+    ENTREGUE: { bg: "bg-[#176179]", text: "text-white", label: "Entregue" },
+    INDISPONIVEL: { bg: "bg-[#6a5557]", text: "text-white", label: "Indisponível" }
+  };
+
+  const tone = (variant === "overlay" ? overlayToneMap : softToneMap)[status];
   return (
     <span
       className={cx(
         "inline-flex rounded-full font-bold uppercase tracking-wider",
         tone.bg,
         tone.text,
+        variant === "overlay" && "shadow-sm",
         compact ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-[9px]"
       )}
     >
@@ -535,7 +546,7 @@ export const ProductCard = ({
           </>
         ) : null}
         <div className="pointer-events-none absolute left-3 top-3 z-20">
-          <ItemStatusTone status={item.status} />
+          <ItemStatusTone status={item.status} variant="overlay" />
         </div>
       </div>
       <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-outline">{subtitle}</p>
