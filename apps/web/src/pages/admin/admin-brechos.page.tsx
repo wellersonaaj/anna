@@ -29,7 +29,12 @@ export const AdminBrechosPage = () => {
       </div>
 
       {brechosQuery.isLoading && <p>Carregando brechós...</p>}
-      {!brechosQuery.isLoading && !brechosQuery.data?.length && (
+      {brechosQuery.isError && (
+        <p className="rounded-3xl border border-rose-100 bg-white p-5 text-sm text-on-surface-variant">
+          Não foi possível carregar. Verifique a conexão e tente de novo.
+        </p>
+      )}
+      {brechosQuery.isSuccess && !brechosQuery.data?.length && (
         <p className="rounded-3xl border border-rose-100 bg-white p-5 text-sm text-on-surface-variant">Nenhum brechó encontrado.</p>
       )}
 

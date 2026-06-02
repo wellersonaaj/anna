@@ -28,9 +28,12 @@ import { AdminBrechoDetailPage } from "./pages/admin/admin-brecho-detail.page";
 import { SellBatchPage } from "./pages/sell-batch.page";
 import { PublicQueuePage } from "./pages/public-queue.page";
 import { AddToHomeScreenPrompt } from "./components/add-to-home-screen-prompt";
+import { SessionBootstrap } from "./components/session-bootstrap";
+import { registerQueryClient } from "./lib/session-expired";
 import { useSessionStore } from "./store/session.store";
 
 const queryClient = new QueryClient();
+registerQueryClient(queryClient);
 
 const RequireAuth = ({ children }: PropsWithChildren) => {
   const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
@@ -70,6 +73,7 @@ export const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <SessionBootstrap />
         <AddToHomeScreenPrompt />
         <Routes>
           <Route path="/login" element={<LoginPage />} />

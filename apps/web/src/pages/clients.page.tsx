@@ -40,7 +40,12 @@ export const ClientsPage = () => {
 
       <div className="space-y-4">
         {clientsQuery.isLoading && <p>Carregando clientes...</p>}
-        {!clientsQuery.isLoading && !clientsQuery.data?.length && (
+        {clientsQuery.isError && (
+          <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
+            Não foi possível carregar. Verifique a conexão e tente de novo.
+          </p>
+        )}
+        {clientsQuery.isSuccess && !clientsQuery.data?.length && (
           <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
             Nenhum cliente encontrado.
           </p>

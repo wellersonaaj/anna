@@ -194,9 +194,18 @@ export const InventoryPage = () => {
         </div>
       </div>
 
-      {itemsQuery.isLoading ? (
-        <p>Carregando...</p>
-      ) : itemsQuery.data?.length ? (
+      {itemsQuery.isLoading && <p>Carregando...</p>}
+      {itemsQuery.isError && (
+        <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
+          Não foi possível carregar. Verifique a conexão e tente de novo.
+        </p>
+      )}
+      {itemsQuery.isSuccess && !itemsQuery.data?.length && (
+        <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
+          Nenhuma peça encontrada com os filtros atuais.
+        </p>
+      )}
+      {itemsQuery.isSuccess && itemsQuery.data?.length ? (
         <div className="grid grid-cols-2 gap-x-4 gap-y-8">
           {itemsQuery.data.map((item) => (
             <div key={item.id}>
@@ -232,11 +241,7 @@ export const InventoryPage = () => {
             </div>
           ))}
         </div>
-      ) : (
-        <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
-          Nenhuma peça encontrada com os filtros atuais.
-        </p>
-      )}
+      ) : null}
       {expandedItemId && expandedItemQuery.isLoading && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 text-white">
           Carregando fotos...

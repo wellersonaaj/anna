@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { login } from "../api/auth";
 import { ApiError } from "../api/client";
 import { SHOW_HOME_SCREEN_PROMPT_KEY } from "../lib/pwa/prompt-keys";
@@ -9,6 +9,8 @@ import { useSessionStore } from "../store/session.store";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get("reason") === "session_expired";
   const setSession = useSessionStore((state) => state.setSession);
   const [telefone, setTelefone] = useState("");
   const [password, setPassword] = useState("");
@@ -56,6 +58,12 @@ export const LoginPage = () => {
           <h1 className="mt-2 font-headline text-4xl font-extrabold tracking-tight">Entrar</h1>
           <p className="mt-2 text-sm text-on-surface-variant">Acesse com o telefone e senha provisória.</p>
         </div>
+
+        {sessionExpired && (
+          <p className="mb-4 rounded-2xl border border-amber-100 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+            Sua sessão expirou. Entre novamente com telefone e senha.
+          </p>
+        )}
 
         <div className="space-y-4">
           <Field label="Telefone">

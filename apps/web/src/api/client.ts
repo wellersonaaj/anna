@@ -1,3 +1,5 @@
+import { handleSessionExpired, shouldExpireSession } from "../lib/session-expired";
+
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3333";
 
 export class ApiError extends Error {
@@ -47,6 +49,10 @@ export const request = async <T>(path: string, options: RequestOptions): Promise
       .filter(Boolean)
       .join(" ");
     const message = [payload.message, issueLine].filter(Boolean).join(" ").trim();
+    const auth = options.auth !== false;
+    if (shouldExpireSession(response.status, message, path, auth)) {
+      handleSessionExpired();
+    }
     throw new ApiError(message || "Erro inesperado na API.", response.status);
   }
 
