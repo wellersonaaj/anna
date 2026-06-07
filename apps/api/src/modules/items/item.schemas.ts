@@ -75,7 +75,9 @@ export const sellItemSchema = z.object({
   freteIncluso: z.boolean().optional(),
   freteInclusoValor: moneyNonNegativeSchema.optional(),
   freteTexto: z.string().optional(),
-  freteValor: moneyNonNegativeSchema.optional()
+  freteValor: moneyNonNegativeSchema.optional(),
+  freteCustoLoja: moneyNonNegativeSchema.optional(),
+  embalagemCusto: moneyNonNegativeSchema.optional()
 });
 
 export const sellBatchSchema = z.object({

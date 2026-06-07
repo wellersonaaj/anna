@@ -1,15 +1,32 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  DESPESA_CATEGORIA_LABELS,
+  createDespesa,
+  deleteDespesa,
+  listDespesas,
+  type DespesaCategoria
+} from "../api/despesas";
 import { getSalesPeriodSummary, listItems } from "../api/items";
-import { AppShell, Section, formatCurrency } from "../components/ui";
+import { AppShell, Button, Field, Input, Section, Select, formatCurrency } from "../components/ui";
+import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 
 const daysSince = (isoDate: string) => Math.floor((Date.now() - new Date(isoDate).getTime()) / (1000 * 60 * 60 * 24));
 
 const inStockStatuses = new Set(["DISPONIVEL", "RESERVADO", "INDISPONIVEL"]);
 
+const todayInputValue = () => new Date().toISOString().slice(0, 10);
+
 export const ReportsPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
+  const queryClient = useQueryClient();
+  const [showDespesaForm, setShowDespesaForm] = useState(false);
+  const [despesaCategoria, setDespesaCategoria] = useState<DespesaCategoria>("MARKETING");
+  const [despesaValor, setDespesaValor] = useState("");
+  const [despesaDescricao, setDespesaDescricao] = useState("");
+  const [despesaData, setDespesaData] = useState(todayInputValue());
 
   const itemsQuery = useQuery({
     queryKey: ["items", brechoId, "reports"],
@@ -21,8 +38,45 @@ export const ReportsPage = () => {
     queryFn: () => getSalesPeriodSummary(brechoId, { days: 30 })
   });
 
+  const despesasQuery = useQuery({
+    queryKey: ["despesas", brechoId],
+    queryFn: () => listDespesas(brechoId, { days: 30 })
+  });
+
+  const createDespesaMutation = useMutation({
+    mutationFn: () => {
+      const valor = parseMoneyLike(despesaValor);
+      if (Number.isNaN(valor) || valor <= 0) {
+        throw new Error("Informe um valor válido.");
+      }
+      return createDespesa(brechoId, {
+        categoria: despesaCategoria,
+        valor,
+        descricao: despesaDescricao.trim() || undefined,
+        dataCompetencia: new Date(`${despesaData}T12:00:00`).toISOString()
+      });
+    },
+    onSuccess: async () => {
+      setShowDespesaForm(false);
+      setDespesaValor("");
+      setDespesaDescricao("");
+      setDespesaData(todayInputValue());
+      await queryClient.invalidateQueries({ queryKey: ["despesas", brechoId] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-period-summary", brechoId] });
+    }
+  });
+
+  const deleteDespesaMutation = useMutation({
+    mutationFn: (despesaId: string) => deleteDespesa(brechoId, despesaId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["despesas", brechoId] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-period-summary", brechoId] });
+    }
+  });
+
   const items = itemsQuery.data ?? [];
   const summary = periodSummaryQuery.data;
+  const despesas = despesasQuery.data ?? [];
 
   const stockCount = items.filter((item) => inStockStatuses.has(item.status)).length;
   const staleItems = items
@@ -106,6 +160,40 @@ export const ReportsPage = () => {
           </div>
         </div>
 
+        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6 shadow-sm">
+          <div>
+            <span className="block text-4xl font-extrabold text-emerald-700">
+              {formatCurrency(summary?.lucroOperacional ?? 0)}
+            </span>
+            <span className="text-sm font-semibold text-gray-500">Lucro operacional</span>
+            {summary && summary.custosFreteEmbalagem > 0 && (
+              <p className="mt-1 text-xs text-gray-500">
+                após {formatCurrency(summary.custosFreteEmbalagem)} em frete/embalagem das vendas
+              </p>
+            )}
+          </div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+            <span className="material-symbols-outlined">local_shipping</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6 shadow-sm">
+          <div>
+            <span className="block text-4xl font-extrabold text-indigo-700">
+              {formatCurrency(summary?.lucroLiquido ?? 0)}
+            </span>
+            <span className="text-sm font-semibold text-gray-500">Lucro líquido do mês</span>
+            {summary && summary.despesasGerais > 0 && (
+              <p className="mt-1 text-xs text-gray-500">
+                após {formatCurrency(summary.despesasGerais)} em despesas gerais
+              </p>
+            )}
+          </div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
+            <span className="material-symbols-outlined">account_balance_wallet</span>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6">
           <div>
             <span className="block text-4xl font-extrabold text-amber-500">{staleItems.length}</span>
@@ -116,6 +204,99 @@ export const ReportsPage = () => {
           </div>
         </div>
       </div>
+
+      <Section title="Despesas do mês">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-sm text-on-surface-variant">
+            Marketing, plataformas, embalagem em lote e outros custos do brechó.
+          </p>
+          <Button type="button" onClick={() => setShowDespesaForm((open) => !open)}>
+            {showDespesaForm ? "Cancelar" : "Nova despesa"}
+          </Button>
+        </div>
+
+        {showDespesaForm && (
+          <form
+            className="mb-4 grid gap-3 rounded-2xl border border-rose-100 bg-white p-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createDespesaMutation.mutate();
+            }}
+          >
+            <Field label="Categoria">
+              <Select
+                value={despesaCategoria}
+                onChange={(event) => setDespesaCategoria(event.target.value as DespesaCategoria)}
+              >
+                {Object.entries(DESPESA_CATEGORIA_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Valor (R$)">
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                value={despesaValor}
+                onChange={(event) => setDespesaValor(event.target.value)}
+              />
+            </Field>
+            <Field label="Data">
+              <Input type="date" value={despesaData} onChange={(event) => setDespesaData(event.target.value)} />
+            </Field>
+            <Field label="Descrição (opcional)">
+              <Input value={despesaDescricao} onChange={(event) => setDespesaDescricao(event.target.value)} />
+            </Field>
+            {createDespesaMutation.isError && (
+              <p className="text-sm text-red-600">
+                {createDespesaMutation.error instanceof Error
+                  ? createDespesaMutation.error.message
+                  : "Não foi possível salvar a despesa."}
+              </p>
+            )}
+            <Button type="submit" disabled={createDespesaMutation.isPending}>
+              {createDespesaMutation.isPending ? "Salvando..." : "Salvar despesa"}
+            </Button>
+          </form>
+        )}
+
+        {despesasQuery.isLoading && <p className="text-sm">Carregando despesas...</p>}
+        {!despesasQuery.isLoading && despesas.length === 0 && (
+          <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
+            Nenhuma despesa lançada neste período.
+          </p>
+        )}
+        <div className="space-y-2">
+          {despesas.map((despesa) => (
+            <article
+              key={despesa.id}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-rose-50 bg-white p-3"
+            >
+              <div>
+                <p className="text-sm font-bold text-gray-900">{DESPESA_CATEGORIA_LABELS[despesa.categoria]}</p>
+                <p className="text-xs text-gray-500">
+                  {new Date(despesa.dataCompetencia).toLocaleDateString("pt-BR")}
+                  {despesa.descricao ? ` · ${despesa.descricao}` : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-extrabold text-primary">{formatCurrency(despesa.valor)}</span>
+                <button
+                  type="button"
+                  className="text-xs font-bold text-red-600 underline"
+                  disabled={deleteDespesaMutation.isPending}
+                  onClick={() => deleteDespesaMutation.mutate(despesa.id)}
+                >
+                  Excluir
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </Section>
 
       <section className="mt-2">
         <div className="mb-4 flex items-center justify-between">

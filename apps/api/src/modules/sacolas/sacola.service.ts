@@ -2,6 +2,7 @@ import { itemStatus } from "@anna/shared";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { storageEnv } from "../../config/env.js";
 import { createPresignedGet, isStorageConfigured, resolveObjectKeyFromPublicUrl } from "../../lib/storage.js";
+import { allocateShipmentCosts } from "../../lib/venda-custo-envio.js";
 import { resolveCoverFoto } from "../items/item.service.js";
 
 type DbLike = PrismaClient | Prisma.TransactionClient;
@@ -180,6 +181,8 @@ export const sacolaService = {
               id: venda.id,
               precoVenda: venda.precoVenda,
               precoCusto: venda.precoCusto,
+              freteCustoLoja: venda.freteCustoLoja,
+              embalagemCusto: venda.embalagemCusto,
               freteIncluso: venda.freteIncluso,
               freteInclusoValor: venda.freteInclusoValor,
               ganhosTotal: venda.ganhosTotal,
@@ -202,7 +205,14 @@ export const sacolaService = {
     prisma: PrismaClient,
     brechoId: string,
     sacolaId: string,
-    data: { vendaIds?: string[]; codigoRastreio?: string; freteTexto?: string; freteValor?: number }
+    data: {
+      vendaIds?: string[];
+      codigoRastreio?: string;
+      freteTexto?: string;
+      freteValor?: number;
+      freteCustoLoja?: number;
+      embalagemCusto?: number;
+    }
   ) {
     return prisma.$transaction(async (tx) => {
       const sacola = await tx.sacolaCliente.findFirst({
@@ -231,12 +241,24 @@ export const sacolaService = {
         }
       }
 
+      const targetVendas = sacola.vendas.filter((venda) => targetIds.includes(venda.id));
+      const allocation = allocateShipmentCosts(
+        targetVendas.map((venda) => ({
+          id: venda.id,
+          precoVenda: Number(venda.precoVenda)
+        })),
+        data.freteCustoLoja,
+        data.embalagemCusto
+      );
+
       const remessa = await tx.remessa.create({
         data: {
           sacolaClienteId: sacolaId,
           codigoRastreio: data.codigoRastreio,
           freteTexto: data.freteTexto,
-          freteValor: data.freteValor && data.freteValor > 0 ? data.freteValor : null
+          freteValor: data.freteValor && data.freteValor > 0 ? data.freteValor : null,
+          freteCustoLoja: data.freteCustoLoja && data.freteCustoLoja > 0 ? data.freteCustoLoja : null,
+          embalagemCusto: data.embalagemCusto && data.embalagemCusto > 0 ? data.embalagemCusto : null
         }
       });
 
@@ -245,6 +267,16 @@ export const sacolaService = {
         if (!sale) {
           continue;
         }
+
+        const costs = allocation.get(vendaId);
+        await tx.venda.update({
+          where: { id: vendaId },
+          data: {
+            freteCustoLoja: costs?.freteCustoLoja ?? null,
+            embalagemCusto: costs?.embalagemCusto ?? null
+          }
+        });
+
         await deliverVendaInTx(tx, sale, {
           codigoRastreio: data.codigoRastreio,
           remessaId: remessa.id

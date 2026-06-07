@@ -25,3 +25,12 @@ export const formatExpectedMarginHint = (precoCustoInput, precoVendaInput) => {
     }
     return `Margem esperada: R$ ${lucro.toFixed(2).replace(".", ",")}`;
 };
+export const computeLucroOperacional = (precoVenda, precoCusto, freteCustoLoja, embalagemCusto) => {
+    const lucroBruto = computeLucroBruto(precoVenda, precoCusto);
+    if (lucroBruto === null) {
+        return null;
+    }
+    const frete = freteCustoLoja ?? 0;
+    const embalagem = embalagemCusto ?? 0;
+    return lucroBruto - frete - embalagem;
+};

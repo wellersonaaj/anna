@@ -25,7 +25,7 @@ import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, ItemStatusTone, PhotoLightbox, Section, Select, formatCurrency } from "../components/ui";
 import { resizeImageDetailed } from "../lib/imageResize";
 import { moneyInputValue, parseMoneyLike } from "../lib/money";
-import { computeLucroBruto, formatExpectedMarginHint } from "../lib/peca-lucro";
+import { computeLucroBruto, computeLucroOperacional, formatExpectedMarginHint } from "../lib/peca-lucro";
 
 const MAX_PHOTOS = 30;
 
@@ -148,9 +148,17 @@ export const ItemDetailPage = () => {
   const isSold = item ? soldStatuses.has(item.status) : false;
   const salePrecoVenda = item?.venda ? parseMoneyLike(item.venda.precoVenda) : Number.NaN;
   const salePrecoCusto = item?.venda?.precoCusto != null ? parseMoneyLike(item.venda.precoCusto) : null;
+  const saleFreteCusto =
+    item?.venda?.freteCustoLoja != null ? parseMoneyLike(item.venda.freteCustoLoja) : null;
+  const saleEmbalagemCusto =
+    item?.venda?.embalagemCusto != null ? parseMoneyLike(item.venda.embalagemCusto) : null;
   const saleLucroBruto =
     item?.venda && !Number.isNaN(salePrecoVenda)
       ? computeLucroBruto(salePrecoVenda, salePrecoCusto)
+      : null;
+  const saleLucroOperacional =
+    item?.venda && !Number.isNaN(salePrecoVenda)
+      ? computeLucroOperacional(salePrecoVenda, salePrecoCusto, saleFreteCusto, saleEmbalagemCusto)
       : null;
 
   useEffect(() => {
@@ -564,10 +572,28 @@ export const ItemDetailPage = () => {
                   <dt className="font-bold text-on-surface-variant">Custo (na venda)</dt>
                   <dd>{salePrecoCusto != null ? formatCurrency(salePrecoCusto) : "Não informado"}</dd>
                 </div>
+                {saleFreteCusto != null && (
+                  <div>
+                    <dt className="font-bold text-on-surface-variant">Frete pago pela loja</dt>
+                    <dd>{formatCurrency(saleFreteCusto)}</dd>
+                  </div>
+                )}
+                {saleEmbalagemCusto != null && (
+                  <div>
+                    <dt className="font-bold text-on-surface-variant">Embalagem</dt>
+                    <dd>{formatCurrency(saleEmbalagemCusto)}</dd>
+                  </div>
+                )}
                 <div className="col-span-2">
                   <dt className="font-bold text-on-surface-variant">Lucro bruto</dt>
-                  <dd className="text-base font-extrabold text-green-700">
+                  <dd className="font-semibold text-green-700">
                     {saleLucroBruto != null ? formatCurrency(saleLucroBruto) : "Custo não cadastrado"}
+                  </dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="font-bold text-on-surface-variant">Lucro operacional</dt>
+                  <dd className="text-base font-extrabold text-green-700">
+                    {saleLucroOperacional != null ? formatCurrency(saleLucroOperacional) : "Custo não cadastrado"}
                   </dd>
                 </div>
               </dl>

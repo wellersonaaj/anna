@@ -3,7 +3,8 @@ import type { PrismaClient } from "@prisma/client";
 import { storageEnv } from "../../config/env.js";
 import { createPresignedGet, isStorageConfigured, resolveObjectKeyFromPublicUrl } from "../../lib/storage.js";
 import { resolveCoverFoto } from "../items/item.service.js";
-import { computeLucroBruto, computeMargemBrutaPct } from "../../lib/venda-lucro.js";
+import { despesaService } from "../despesas/despesa.service.js";
+import { computeLucroBruto, computeLucroOperacional, computeMargemBrutaPct } from "../../lib/venda-lucro.js";
 import { resolveFreteInclusoValor } from "../../lib/venda-frete.js";
 import { sacolaService } from "../sacolas/sacola.service.js";
 
@@ -175,7 +176,13 @@ export const salesService = {
           criadoEm: { gte: since },
           peca: { brechoId }
         },
-        select: { precoVenda: true, precoCusto: true, freteInclusoValor: true }
+        select: {
+          precoVenda: true,
+          precoCusto: true,
+          freteCustoLoja: true,
+          embalagemCusto: true,
+          freteInclusoValor: true
+        }
       }),
       prisma.venda.findMany({
         where: {
@@ -204,11 +211,40 @@ export const salesService = {
     const vendasSemCusto = periodVendas.length - vendasComCusto.length;
     const margemBrutaPct = computeMargemBrutaPct(lucroBruto, faturamentoComCusto);
 
+    const custosFreteEmbalagem = periodVendas.reduce((sum, row) => {
+      const frete = row.freteCustoLoja ? Number(row.freteCustoLoja) : 0;
+      const embalagem = row.embalagemCusto ? Number(row.embalagemCusto) : 0;
+      return sum + frete + embalagem;
+    }, 0);
+
+    const lucroOperacionalVendas = vendasComCusto.reduce((sum, row) => {
+      const lucro = computeLucroOperacional(
+        Number(row.precoVenda),
+        row.precoCusto !== null ? Number(row.precoCusto) : null,
+        row.freteCustoLoja !== null ? Number(row.freteCustoLoja) : null,
+        row.embalagemCusto !== null ? Number(row.embalagemCusto) : null
+      );
+      return sum + (lucro ?? 0);
+    }, 0);
+
+    const { despesasGerais, despesasPorCategoria } = await despesaService.sumByPeriod(
+      prisma,
+      brechoId,
+      since
+    );
+
+    const lucroLiquido = lucroOperacionalVendas - despesasGerais;
+
     return {
       vendasNoPeriodo: periodVendas.length,
       faturamentoPecas: sumPreco(periodVendas),
       custoPecasVendidas,
       lucroBruto,
+      custosFreteEmbalagem,
+      lucroOperacional: lucroOperacionalVendas,
+      despesasGerais,
+      despesasPorCategoria,
+      lucroLiquido,
       vendasSemCusto,
       margemBrutaPct,
       freteInclusoInformado,

@@ -98,6 +98,13 @@ enum SacolaStatus {
   FECHADA
 }
 
+enum DespesaCategoria {
+  MARKETING
+  PLATAFORMAS
+  EMBALAGEM
+  OUTROS
+}
+
 model Brecho {
   id            String       @id @default(cuid())
   nome          String
@@ -122,6 +129,7 @@ model Brecho {
   analyticsCategorias AnalyticsCategoriaDia[]
   pecaCodigoSequencias PecaCodigoSequencia[]
   sacolasCliente      SacolaCliente[]
+  despesas            BrechoDespesa[]
 }
 
 model User {
@@ -305,12 +313,29 @@ model SacolaCliente {
   @@index([clienteId, status])
 }
 
+model BrechoDespesa {
+  id              String           @id @default(cuid())
+  brechoId        String
+  categoria       DespesaCategoria
+  valor           Decimal          @db.Decimal(10, 2)
+  descricao       String?
+  dataCompetencia DateTime
+  criadoEm        DateTime         @default(now())
+  atualizadoEm    DateTime         @updatedAt
+
+  brecho Brecho @relation(fields: [brechoId], references: [id], onDelete: Cascade)
+
+  @@index([brechoId, dataCompetencia])
+}
+
 model Remessa {
   id              String   @id @default(cuid())
   sacolaClienteId String
   codigoRastreio  String?
   freteTexto      String?
   freteValor      Decimal? @db.Decimal(10, 2)
+  freteCustoLoja  Decimal? @db.Decimal(10, 2)
+  embalagemCusto  Decimal? @db.Decimal(10, 2)
   enviadaEm       DateTime @default(now())
 
   sacola SacolaCliente @relation(fields: [sacolaClienteId], references: [id], onDelete: Cascade)
@@ -326,6 +351,10 @@ model Venda {
   precoVenda      Decimal  @db.Decimal(10, 2)
   /// Snapshot do custo da peca no momento da venda.
   precoCusto      Decimal? @db.Decimal(10, 2)
+  /// Snapshot do frete pago pela loja (alocado por envio ou informado na venda).
+  freteCustoLoja  Decimal? @db.Decimal(10, 2)
+  /// Snapshot do custo de embalagem da venda.
+  embalagemCusto  Decimal? @db.Decimal(10, 2)
   freteIncluso      Boolean  @default(false)
   freteInclusoValor Decimal? @db.Decimal(10, 2)
   freteTexto        String?

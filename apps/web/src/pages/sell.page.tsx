@@ -72,6 +72,8 @@ export const SellPage = () => {
   const [freteIncluso, setFreteIncluso] = useState(false);
   const [freteInclusoValor, setFreteInclusoValor] = useState("");
   const [freteValidationError, setFreteValidationError] = useState<string | null>(null);
+  const [freteCustoLoja, setFreteCustoLoja] = useState("");
+  const [embalagemCusto, setEmbalagemCusto] = useState("");
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
@@ -203,6 +205,9 @@ export const SellPage = () => {
         }
       }
 
+      const freteCustoNum = freteCustoLoja.trim() ? parseMoneyLike(freteCustoLoja) : Number.NaN;
+      const embalagemCustoNum = embalagemCusto.trim() ? parseMoneyLike(embalagemCusto) : Number.NaN;
+
       return sellItem(brechoId, itemId, {
         cliente: {
           nome: data.clienteNome.trim(),
@@ -215,6 +220,14 @@ export const SellPage = () => {
         freteInclusoValor:
           modoEntrega === "SACOLA" && freteIncluso
             ? parseFreteInclusoValorForApi(data.precoVenda, freteInclusoValor)
+            : undefined,
+        freteCustoLoja:
+          modoEntrega === "IMEDIATA" && !Number.isNaN(freteCustoNum) && freteCustoNum > 0
+            ? freteCustoNum
+            : undefined,
+        embalagemCusto:
+          modoEntrega === "IMEDIATA" && !Number.isNaN(embalagemCustoNum) && embalagemCustoNum > 0
+            ? embalagemCustoNum
             : undefined
       });
     },
@@ -544,6 +557,29 @@ export const SellPage = () => {
             <Input type="number" step="0.01" min={0} {...register("precoVenda", { valueAsNumber: true })} />
             <small style={{ color: "#5a4042" }}>Pré-preenchido com o preço de anúncio. Toque para editar.</small>
           </Field>
+
+          {modoEntrega === "IMEDIATA" && (
+            <div className="grid gap-2">
+              <Field label="Quanto você pagou de frete? (R$) (opcional)">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={freteCustoLoja}
+                  onChange={(event) => setFreteCustoLoja(event.target.value)}
+                />
+              </Field>
+              <Field label="Custo de embalagem (R$) (opcional)">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={embalagemCusto}
+                  onChange={(event) => setEmbalagemCusto(event.target.value)}
+                />
+              </Field>
+            </div>
+          )}
 
           {modoEntrega === "SACOLA" && freteIncluso && (
             <FreteInclusoDetail

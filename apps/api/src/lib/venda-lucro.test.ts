@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeLucroBruto, computeMargemBrutaPct } from "./venda-lucro.js";
+import { computeLucroBruto, computeLucroOperacional, computeMargemBrutaPct } from "./venda-lucro.js";
 
 describe("computeLucroBruto", () => {
   it("returns sale price minus cost when cost is set", () => {
@@ -9,6 +9,16 @@ describe("computeLucroBruto", () => {
   it("returns null when cost is missing", () => {
     expect(computeLucroBruto(75, null)).toBeNull();
     expect(computeLucroBruto(75, undefined)).toBeNull();
+  });
+});
+
+describe("computeLucroOperacional", () => {
+  it("subtracts store freight and packaging from gross profit", () => {
+    expect(computeLucroOperacional(100, 40, 10, 5)).toBe(45);
+  });
+
+  it("returns null when piece cost is missing", () => {
+    expect(computeLucroOperacional(100, null, 10, 5)).toBeNull();
   });
 });
 

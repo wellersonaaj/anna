@@ -199,6 +199,8 @@ export type ItemVenda = {
   id: string;
   precoVenda: string | number;
   precoCusto?: string | number | null;
+  freteCustoLoja?: string | number | null;
+  embalagemCusto?: string | number | null;
   ganhosTotal: string | number;
   criadoEm: string;
 };
@@ -242,6 +244,8 @@ export type DeliveredSale = {
   id: string;
   precoVenda: string | number;
   precoCusto?: string | number | null;
+  freteCustoLoja?: string | number | null;
+  embalagemCusto?: string | number | null;
   ganhosTotal: string | number;
   criadoEm: string;
   peca: {
@@ -602,6 +606,8 @@ export const sellItem = async (
     freteInclusoValor?: number;
     freteTexto?: string;
     freteValor?: number;
+    freteCustoLoja?: number;
+    embalagemCusto?: number;
   }
 ): Promise<Item> => {
   return request<Item>(`/items/${itemId}/sell`, {
@@ -644,6 +650,11 @@ export type SalesPeriodSummary = {
   faturamentoPecas: number;
   custoPecasVendidas: number;
   lucroBruto: number;
+  custosFreteEmbalagem: number;
+  lucroOperacional: number;
+  despesasGerais: number;
+  despesasPorCategoria: Record<"MARKETING" | "PLATAFORMAS" | "EMBALAGEM" | "OUTROS", number>;
+  lucroLiquido: number;
   vendasSemCusto: number;
   margemBrutaPct: number | null;
   freteInclusoInformado: number;

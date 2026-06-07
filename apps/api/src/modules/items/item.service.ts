@@ -1596,6 +1596,8 @@ export const itemService = {
       freteInclusoValor?: number;
       freteTexto?: string;
       freteValor?: number;
+      freteCustoLoja?: number;
+      embalagemCusto?: number;
     }
   ) {
     return prisma.$transaction(async (tx) => {
@@ -1643,6 +1645,10 @@ export const itemService = {
           clienteId: cliente.id,
           precoVenda: payload.precoVenda,
           precoCusto: item.precoCusto,
+          freteCustoLoja:
+            payload.freteCustoLoja && payload.freteCustoLoja > 0 ? payload.freteCustoLoja : null,
+          embalagemCusto:
+            payload.embalagemCusto && payload.embalagemCusto > 0 ? payload.embalagemCusto : null,
           freteIncluso,
           freteInclusoValor,
           freteTexto,

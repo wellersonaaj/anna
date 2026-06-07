@@ -19,7 +19,7 @@ import {
   relativeAgeLabel
 } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
-import { computeLucroBruto } from "../lib/peca-lucro";
+import { computeLucroOperacional } from "../lib/peca-lucro";
 import { useSessionStore } from "../store/session.store";
 
 const sortReservedByOldest = (items: Item[]) =>
@@ -35,6 +35,8 @@ export const SalesHubPage = () => {
 
   const [rastreioPorSacola, setRastreioPorSacola] = useState<Record<string, string>>({});
   const [fretePorSacola, setFretePorSacola] = useState<Record<string, string>>({});
+  const [freteCustoPorSacola, setFreteCustoPorSacola] = useState<Record<string, string>>({});
+  const [embalagemCustoPorSacola, setEmbalagemCustoPorSacola] = useState<Record<string, string>>({});
   const [selectedVendas, setSelectedVendas] = useState<Record<string, string[]>>({});
   const [deliveredOffset, setDeliveredOffset] = useState(0);
   const [deliveredRows, setDeliveredRows] = useState<DeliveredSale[]>([]);
@@ -92,11 +94,15 @@ export const SalesHubPage = () => {
       vendaIds?: string[];
       codigoRastreio?: string;
       freteValor?: number;
+      freteCustoLoja?: number;
+      embalagemCusto?: number;
     }) =>
       shipSacola(brechoId, vars.sacolaId, {
         vendaIds: vars.vendaIds,
         codigoRastreio: vars.codigoRastreio?.trim() || undefined,
-        freteValor: vars.freteValor
+        freteValor: vars.freteValor,
+        freteCustoLoja: vars.freteCustoLoja,
+        embalagemCusto: vars.embalagemCusto
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["pending-sacolas", brechoId] });
@@ -235,6 +241,12 @@ export const SalesHubPage = () => {
             const freteInput = fretePorSacola[sacola.id] ?? "";
             const freteValor = parseMoneyLike(freteInput);
             const freteNumerico = Number.isNaN(freteValor) ? 0 : freteValor;
+            const freteCustoInput = freteCustoPorSacola[sacola.id] ?? "";
+            const freteCustoValor = parseMoneyLike(freteCustoInput);
+            const freteCustoNumerico = Number.isNaN(freteCustoValor) ? 0 : freteCustoValor;
+            const embalagemCustoInput = embalagemCustoPorSacola[sacola.id] ?? "";
+            const embalagemCustoValor = parseMoneyLike(embalagemCustoInput);
+            const embalagemCustoNumerico = Number.isNaN(embalagemCustoValor) ? 0 : embalagemCustoValor;
 
             return (
               <article key={sacola.id} className="rounded-3xl border border-rose-50 bg-white p-4 shadow-sm">
@@ -273,15 +285,19 @@ export const SalesHubPage = () => {
                           <span className="text-xs font-semibold text-primary">
                             {formatCurrency(venda.precoVenda)}
                           </span>
-                          {computeLucroBruto(
+                          {computeLucroOperacional(
                             parseMoneyLike(venda.precoVenda),
-                            venda.precoCusto != null ? parseMoneyLike(venda.precoCusto) : null
+                            venda.precoCusto != null ? parseMoneyLike(venda.precoCusto) : null,
+                            venda.freteCustoLoja != null ? parseMoneyLike(venda.freteCustoLoja) : null,
+                            venda.embalagemCusto != null ? parseMoneyLike(venda.embalagemCusto) : null
                           ) != null && (
                             <span className="text-xs font-semibold text-green-700">
                               Lucro {formatCurrency(
-                                computeLucroBruto(
+                                computeLucroOperacional(
                                   parseMoneyLike(venda.precoVenda),
-                                  venda.precoCusto != null ? parseMoneyLike(venda.precoCusto) : null
+                                  venda.precoCusto != null ? parseMoneyLike(venda.precoCusto) : null,
+                                  venda.freteCustoLoja != null ? parseMoneyLike(venda.freteCustoLoja) : null,
+                                  venda.embalagemCusto != null ? parseMoneyLike(venda.embalagemCusto) : null
                                 )
                               )}
                             </span>
@@ -348,6 +364,28 @@ export const SalesHubPage = () => {
                 )}
 
                 <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  placeholder="Quanto você pagou de frete? (R$) (opcional)"
+                  value={freteCustoInput}
+                  onChange={(event) =>
+                    setFreteCustoPorSacola((prev) => ({ ...prev, [sacola.id]: event.target.value }))
+                  }
+                  className="mb-2"
+                />
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  placeholder="Custo de embalagem deste envio (R$) (opcional)"
+                  value={embalagemCustoInput}
+                  onChange={(event) =>
+                    setEmbalagemCustoPorSacola((prev) => ({ ...prev, [sacola.id]: event.target.value }))
+                  }
+                  className="mb-2"
+                />
+                <Input
                   placeholder="Código de rastreio (opcional)"
                   value={rastreioPorSacola[sacola.id] ?? ""}
                   onChange={(event) =>
@@ -363,7 +401,9 @@ export const SalesHubPage = () => {
                         sacolaId: sacola.id,
                         vendaIds: selected.length === sacola.vendas.length ? undefined : selected,
                         codigoRastreio: rastreioPorSacola[sacola.id],
-                        freteValor: allSelectedFreteIncluso ? undefined : freteNumerico > 0 ? freteNumerico : undefined
+                        freteValor: allSelectedFreteIncluso ? undefined : freteNumerico > 0 ? freteNumerico : undefined,
+                        freteCustoLoja: freteCustoNumerico > 0 ? freteCustoNumerico : undefined,
+                        embalagemCusto: embalagemCustoNumerico > 0 ? embalagemCustoNumerico : undefined
                       })
                     }
                   >
@@ -390,9 +430,11 @@ export const SalesHubPage = () => {
           )}
           {deliveredRows.map((sale) => {
             const pecaImg = sale.peca.fotoCapaThumbnailUrl ?? sale.peca.fotoCapaUrl;
-            const lucroBruto = computeLucroBruto(
+            const lucroOperacional = computeLucroOperacional(
               parseMoneyLike(sale.precoVenda),
-              sale.precoCusto != null ? parseMoneyLike(sale.precoCusto) : null
+              sale.precoCusto != null ? parseMoneyLike(sale.precoCusto) : null,
+              sale.freteCustoLoja != null ? parseMoneyLike(sale.freteCustoLoja) : null,
+              sale.embalagemCusto != null ? parseMoneyLike(sale.embalagemCusto) : null
             );
             return (
               <article key={sale.id} className="rounded-2xl border border-rose-50 bg-white p-3 shadow-sm">
@@ -415,8 +457,8 @@ export const SalesHubPage = () => {
                       {sale.cliente.nome} •{" "}
                       {new Date(sale.entrega?.entregueEm ?? sale.criadoEm).toLocaleDateString("pt-BR")}
                     </p>
-                    {lucroBruto != null && (
-                      <p className="text-xs font-semibold text-green-700">Lucro {formatCurrency(lucroBruto)}</p>
+                    {lucroOperacional != null && (
+                      <p className="text-xs font-semibold text-green-700">Lucro {formatCurrency(lucroOperacional)}</p>
                     )}
                   </div>
                   <strong className="text-primary">{formatCurrency(sale.ganhosTotal)}</strong>

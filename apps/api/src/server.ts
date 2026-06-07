@@ -13,6 +13,7 @@ import { salesRoutes } from "./modules/sales/sales.routes.js";
 import { sacolaRoutes } from "./modules/sacolas/sacola.routes.js";
 import { publicRoutes } from "./modules/public/public.routes.js";
 import { importacaoRoutes } from "./modules/importacoes/importacao.routes.js";
+import { despesaRoutes } from "./modules/despesas/despesa.routes.js";
 import { ensureFounderFromEnv, shouldRunFounderBootstrapOnStart } from "./lib/founderBootstrap.js";
 
 // Deploy marker: force Railway rebuild with idempotent importacao migration.
@@ -63,6 +64,7 @@ export const buildServer = () => {
   app.register(importacaoRoutes);
   app.register(salesRoutes);
   app.register(sacolaRoutes);
+  app.register(despesaRoutes);
 
   return app;
 };
