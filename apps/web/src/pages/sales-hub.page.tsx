@@ -8,6 +8,7 @@ import {
   type Item
 } from "../api/items";
 import { listPendingSacolas, shipSacola, type PendingSacola } from "../api/sacolas";
+import { EditSaleForm } from "../components/edit-sale-form";
 import {
   AppShell,
   Button,
@@ -16,6 +17,7 @@ import {
   formatCurrency,
   relativeAgeLabel
 } from "../components/ui";
+import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 
 const sortReservedByOldest = (items: Item[]) =>
@@ -30,9 +32,16 @@ export const SalesHubPage = () => {
   const queryClient = useQueryClient();
 
   const [rastreioPorSacola, setRastreioPorSacola] = useState<Record<string, string>>({});
+  const [fretePorSacola, setFretePorSacola] = useState<Record<string, string>>({});
   const [selectedVendas, setSelectedVendas] = useState<Record<string, string[]>>({});
   const [deliveredOffset, setDeliveredOffset] = useState(0);
   const [deliveredRows, setDeliveredRows] = useState<DeliveredSale[]>([]);
+  const [editingSale, setEditingSale] = useState<{
+    id: string;
+    pecaNome: string;
+    preco: number;
+    freteIncluso: boolean;
+  } | null>(null);
 
   const reservedItemsQuery = useQuery({
     queryKey: ["items", brechoId, "reserved-hub"],
@@ -75,15 +84,22 @@ export const SalesHubPage = () => {
   );
 
   const shipSacolaMutation = useMutation({
-    mutationFn: (vars: { sacolaId: string; vendaIds?: string[]; codigoRastreio?: string }) =>
+    mutationFn: (vars: {
+      sacolaId: string;
+      vendaIds?: string[];
+      codigoRastreio?: string;
+      freteValor?: number;
+    }) =>
       shipSacola(brechoId, vars.sacolaId, {
         vendaIds: vars.vendaIds,
-        codigoRastreio: vars.codigoRastreio?.trim() || undefined
+        codigoRastreio: vars.codigoRastreio?.trim() || undefined,
+        freteValor: vars.freteValor
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["pending-sacolas", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["pending-sales", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-period-summary", brechoId] });
       setDeliveredOffset(0);
       await queryClient.invalidateQueries({ queryKey: ["delivered-sales", brechoId] });
     }
@@ -101,6 +117,22 @@ export const SalesHubPage = () => {
           { id: "entregues", label: "Entregues" }
         ]}
       />
+
+      {editingSale && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div className="w-full max-w-md">
+            <EditSaleForm
+              brechoId={brechoId}
+              saleId={editingSale.id}
+              pecaNome={editingSale.pecaNome}
+              initialPreco={editingSale.preco}
+              initialFreteIncluso={editingSale.freteIncluso}
+              canEditFreteIncluso
+              onClose={() => setEditingSale(null)}
+            />
+          </div>
+        </div>
+      )}
 
       <section id="reservados" className="scroll-mt-40">
         <div className="mb-4 flex items-center justify-between px-1">
@@ -189,6 +221,17 @@ export const SalesHubPage = () => {
           )}
           {pendingSacolas.map((sacola: PendingSacola) => {
             const selected = selectedVendas[sacola.id] ?? sacola.vendas.map((v) => v.id);
+            const selectedVendaRows = sacola.vendas.filter((v) => selected.includes(v.id));
+            const allSelectedFreteIncluso =
+              selectedVendaRows.length > 0 && selectedVendaRows.every((v) => v.freteIncluso);
+            const subtotalPecas = selectedVendaRows.reduce(
+              (sum, v) => sum + parseMoneyLike(v.precoVenda),
+              0
+            );
+            const freteInput = fretePorSacola[sacola.id] ?? "";
+            const freteValor = parseMoneyLike(freteInput);
+            const freteNumerico = Number.isNaN(freteValor) ? 0 : freteValor;
+
             return (
               <article key={sacola.id} className="rounded-3xl border border-rose-50 bg-white p-4 shadow-sm">
                 <div className="mb-3 flex items-start justify-between gap-2">
@@ -202,9 +245,10 @@ export const SalesHubPage = () => {
                 </div>
                 <ul className="mb-3 space-y-2">
                   {sacola.vendas.map((venda) => (
-                    <li key={venda.id} className="flex items-center gap-2 text-sm">
+                    <li key={venda.id} className="flex items-start gap-2 text-sm">
                       <input
                         type="checkbox"
+                        className="mt-1"
                         checked={selected.includes(venda.id)}
                         onChange={(e) => {
                           setSelectedVendas((prev) => {
@@ -216,13 +260,73 @@ export const SalesHubPage = () => {
                           });
                         }}
                       />
-                      <span>
-                        {venda.peca.codigo ? `${venda.peca.codigo} · ` : ""}
-                        {venda.peca.nome}
-                      </span>
+                      <div className="flex-1">
+                        <span>
+                          {venda.peca.codigo ? `${venda.peca.codigo} · ` : ""}
+                          {venda.peca.nome}
+                        </span>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-semibold text-primary">
+                            {formatCurrency(venda.precoVenda)}
+                          </span>
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                              venda.freteIncluso ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {venda.freteIncluso ? "frete incluso" : "sem frete"}
+                          </span>
+                          <button
+                            type="button"
+                            className="text-[10px] font-bold uppercase text-primary underline"
+                            onClick={() =>
+                              setEditingSale({
+                                id: venda.id,
+                                pecaNome: venda.peca.nome,
+                                preco: parseMoneyLike(venda.precoVenda),
+                                freteIncluso: venda.freteIncluso
+                              })
+                            }
+                          >
+                            Editar
+                          </button>
+                        </div>
+                      </div>
                     </li>
                   ))}
                 </ul>
+
+                {selectedVendaRows.length > 0 && (
+                  <div className="mb-3 rounded-xl bg-rose-50/50 p-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Peças selecionadas</span>
+                      <strong>{formatCurrency(subtotalPecas)}</strong>
+                    </div>
+                    {!allSelectedFreteIncluso && freteNumerico > 0 && (
+                      <div className="mt-1 flex justify-between">
+                        <span className="text-gray-600">Frete deste envio</span>
+                        <strong>{formatCurrency(freteNumerico)}</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!allSelectedFreteIncluso ? (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    placeholder="Frete deste envio (opcional)"
+                    value={freteInput}
+                    onChange={(event) =>
+                      setFretePorSacola((prev) => ({ ...prev, [sacola.id]: event.target.value }))
+                    }
+                    className="mb-2"
+                  />
+                ) : (
+                  <p className="mb-2 text-xs text-green-700">Frete já incluso nos preços das peças selecionadas.</p>
+                )}
+
                 <Input
                   placeholder="Código de rastreio (opcional)"
                   value={rastreioPorSacola[sacola.id] ?? ""}
@@ -238,7 +342,8 @@ export const SalesHubPage = () => {
                       shipSacolaMutation.mutate({
                         sacolaId: sacola.id,
                         vendaIds: selected.length === sacola.vendas.length ? undefined : selected,
-                        codigoRastreio: rastreioPorSacola[sacola.id]
+                        codigoRastreio: rastreioPorSacola[sacola.id],
+                        freteValor: allSelectedFreteIncluso ? undefined : freteNumerico > 0 ? freteNumerico : undefined
                       })
                     }
                   >
@@ -266,29 +371,30 @@ export const SalesHubPage = () => {
           {deliveredRows.map((sale) => {
             const pecaImg = sale.peca.fotoCapaThumbnailUrl ?? sale.peca.fotoCapaUrl;
             return (
-            <article key={sale.id} className="rounded-2xl border border-rose-50 bg-white p-3 shadow-sm">
-              <div className="flex items-center gap-4">
-                {pecaImg ? (
-                  <img
-                    src={pecaImg}
-                    alt={`Foto da peça ${sale.peca.nome}`}
-                    className="h-14 w-14 rounded-xl object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-surface-container-low text-xs text-outline">
-                    Sem foto
+              <article key={sale.id} className="rounded-2xl border border-rose-50 bg-white p-3 shadow-sm">
+                <div className="flex items-center gap-4">
+                  {pecaImg ? (
+                    <img
+                      src={pecaImg}
+                      alt={`Foto da peça ${sale.peca.nome}`}
+                      className="h-14 w-14 rounded-xl object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-surface-container-low text-xs text-outline">
+                      Sem foto
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <h3 className="font-bold text-gray-900">{sale.peca.nome}</h3>
+                    <p className="text-xs text-gray-500">
+                      {sale.cliente.nome} •{" "}
+                      {new Date(sale.entrega?.entregueEm ?? sale.criadoEm).toLocaleDateString("pt-BR")}
+                    </p>
                   </div>
-                )}
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900">{sale.peca.nome}</h3>
-                  <p className="text-xs text-gray-500">
-                    {sale.cliente.nome} • {new Date(sale.entrega?.entregueEm ?? sale.criadoEm).toLocaleDateString("pt-BR")}
-                  </p>
+                  <strong className="text-primary">{formatCurrency(sale.ganhosTotal)}</strong>
                 </div>
-                <strong className="text-primary">{formatCurrency(sale.ganhosTotal)}</strong>
-              </div>
-            </article>
+              </article>
             );
           })}
           {deliveredSalesQuery.data?.hasMore && (

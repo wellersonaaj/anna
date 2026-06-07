@@ -12,6 +12,7 @@ export type PendingSacola = {
   vendas: Array<{
     id: string;
     precoVenda: string | number;
+    freteIncluso: boolean;
     ganhosTotal: string | number;
     criadoEm: string;
     peca: {

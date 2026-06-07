@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getClientById, updateClient } from "../api/clients";
 import { ClientContactFields } from "../components/client-contact-fields";
+import { EditSaleForm } from "../components/edit-sale-form";
 import { AppShell, Button, formatCurrency } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
@@ -22,6 +23,13 @@ export const ClientDetailPage = () => {
   const queryClient = useQueryClient();
   const [editingContact, setEditingContact] = useState(false);
   const [contactDraft, setContactDraft] = useState({ nome: "", whatsapp: "", instagram: "" });
+  const [editingSale, setEditingSale] = useState<{
+    id: string;
+    pecaNome: string;
+    preco: number;
+    freteIncluso: boolean;
+    canEditFreteIncluso: boolean;
+  } | null>(null);
 
   const clientQuery = useQuery({
     queryKey: ["client", brechoId, clientId],
@@ -66,6 +74,25 @@ export const ClientDetailPage = () => {
         <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
           Não foi possível carregar este cliente.
         </p>
+      )}
+
+      {editingSale && clientId && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div className="w-full max-w-md">
+            <EditSaleForm
+              brechoId={brechoId}
+              saleId={editingSale.id}
+              pecaNome={editingSale.pecaNome}
+              initialPreco={editingSale.preco}
+              initialFreteIncluso={editingSale.freteIncluso}
+              canEditFreteIncluso={editingSale.canEditFreteIncluso}
+              onClose={() => setEditingSale(null)}
+              onSuccess={async () => {
+                await queryClient.invalidateQueries({ queryKey: ["client", brechoId, clientId] });
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {client && (
@@ -192,6 +219,21 @@ export const ClientDetailPage = () => {
                     >
                       {sale.entrega ? "ENTREGUE" : "AGUARDANDO ENVIO"}
                     </span>
+                    <button
+                      type="button"
+                      className="mt-1 block w-full text-[10px] font-bold uppercase text-primary underline"
+                      onClick={() =>
+                        setEditingSale({
+                          id: sale.id,
+                          pecaNome: sale.peca.nome,
+                          preco: toNumber(sale.precoVenda),
+                          freteIncluso: sale.freteIncluso ?? false,
+                          canEditFreteIncluso: !sale.entrega
+                        })
+                      }
+                    >
+                      Editar
+                    </button>
                   </div>
                 </div>
               ))}

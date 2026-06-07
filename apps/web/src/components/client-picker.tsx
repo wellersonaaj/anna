@@ -6,6 +6,7 @@ import { searchClients } from "../api/clients";
 import { Button, Input } from "./ui";
 
 export type ClientContact = {
+  id?: string;
   nome: string;
   whatsapp: string;
   instagram: string;
@@ -44,6 +45,7 @@ const displayWhatsapp = (whatsapp: string | null | undefined) => {
 };
 
 const contactFromClient = (client: ClientRow): ClientContact => ({
+  id: client.id,
   nome: client.nome,
   whatsapp: client.whatsapp ?? "",
   instagram: client.instagram ?? ""

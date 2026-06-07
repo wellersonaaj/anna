@@ -323,6 +323,7 @@ model Venda {
   sacolaClienteId String?
   remessaId       String?
   precoVenda      Decimal  @db.Decimal(10, 2)
+  freteIncluso    Boolean  @default(false)
   freteTexto      String?
   freteValor      Decimal? @db.Decimal(10, 2)
   /// Total da transacao: preco da peca + frete (frete somado).

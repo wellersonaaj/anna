@@ -1585,6 +1585,8 @@ export const itemService = {
     payload: {
       cliente: { nome: string; whatsapp?: string | null; instagram?: string | null };
       precoVenda: number;
+      modoEntrega?: "IMEDIATA" | "SACOLA";
+      freteIncluso?: boolean;
       freteTexto?: string;
       freteValor?: number;
     }
@@ -1602,25 +1604,45 @@ export const itemService = {
 
       const cliente = await clientService.findOrCreateCliente(tx, brechoId, payload.cliente);
 
-      const freteValor = payload.freteValor ?? 0;
-      /** Valor total da venda: preço da peça + frete (repasse/custo de envio somado ao valor). */
-      const ganhosTotal = payload.precoVenda + freteValor;
+      const usesNewModel = payload.modoEntrega !== undefined;
+      const modoEntrega = payload.modoEntrega ?? "SACOLA";
+
+      let freteValor: number;
+      let ganhosTotal: number;
+      let freteTexto: string | undefined;
+      let freteIncluso: boolean;
+
+      if (usesNewModel) {
+        freteValor = 0;
+        ganhosTotal = payload.precoVenda;
+        freteTexto = undefined;
+        freteIncluso = modoEntrega === "SACOLA" ? (payload.freteIncluso ?? false) : false;
+      } else {
+        freteValor = payload.freteValor ?? 0;
+        ganhosTotal = payload.precoVenda + freteValor;
+        freteTexto = payload.freteTexto;
+        freteIncluso = false;
+      }
 
       await tx.venda.create({
         data: {
           pecaId: itemId,
           clienteId: cliente.id,
           precoVenda: payload.precoVenda,
-          freteTexto: payload.freteTexto,
+          freteIncluso,
+          freteTexto,
           freteValor: freteValor > 0 ? freteValor : null,
           ganhosTotal
         }
       });
 
       const venda = await tx.venda.findUniqueOrThrow({ where: { pecaId: itemId } });
-      await sacolaService.addVendaToOpenSacola(tx, brechoId, cliente.id, venda.id);
 
-      const updatedItem = await tx.peca.update({
+      if (!usesNewModel || modoEntrega === "SACOLA") {
+        await sacolaService.addVendaToOpenSacola(tx, brechoId, cliente.id, venda.id);
+      }
+
+      await tx.peca.update({
         where: { id: itemId },
         data: { status: itemStatus.VENDIDO }
       });
@@ -1637,7 +1659,15 @@ export const itemService = {
         where: { pecaId: itemId }
       });
 
-      return updatedItem;
+      if (usesNewModel && modoEntrega === "IMEDIATA") {
+        const saleForDeliver = await tx.venda.findFirstOrThrow({
+          where: { id: venda.id },
+          include: { peca: true }
+        });
+        await sacolaService.deliverVendaInTx(tx, saleForDeliver, {});
+      }
+
+      return tx.peca.findUniqueOrThrow({ where: { id: itemId } });
     });
   },
 
@@ -1646,6 +1676,8 @@ export const itemService = {
     brechoId: string,
     payload: {
       cliente: { nome: string; whatsapp?: string | null; instagram?: string | null };
+      modoEntrega?: "IMEDIATA" | "SACOLA";
+      freteIncluso?: boolean;
       itens: Array<{ pecaId: string; precoVenda: number; freteTexto?: string; freteValor?: number }>;
     }
   ) {
@@ -1654,6 +1686,8 @@ export const itemService = {
       await itemService.sell(prisma, brechoId, item.pecaId, {
         cliente: payload.cliente,
         precoVenda: item.precoVenda,
+        modoEntrega: payload.modoEntrega,
+        freteIncluso: payload.freteIncluso,
         freteTexto: item.freteTexto,
         freteValor: item.freteValor
       });

@@ -85,6 +85,8 @@ const maybeCloseSacola = async (tx: Prisma.TransactionClient, sacolaClienteId: s
 };
 
 export const sacolaService = {
+  deliverVendaInTx,
+
   async getOrCreateOpenSacola(tx: DbLike, brechoId: string, clienteId: string) {
     const existing = await tx.sacolaCliente.findFirst({
       where: { brechoId, clienteId, status: "ABERTA" }
@@ -177,6 +179,7 @@ export const sacolaService = {
             return {
               id: venda.id,
               precoVenda: venda.precoVenda,
+              freteIncluso: venda.freteIncluso,
               ganhosTotal: venda.ganhosTotal,
               criadoEm: venda.criadoEm,
               peca: {

@@ -576,12 +576,16 @@ export const reserveItem = async (
   });
 };
 
+export type ModoEntrega = "IMEDIATA" | "SACOLA";
+
 export const sellItem = async (
   brechoId: string,
   itemId: string,
   payload: {
     cliente: ClienteContato;
     precoVenda: number;
+    modoEntrega?: ModoEntrega;
+    freteIncluso?: boolean;
     freteTexto?: string;
     freteValor?: number;
   }
@@ -597,6 +601,8 @@ export const sellBatch = async (
   brechoId: string,
   payload: {
     cliente: ClienteContato;
+    modoEntrega?: ModoEntrega;
+    freteIncluso?: boolean;
     itens: Array<{ pecaId: string; precoVenda: number; freteTexto?: string; freteValor?: number }>;
   }
 ) => {
@@ -618,6 +624,24 @@ export const reserveBatch = async (
   });
 };
 
+export type SalesPeriodSummary = {
+  vendasNoPeriodo: number;
+  faturamentoPecas: number;
+  aguardandoEnvio: {
+    count: number;
+    valorPecas: number;
+  };
+};
+
+export const getSalesPeriodSummary = async (
+  brechoId: string,
+  query?: { days?: number }
+): Promise<SalesPeriodSummary> => {
+  const params = new URLSearchParams();
+  params.set("days", String(query?.days ?? 30));
+  return request<SalesPeriodSummary>(`/sales/period-summary?${params.toString()}`, { brechoId });
+};
+
 export const listSalesPendingDelivery = async (brechoId: string): Promise<SalePendingDelivery[]> => {
   return request<SalePendingDelivery[]>("/sales/pending-delivery", { brechoId });
 };
@@ -634,6 +658,18 @@ export const listSalesDelivered = async (
     `/sales/delivered?${params.toString()}`,
     { brechoId }
   );
+};
+
+export const updateSale = async (
+  brechoId: string,
+  saleId: string,
+  payload: { precoVenda?: number; freteIncluso?: boolean }
+): Promise<void> => {
+  return request(`/sales/${saleId}`, {
+    method: "PATCH",
+    brechoId,
+    body: payload
+  });
 };
 
 export const deliverSale = async (

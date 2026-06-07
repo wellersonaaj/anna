@@ -64,15 +64,21 @@ export const reserveItemSchema = z.object({
   cliente: clienteContatoSchema
 });
 
+export const modoEntregaSchema = z.enum(["IMEDIATA", "SACOLA"]);
+
 export const sellItemSchema = z.object({
   cliente: clienteContatoSchema,
   precoVenda: moneyPositiveSchema,
+  modoEntrega: modoEntregaSchema.optional(),
+  freteIncluso: z.boolean().optional(),
   freteTexto: z.string().optional(),
   freteValor: moneyNonNegativeSchema.optional()
 });
 
 export const sellBatchSchema = z.object({
   cliente: clienteContatoSchema,
+  modoEntrega: modoEntregaSchema.optional(),
+  freteIncluso: z.boolean().optional(),
   itens: z
     .array(
       z.object({

@@ -162,5 +162,82 @@ export const salesService = {
 
   async deliver(prisma: PrismaClient, brechoId: string, saleId: string, data: { codigoRastreio?: string; entregueEm?: string }) {
     await sacolaService.deliverSingleSale(prisma, brechoId, saleId, data);
+  },
+
+  async getPeriodSummary(prisma: PrismaClient, brechoId: string, days: number) {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const [periodVendas, pendingVendas] = await prisma.$transaction([
+      prisma.venda.findMany({
+        where: {
+          criadoEm: { gte: since },
+          peca: { brechoId }
+        },
+        select: { precoVenda: true }
+      }),
+      prisma.venda.findMany({
+        where: {
+          entrega: null,
+          peca: { brechoId, status: itemStatus.VENDIDO }
+        },
+        select: { precoVenda: true }
+      })
+    ]);
+
+    const sumPreco = (rows: { precoVenda: { toString(): string } }[]) =>
+      rows.reduce((sum, row) => sum + Number(row.precoVenda), 0);
+
+    return {
+      vendasNoPeriodo: periodVendas.length,
+      faturamentoPecas: sumPreco(periodVendas),
+      aguardandoEnvio: {
+        count: pendingVendas.length,
+        valorPecas: sumPreco(pendingVendas)
+      }
+    };
+  },
+
+  async update(
+    prisma: PrismaClient,
+    brechoId: string,
+    saleId: string,
+    data: { precoVenda?: number; freteIncluso?: boolean }
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const sale = await tx.venda.findFirst({
+        where: { id: saleId, peca: { brechoId } },
+        include: { peca: true, entrega: true }
+      });
+
+      if (!sale) {
+        throw new Error("Sale not found.");
+      }
+
+      const isDelivered = sale.peca.status === itemStatus.ENTREGUE || Boolean(sale.entrega);
+
+      if (data.freteIncluso !== undefined && isDelivered) {
+        throw new Error("Cannot change freight flag on delivered sale.");
+      }
+
+      if (data.precoVenda === undefined && data.freteIncluso === undefined) {
+        throw new Error("No fields to update.");
+      }
+
+      const precoVenda = data.precoVenda ?? Number(sale.precoVenda);
+      const freteIncluso = data.freteIncluso ?? sale.freteIncluso;
+
+      return tx.venda.update({
+        where: { id: saleId },
+        data: {
+          precoVenda,
+          freteIncluso,
+          ganhosTotal: precoVenda
+        },
+        include: {
+          peca: { select: { id: true, nome: true, codigo: true, status: true } },
+          entrega: true
+        }
+      });
+    });
   }
 };

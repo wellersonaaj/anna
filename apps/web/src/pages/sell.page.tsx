@@ -1,47 +1,23 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
-import type { ItemDetail } from "../api/items";
+import { getClientById } from "../api/clients";
+import type { ItemDetail, ModoEntrega } from "../api/items";
 import { getItem, leaveItemFila, sellItem } from "../api/items";
 import { ClientPicker } from "../components/client-picker";
 import { useSessionStore } from "../store/session.store";
-import { AppShell, Button, Field, Input, Section } from "../components/ui";
+import { AppShell, Button, Field, Input, Section, formatCurrency } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
-
-const parseFreteFromText = (text: string | undefined): number => {
-  if (!text?.trim()) {
-    return 0;
-  }
-
-  const match = text.match(/R\$\s*([\d.,]+)/i);
-  if (match?.[1]) {
-    const n = parseMoneyLike(match[1]);
-    return Number.isNaN(n) ? 0 : n;
-  }
-
-  const numbers = [...text.matchAll(/(\d+[.,]\d+|\d+)/g)].map((m) => parseMoneyLike(m[1]));
-  if (!numbers.length) {
-    return 0;
-  }
-
-  const last = numbers.at(-1);
-  if (last === undefined) {
-    return 0;
-  }
-
-  return Number.isNaN(last) ? 0 : last;
-};
 
 const sellFormSchema = z
   .object({
     clienteNome: z.string().trim().min(2),
     clienteWhatsapp: z.string().trim().optional(),
     clienteInstagram: z.string().trim().optional(),
-    precoVenda: z.coerce.number().positive("Informe o preço da peça."),
-    freteTexto: z.string().optional()
+    precoVenda: z.coerce.number().positive("Informe o preço.")
   })
   .superRefine((data, ctx) => {
     const w = data.clienteWhatsapp?.replace(/\s/g, "") ?? "";
@@ -68,8 +44,15 @@ const needsAdjustFieldsForSell = (data: {
   return !nomeOk || (!w && !i);
 };
 
-const formatMoney = (value: number): string =>
-  value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const chipStyle = (active: boolean): CSSProperties => ({
+  padding: "10px 16px",
+  borderRadius: 12,
+  border: active ? "2px solid #b60e3d" : "1px solid #e2bec0",
+  background: active ? "#fff0f0" : "#fff",
+  cursor: "pointer",
+  fontWeight: 700,
+  fontSize: 14
+});
 
 export const SellPage = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -79,6 +62,9 @@ export const SellPage = () => {
   const [saleMode, setSaleMode] = useState<"queue" | "manual">("manual");
   const [selectedQueueEntryId, setSelectedQueueEntryId] = useState<string | null>(null);
   const [showAdjustManualCliente, setShowAdjustManualCliente] = useState(false);
+  const [manualClientId, setManualClientId] = useState<string | null>(null);
+  const [modoEntrega, setModoEntrega] = useState<ModoEntrega>("SACOLA");
+  const [freteIncluso, setFreteIncluso] = useState(false);
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
@@ -91,6 +77,17 @@ export const SellPage = () => {
   const queueEntries = item?.filaInteressados ?? [];
   const selectedQueueEntry = queueEntries.find((entry) => entry.id === selectedQueueEntryId) ?? queueEntries[0];
   const selectedCliente = saleMode === "queue" ? selectedQueueEntry?.cliente : undefined;
+  const activeClientId = selectedCliente?.id ?? manualClientId;
+
+  const clientSacolaQuery = useQuery({
+    queryKey: ["client", brechoId, activeClientId, "sell-sacola"],
+    queryFn: () => getClientById(brechoId, activeClientId!),
+    enabled: Boolean(activeClientId) && modoEntrega === "SACOLA"
+  });
+
+  const openSacolaVendas = clientSacolaQuery.data?.sacolas?.[0]?.vendas ?? [];
+  const openSacolaTotal = openSacolaVendas.reduce((sum, v) => sum + parseMoneyLike(v.precoVenda ?? 0), 0);
+
   const listCoverFoto = item?.fotos?.find((f) => f.isCover) ?? item?.fotos?.[0];
   const itemPhoto =
     listCoverFoto?.thumbnailUrl ??
@@ -105,19 +102,18 @@ export const SellPage = () => {
       clienteNome: "",
       clienteWhatsapp: "",
       clienteInstagram: "",
-      precoVenda: 0,
-      freteTexto: ""
+      precoVenda: 0
     }
   });
 
   const precoVenda = useWatch({ control, name: "precoVenda" });
-  const freteTexto = useWatch({ control, name: "freteTexto" });
   const manualContact = {
     nome: watch("clienteNome") ?? "",
     whatsapp: watch("clienteWhatsapp") ?? "",
     instagram: watch("clienteInstagram") ?? ""
   };
-  const fillManualContact = (cliente: { nome: string; whatsapp: string; instagram: string }) => {
+  const fillManualContact = (cliente: { id?: string; nome: string; whatsapp: string; instagram: string }) => {
+    setManualClientId(cliente.id ?? null);
     setValue("clienteNome", cliente.nome, { shouldValidate: true, shouldDirty: true });
     setValue("clienteWhatsapp", cliente.whatsapp, { shouldValidate: true, shouldDirty: true });
     setValue("clienteInstagram", cliente.instagram, { shouldValidate: true, shouldDirty: true });
@@ -127,6 +123,16 @@ export const SellPage = () => {
     Boolean(manualContact.nome.trim()) ||
     Boolean(manualContact.whatsapp.trim()) ||
     Boolean(manualContact.instagram.trim());
+
+  const precoLabel = useMemo(() => {
+    if (modoEntrega === "IMEDIATA") {
+      return "Quanto a cliente pagou? (R$)";
+    }
+    if (freteIncluso) {
+      return "Preço cobrado (com frete incluso) (R$)";
+    }
+    return "Preço da peça (sem frete) (R$)";
+  }, [modoEntrega, freteIncluso]);
 
   useEffect(() => {
     if (!item) {
@@ -141,8 +147,7 @@ export const SellPage = () => {
         clienteNome: selectedCliente.nome,
         clienteWhatsapp: selectedCliente.whatsapp ?? "",
         clienteInstagram: selectedCliente.instagram ?? "",
-        precoVenda: nextPreco,
-        freteTexto: ""
+        precoVenda: nextPreco
       });
       return;
     }
@@ -151,8 +156,7 @@ export const SellPage = () => {
       clienteNome: "",
       clienteWhatsapp: "",
       clienteInstagram: "",
-      precoVenda: nextPreco,
-      freteTexto: ""
+      precoVenda: nextPreco
     });
   }, [item, selectedCliente, reset]);
 
@@ -170,15 +174,11 @@ export const SellPage = () => {
     setSelectedQueueEntryId(null);
   }, [item]);
 
-  const freteValor = useMemo(() => parseFreteFromText(freteTexto), [freteTexto]);
-  const totalVenda = useMemo(() => {
-    const p = typeof precoVenda === "number" ? precoVenda : Number(precoVenda);
-    if (Number.isNaN(p)) {
-      return 0;
+  useEffect(() => {
+    if (openSacolaVendas.length > 0) {
+      setModoEntrega("SACOLA");
     }
-
-    return p + freteValor;
-  }, [precoVenda, freteValor]);
+  }, [openSacolaVendas.length, activeClientId]);
 
   const sellMutation = useMutation({
     mutationFn: (data: SellFormData) => {
@@ -193,16 +193,19 @@ export const SellPage = () => {
           instagram: data.clienteInstagram?.trim() || undefined
         },
         precoVenda: data.precoVenda,
-        freteTexto: data.freteTexto?.trim() || undefined,
-        freteValor: freteValor > 0 ? freteValor : undefined
+        modoEntrega,
+        freteIncluso: modoEntrega === "SACOLA" ? freteIncluso : undefined
       });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["item", brechoId, itemId] });
-      navigate("/");
+      await queryClient.invalidateQueries({ queryKey: ["sales-period-summary", brechoId] });
+      await queryClient.invalidateQueries({ queryKey: ["pending-sacolas", brechoId] });
+      navigate(modoEntrega === "SACOLA" ? "/vendas#aguardando" : "/");
     }
   });
+
   const leaveFilaMutation = useMutation({
     mutationFn: (entradaId: string) => {
       if (!itemId) {
@@ -254,6 +257,9 @@ export const SellPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
     }
   });
+
+  const displayPreco =
+    typeof precoVenda === "number" && !Number.isNaN(precoVenda) ? precoVenda : Number(precoVenda) || 0;
 
   return (
     <AppShell>
@@ -336,7 +342,10 @@ export const SellPage = () => {
                         flex: 1,
                         padding: "10px 12px",
                         borderRadius: 12,
-                        border: selectedQueueEntryId === entry.id && saleMode === "queue" ? "2px solid #b60e3d" : "1px solid #e2bec0",
+                        border:
+                          selectedQueueEntryId === entry.id && saleMode === "queue"
+                            ? "2px solid #b60e3d"
+                            : "1px solid #e2bec0",
                         background: "#fff",
                         textAlign: "left",
                         cursor: "pointer"
@@ -365,6 +374,7 @@ export const SellPage = () => {
                   onClick={() => {
                     setSaleMode("manual");
                     setSelectedQueueEntryId(null);
+                    setManualClientId(null);
                     setShowAdjustManualCliente(false);
                   }}
                   style={{
@@ -387,17 +397,19 @@ export const SellPage = () => {
             <>
               <ClientPicker
                 brechoId={brechoId}
-                selectedContact={manualContact}
+                selectedContact={hasManualContact ? manualContact : null}
                 onSelect={(cliente) => {
                   fillManualContact(cliente);
                   setShowAdjustManualCliente(needsAdjustFieldsForSell(cliente));
                 }}
                 onCreateNew={(cliente) => {
                   fillManualContact(cliente);
+                  setManualClientId(null);
                   setShowAdjustManualCliente(needsAdjustFieldsForSell(cliente));
                 }}
                 onClear={() => {
                   fillManualContact({ nome: "", whatsapp: "", instagram: "" });
+                  setManualClientId(null);
                   setShowAdjustManualCliente(false);
                 }}
               />
@@ -453,14 +465,51 @@ export const SellPage = () => {
             </div>
           )}
 
-          <Field label="Preço da peça (R$)">
-            <Input type="number" step="0.01" min={0} {...register("precoVenda", { valueAsNumber: true })} />
-            <small style={{ color: "#5a4042" }}>Pré-preenchido com o preço de anúncio. Toque para editar.</small>
+          {modoEntrega === "SACOLA" && openSacolaVendas.length > 0 && activeClientId && (
+            <div
+              style={{
+                padding: 12,
+                background: "#fffbeb",
+                borderRadius: 12,
+                fontSize: 14,
+                border: "1px solid #fde68a"
+              }}
+            >
+              <strong>{selectedCliente?.nome ?? manualContact.nome}</strong> já tem {openSacolaVendas.length} peça(s)
+              na sacola ({formatCurrency(openSacolaTotal)}). Esta venda entra na mesma sacola.
+            </div>
+          )}
+
+          <Field label="Como foi a entrega?">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <button type="button" style={chipStyle(modoEntrega === "IMEDIATA")} onClick={() => setModoEntrega("IMEDIATA")}>
+                Já entregue
+              </button>
+              <button type="button" style={chipStyle(modoEntrega === "SACOLA")} onClick={() => setModoEntrega("SACOLA")}>
+                Vai enviar depois
+              </button>
+            </div>
           </Field>
 
-          <Field label="Informações de envio">
-            <Input {...register("freteTexto")} placeholder="ex: Correios R$15 ou Correios 15,50" />
-            <small style={{ color: "#5a4042" }}>O valor numérico do frete é somado ao preço da peça.</small>
+          {modoEntrega === "SACOLA" && (
+            <Field label="Esse preço inclui frete?">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <button type="button" style={chipStyle(freteIncluso)} onClick={() => setFreteIncluso(true)}>
+                  Sim
+                </button>
+                <button type="button" style={chipStyle(!freteIncluso)} onClick={() => setFreteIncluso(false)}>
+                  Não
+                </button>
+              </div>
+              {!freteIncluso && (
+                <small style={{ color: "#5a4042" }}>O frete será informado ao enviar a sacola.</small>
+              )}
+            </Field>
+          )}
+
+          <Field label={precoLabel}>
+            <Input type="number" step="0.01" min={0} {...register("precoVenda", { valueAsNumber: true })} />
+            <small style={{ color: "#5a4042" }}>Pré-preenchido com o preço de anúncio. Toque para editar.</small>
           </Field>
 
           <div
@@ -469,31 +518,21 @@ export const SellPage = () => {
               background: "#fff0f0",
               borderRadius: "2rem",
               display: "flex",
-              flexDirection: "column",
-              gap: 12
+              justifyContent: "space-between",
+              alignItems: "center"
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5a4042" }}>Preço da peça</span>
-              <strong>{formatMoney(typeof precoVenda === "number" ? precoVenda : Number(precoVenda) || 0)}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5a4042" }}>Frete</span>
-              <strong style={{ color: "#006a39" }}>+ {formatMoney(freteValor)}</strong>
-            </div>
-            <div style={{ borderTop: "1px solid #e2bec0", paddingTop: 12, marginTop: 4 }} />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "1.1rem", fontWeight: 800 }}>Total da venda</span>
-              <span style={{ fontSize: "1.75rem", fontWeight: 800, color: "#b60e3d" }}>{formatMoney(totalVenda)}</span>
-            </div>
+            <span style={{ fontSize: "1.1rem", fontWeight: 800 }}>Valor da venda</span>
+            <span style={{ fontSize: "1.75rem", fontWeight: 800, color: "#b60e3d" }}>{formatCurrency(displayPreco)}</span>
           </div>
 
           <Button type="submit" disabled={sellMutation.isPending || !item || itemQuery.isLoading}>
             {sellMutation.isPending ? "Confirmando..." : "Confirmar venda"}
           </Button>
           <p style={{ textAlign: "center", fontSize: 13, color: "#5a4042", margin: 0 }}>
-            Ao confirmar, o status do item será movido para <strong style={{ color: "#b60e3d" }}>Vendido</strong> no seu
-            estoque.
+            {modoEntrega === "IMEDIATA"
+              ? "A peça será marcada como entregue."
+              : "A peça ficará na sacola aguardando envio."}
           </p>
         </form>
       </Section>

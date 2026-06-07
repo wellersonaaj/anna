@@ -10,3 +10,12 @@ export const listDeliveredSalesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0)
 });
+
+export const periodSummaryQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(180).default(30)
+});
+
+export const updateSaleSchema = z.object({
+  precoVenda: z.coerce.number().positive().optional(),
+  freteIncluso: z.boolean().optional()
+});
