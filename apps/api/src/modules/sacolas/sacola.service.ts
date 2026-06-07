@@ -180,6 +180,7 @@ export const sacolaService = {
               id: venda.id,
               precoVenda: venda.precoVenda,
               freteIncluso: venda.freteIncluso,
+              freteInclusoValor: venda.freteInclusoValor,
               ganhosTotal: venda.ganhosTotal,
               criadoEm: venda.criadoEm,
               peca: {

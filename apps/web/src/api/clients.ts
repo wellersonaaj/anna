@@ -13,6 +13,7 @@ export type ClientDetail = ClientRow & {
     id: string;
     precoVenda: string | number;
     freteIncluso?: boolean;
+    freteInclusoValor?: string | number | null;
     ganhosTotal: string | number;
     criadoEm: string;
     entrega?: { entregueEm: string } | null;

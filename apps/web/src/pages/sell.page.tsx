@@ -8,6 +8,11 @@ import { getClientById } from "../api/clients";
 import type { ItemDetail, ModoEntrega } from "../api/items";
 import { getItem, leaveItemFila, sellItem } from "../api/items";
 import { ClientPicker } from "../components/client-picker";
+import {
+  FreteInclusoDetail,
+  parseFreteInclusoValorForApi,
+  validateFreteInclusoValor
+} from "../components/frete-incluso-detail";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section, formatCurrency } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
@@ -65,6 +70,8 @@ export const SellPage = () => {
   const [manualClientId, setManualClientId] = useState<string | null>(null);
   const [modoEntrega, setModoEntrega] = useState<ModoEntrega>("SACOLA");
   const [freteIncluso, setFreteIncluso] = useState(false);
+  const [freteInclusoValor, setFreteInclusoValor] = useState("");
+  const [freteValidationError, setFreteValidationError] = useState<string | null>(null);
 
   const itemQuery = useQuery({
     queryKey: ["item", brechoId, itemId],
@@ -180,10 +187,20 @@ export const SellPage = () => {
     }
   }, [openSacolaVendas.length, activeClientId]);
 
+  const displayPreco =
+    typeof precoVenda === "number" && !Number.isNaN(precoVenda) ? precoVenda : Number(precoVenda) || 0;
+
   const sellMutation = useMutation({
     mutationFn: (data: SellFormData) => {
       if (!itemId) {
         throw new Error("Item não informado.");
+      }
+
+      if (modoEntrega === "SACOLA" && freteIncluso) {
+        const freteError = validateFreteInclusoValor(data.precoVenda, freteInclusoValor);
+        if (freteError) {
+          throw new Error(freteError);
+        }
       }
 
       return sellItem(brechoId, itemId, {
@@ -194,7 +211,11 @@ export const SellPage = () => {
         },
         precoVenda: data.precoVenda,
         modoEntrega,
-        freteIncluso: modoEntrega === "SACOLA" ? freteIncluso : undefined
+        freteIncluso: modoEntrega === "SACOLA" ? freteIncluso : undefined,
+        freteInclusoValor:
+          modoEntrega === "SACOLA" && freteIncluso
+            ? parseFreteInclusoValorForApi(data.precoVenda, freteInclusoValor)
+            : undefined
       });
     },
     onSuccess: async () => {
@@ -257,9 +278,6 @@ export const SellPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
     }
   });
-
-  const displayPreco =
-    typeof precoVenda === "number" && !Number.isNaN(precoVenda) ? precoVenda : Number(precoVenda) || 0;
 
   return (
     <AppShell>
@@ -494,10 +512,25 @@ export const SellPage = () => {
           {modoEntrega === "SACOLA" && (
             <Field label="Esse preço inclui frete?">
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <button type="button" style={chipStyle(freteIncluso)} onClick={() => setFreteIncluso(true)}>
+                <button
+                  type="button"
+                  style={chipStyle(freteIncluso)}
+                  onClick={() => {
+                    setFreteIncluso(true);
+                    setFreteValidationError(null);
+                  }}
+                >
                   Sim
                 </button>
-                <button type="button" style={chipStyle(!freteIncluso)} onClick={() => setFreteIncluso(false)}>
+                <button
+                  type="button"
+                  style={chipStyle(!freteIncluso)}
+                  onClick={() => {
+                    setFreteIncluso(false);
+                    setFreteInclusoValor("");
+                    setFreteValidationError(null);
+                  }}
+                >
                   Não
                 </button>
               </div>
@@ -511,6 +544,17 @@ export const SellPage = () => {
             <Input type="number" step="0.01" min={0} {...register("precoVenda", { valueAsNumber: true })} />
             <small style={{ color: "#5a4042" }}>Pré-preenchido com o preço de anúncio. Toque para editar.</small>
           </Field>
+
+          {modoEntrega === "SACOLA" && freteIncluso && (
+            <FreteInclusoDetail
+              precoVenda={displayPreco}
+              freteInclusoValor={freteInclusoValor}
+              onFreteInclusoValorChange={(value) => {
+                setFreteInclusoValor(value);
+                setFreteValidationError(validateFreteInclusoValor(displayPreco, value));
+              }}
+            />
+          )}
 
           <div
             style={{
@@ -526,7 +570,19 @@ export const SellPage = () => {
             <span style={{ fontSize: "1.75rem", fontWeight: 800, color: "#b60e3d" }}>{formatCurrency(displayPreco)}</span>
           </div>
 
-          <Button type="submit" disabled={sellMutation.isPending || !item || itemQuery.isLoading}>
+          {(freteValidationError || sellMutation.isError) && (
+            <p className="text-sm text-red-600">
+              {freteValidationError ??
+                (sellMutation.error instanceof Error ? sellMutation.error.message : "Erro ao confirmar venda.")}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            disabled={
+              sellMutation.isPending || !item || itemQuery.isLoading || Boolean(freteValidationError)
+            }
+          >
             {sellMutation.isPending ? "Confirmando..." : "Confirmar venda"}
           </Button>
           <p style={{ textAlign: "center", fontSize: 13, color: "#5a4042", margin: 0 }}>

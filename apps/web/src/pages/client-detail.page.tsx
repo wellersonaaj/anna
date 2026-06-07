@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { getClientById, updateClient } from "../api/clients";
 import { ClientContactFields } from "../components/client-contact-fields";
 import { EditSaleForm } from "../components/edit-sale-form";
+import { formatFreteInclusoLabel } from "../components/frete-incluso-detail";
 import { AppShell, Button, formatCurrency } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
@@ -28,6 +29,7 @@ export const ClientDetailPage = () => {
     pecaNome: string;
     preco: number;
     freteIncluso: boolean;
+    freteInclusoValor?: number | null;
     canEditFreteIncluso: boolean;
   } | null>(null);
 
@@ -85,6 +87,7 @@ export const ClientDetailPage = () => {
               pecaNome={editingSale.pecaNome}
               initialPreco={editingSale.preco}
               initialFreteIncluso={editingSale.freteIncluso}
+              initialFreteInclusoValor={editingSale.freteInclusoValor}
               canEditFreteIncluso={editingSale.canEditFreteIncluso}
               onClose={() => setEditingSale(null)}
               onSuccess={async () => {
@@ -208,6 +211,9 @@ export const ClientDetailPage = () => {
                     </h4>
                     <p className="text-xs font-medium text-gray-500">
                       {new Date(sale.criadoEm).toLocaleDateString("pt-BR")}
+                      {sale.freteIncluso && (
+                        <> · {formatFreteInclusoLabel(sale.freteIncluso, sale.freteInclusoValor)}</>
+                      )}
                     </p>
                   </div>
                   <div className="text-right">
@@ -228,6 +234,9 @@ export const ClientDetailPage = () => {
                           pecaNome: sale.peca.nome,
                           preco: toNumber(sale.precoVenda),
                           freteIncluso: sale.freteIncluso ?? false,
+                          freteInclusoValor: sale.freteInclusoValor
+                            ? toNumber(sale.freteInclusoValor)
+                            : null,
                           canEditFreteIncluso: !sale.entrega
                         })
                       }

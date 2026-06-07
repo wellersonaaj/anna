@@ -3,7 +3,13 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { listItems, sellBatch, type ModoEntrega } from "../api/items";
 import { ClientPicker, type ClientContact } from "../components/client-picker";
+import {
+  FreteInclusoDetail,
+  parseFreteInclusoValorForApi,
+  validateFreteInclusoValor
+} from "../components/frete-incluso-detail";
 import { AppShell, Button, Field, Input } from "../components/ui";
+import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 
 const chipStyle = (active: boolean): CSSProperties => ({
@@ -25,6 +31,8 @@ export const SellBatchPage = () => {
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [modoEntrega, setModoEntrega] = useState<ModoEntrega>("SACOLA");
   const [freteIncluso, setFreteIncluso] = useState(false);
+  const [freteInclusoValor, setFreteInclusoValor] = useState("");
+  const [freteValidationError, setFreteValidationError] = useState<string | null>(null);
 
   const itemsQuery = useQuery({
     queryKey: ["items", brechoId, "batch", pecaIds.join(",")],
@@ -34,6 +42,12 @@ export const SellBatchPage = () => {
     },
     enabled: pecaIds.length > 0
   });
+
+  const items = itemsQuery.data ?? [];
+  const singleItem = items.length === 1 ? items[0] : null;
+  const singlePreco = singleItem
+    ? parseMoneyLike(prices[singleItem.id] || String(singleItem.precoVenda ?? 0))
+    : 0;
 
   const precoLabel =
     modoEntrega === "IMEDIATA"
@@ -45,6 +59,14 @@ export const SellBatchPage = () => {
   const sellMutation = useMutation({
     mutationFn: () => {
       if (!client) throw new Error("Selecione a cliente.");
+
+      if (modoEntrega === "SACOLA" && freteIncluso && singleItem) {
+        const freteError = validateFreteInclusoValor(singlePreco, freteInclusoValor);
+        if (freteError) {
+          throw new Error(freteError);
+        }
+      }
+
       return sellBatch(brechoId, {
         cliente: {
           nome: client.nome.trim(),
@@ -53,7 +75,11 @@ export const SellBatchPage = () => {
         },
         modoEntrega,
         freteIncluso: modoEntrega === "SACOLA" ? freteIncluso : undefined,
-        itens: (itemsQuery.data ?? []).map((item) => ({
+        freteInclusoValor:
+          modoEntrega === "SACOLA" && freteIncluso && singleItem
+            ? parseFreteInclusoValorForApi(singlePreco, freteInclusoValor)
+            : undefined,
+        itens: items.map((item) => ({
           pecaId: item.id,
           precoVenda: Number.parseFloat(prices[item.id] || String(item.precoVenda ?? 0))
         }))
@@ -96,22 +122,42 @@ export const SellBatchPage = () => {
           {modoEntrega === "SACOLA" && (
             <Field label="Esse preço inclui frete?">
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <button type="button" style={chipStyle(freteIncluso)} onClick={() => setFreteIncluso(true)}>
+                <button
+                  type="button"
+                  style={chipStyle(freteIncluso)}
+                  onClick={() => {
+                    setFreteIncluso(true);
+                    setFreteValidationError(null);
+                  }}
+                >
                   Sim
                 </button>
-                <button type="button" style={chipStyle(!freteIncluso)} onClick={() => setFreteIncluso(false)}>
+                <button
+                  type="button"
+                  style={chipStyle(!freteIncluso)}
+                  onClick={() => {
+                    setFreteIncluso(false);
+                    setFreteInclusoValor("");
+                    setFreteValidationError(null);
+                  }}
+                >
                   Não
                 </button>
               </div>
               {!freteIncluso && (
                 <small className="text-on-surface-variant">O frete será informado ao enviar a sacola.</small>
               )}
+              {freteIncluso && items.length > 1 && (
+                <small className="text-on-surface-variant">
+                  Para detalhar frete por peça, venda uma de cada vez.
+                </small>
+              )}
             </Field>
           )}
 
           <p className="text-sm font-semibold text-gray-700">{precoLabel}</p>
           <ul className="space-y-3">
-            {itemsQuery.data.map((item) => (
+            {items.map((item) => (
               <li key={item.id} className="rounded-2xl border border-rose-50 bg-white p-3">
                 <p className="font-bold">
                   {item.codigo ? `${item.codigo} · ` : ""}
@@ -128,12 +174,34 @@ export const SellBatchPage = () => {
             ))}
           </ul>
 
+          {modoEntrega === "SACOLA" && freteIncluso && singleItem && (
+            <FreteInclusoDetail
+              precoVenda={singlePreco}
+              freteInclusoValor={freteInclusoValor}
+              onFreteInclusoValorChange={(value) => {
+                setFreteInclusoValor(value);
+                setFreteValidationError(validateFreteInclusoValor(singlePreco, value));
+              }}
+            />
+          )}
+
           <div className="rounded-2xl bg-rose-50 p-4 text-sm">
-            <strong>{itemsQuery.data.length} peça(s)</strong> nesta venda
+            <strong>{items.length} peça(s)</strong> nesta venda
             {modoEntrega === "SACOLA" && " · entram na sacola da cliente"}
           </div>
 
-          <Button type="button" disabled={!client || sellMutation.isPending} onClick={() => sellMutation.mutate()}>
+          {(freteValidationError || sellMutation.isError) && (
+            <p className="text-sm text-red-600">
+              {freteValidationError ??
+                (sellMutation.error instanceof Error ? sellMutation.error.message : "Erro ao confirmar venda.")}
+            </p>
+          )}
+
+          <Button
+            type="button"
+            disabled={!client || sellMutation.isPending || Boolean(freteValidationError)}
+            onClick={() => sellMutation.mutate()}
+          >
             Confirmar venda
           </Button>
         </div>

@@ -586,6 +586,7 @@ export const sellItem = async (
     precoVenda: number;
     modoEntrega?: ModoEntrega;
     freteIncluso?: boolean;
+    freteInclusoValor?: number;
     freteTexto?: string;
     freteValor?: number;
   }
@@ -603,6 +604,7 @@ export const sellBatch = async (
     cliente: ClienteContato;
     modoEntrega?: ModoEntrega;
     freteIncluso?: boolean;
+    freteInclusoValor?: number;
     itens: Array<{ pecaId: string; precoVenda: number; freteTexto?: string; freteValor?: number }>;
   }
 ) => {
@@ -627,6 +629,7 @@ export const reserveBatch = async (
 export type SalesPeriodSummary = {
   vendasNoPeriodo: number;
   faturamentoPecas: number;
+  freteInclusoInformado: number;
   aguardandoEnvio: {
     count: number;
     valorPecas: number;
@@ -663,7 +666,7 @@ export const listSalesDelivered = async (
 export const updateSale = async (
   brechoId: string,
   saleId: string,
-  payload: { precoVenda?: number; freteIncluso?: boolean }
+  payload: { precoVenda?: number; freteIncluso?: boolean; freteInclusoValor?: number | null }
 ): Promise<void> => {
   return request(`/sales/${saleId}`, {
     method: "PATCH",

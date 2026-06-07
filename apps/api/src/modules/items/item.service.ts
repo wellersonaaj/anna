@@ -13,6 +13,7 @@ import {
 import { clientService } from "../clients/client.service.js";
 import { allocateCodigo } from "../../lib/peca-code.js";
 import { sacolaService } from "../sacolas/sacola.service.js";
+import { resolveFreteInclusoValor } from "../../lib/venda-frete.js";
 
 export const MAX_PHOTOS_PER_ITEM = 30;
 
@@ -1587,6 +1588,7 @@ export const itemService = {
       precoVenda: number;
       modoEntrega?: "IMEDIATA" | "SACOLA";
       freteIncluso?: boolean;
+      freteInclusoValor?: number;
       freteTexto?: string;
       freteValor?: number;
     }
@@ -1611,12 +1613,18 @@ export const itemService = {
       let ganhosTotal: number;
       let freteTexto: string | undefined;
       let freteIncluso: boolean;
+      let freteInclusoValor: number | null = null;
 
       if (usesNewModel) {
         freteValor = 0;
         ganhosTotal = payload.precoVenda;
         freteTexto = undefined;
         freteIncluso = modoEntrega === "SACOLA" ? (payload.freteIncluso ?? false) : false;
+        freteInclusoValor = resolveFreteInclusoValor(
+          freteIncluso,
+          payload.precoVenda,
+          payload.freteInclusoValor
+        );
       } else {
         freteValor = payload.freteValor ?? 0;
         ganhosTotal = payload.precoVenda + freteValor;
@@ -1630,6 +1638,7 @@ export const itemService = {
           clienteId: cliente.id,
           precoVenda: payload.precoVenda,
           freteIncluso,
+          freteInclusoValor,
           freteTexto,
           freteValor: freteValor > 0 ? freteValor : null,
           ganhosTotal
@@ -1678,16 +1687,18 @@ export const itemService = {
       cliente: { nome: string; whatsapp?: string | null; instagram?: string | null };
       modoEntrega?: "IMEDIATA" | "SACOLA";
       freteIncluso?: boolean;
+      freteInclusoValor?: number;
       itens: Array<{ pecaId: string; precoVenda: number; freteTexto?: string; freteValor?: number }>;
     }
   ) {
     const sold: string[] = [];
-    for (const item of payload.itens) {
+    for (const [index, item] of payload.itens.entries()) {
       await itemService.sell(prisma, brechoId, item.pecaId, {
         cliente: payload.cliente,
         precoVenda: item.precoVenda,
         modoEntrega: payload.modoEntrega,
         freteIncluso: payload.freteIncluso,
+        freteInclusoValor: index === 0 ? payload.freteInclusoValor : undefined,
         freteTexto: item.freteTexto,
         freteValor: item.freteValor
       });

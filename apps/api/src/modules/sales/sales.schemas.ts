@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const moneyNonNegativeSchema = z.coerce.number().nonnegative();
+
 export const deliverSaleSchema = z.object({
   codigoRastreio: z.string().optional(),
   entregueEm: z.string().datetime().optional()
@@ -17,5 +19,6 @@ export const periodSummaryQuerySchema = z.object({
 
 export const updateSaleSchema = z.object({
   precoVenda: z.coerce.number().positive().optional(),
-  freteIncluso: z.boolean().optional()
+  freteIncluso: z.boolean().optional(),
+  freteInclusoValor: z.union([moneyNonNegativeSchema, z.null()]).optional()
 });

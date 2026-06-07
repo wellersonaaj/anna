@@ -3,6 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { storageEnv } from "../../config/env.js";
 import { createPresignedGet, isStorageConfigured, resolveObjectKeyFromPublicUrl } from "../../lib/storage.js";
 import { resolveCoverFoto } from "../items/item.service.js";
+import { resolveFreteInclusoValor } from "../../lib/venda-frete.js";
 import { sacolaService } from "../sacolas/sacola.service.js";
 
 const resolveDisplayImageUrl = async (url: string | null | undefined): Promise<string | null> => {
@@ -173,7 +174,7 @@ export const salesService = {
           criadoEm: { gte: since },
           peca: { brechoId }
         },
-        select: { precoVenda: true }
+        select: { precoVenda: true, freteInclusoValor: true }
       }),
       prisma.venda.findMany({
         where: {
@@ -187,9 +188,15 @@ export const salesService = {
     const sumPreco = (rows: { precoVenda: { toString(): string } }[]) =>
       rows.reduce((sum, row) => sum + Number(row.precoVenda), 0);
 
+    const freteInclusoInformado = periodVendas.reduce(
+      (sum, row) => sum + (row.freteInclusoValor ? Number(row.freteInclusoValor) : 0),
+      0
+    );
+
     return {
       vendasNoPeriodo: periodVendas.length,
       faturamentoPecas: sumPreco(periodVendas),
+      freteInclusoInformado,
       aguardandoEnvio: {
         count: pendingVendas.length,
         valorPecas: sumPreco(pendingVendas)
@@ -201,7 +208,7 @@ export const salesService = {
     prisma: PrismaClient,
     brechoId: string,
     saleId: string,
-    data: { precoVenda?: number; freteIncluso?: boolean }
+    data: { precoVenda?: number; freteIncluso?: boolean; freteInclusoValor?: number | null }
   ) {
     return prisma.$transaction(async (tx) => {
       const sale = await tx.venda.findFirst({
@@ -219,18 +226,36 @@ export const salesService = {
         throw new Error("Cannot change freight flag on delivered sale.");
       }
 
-      if (data.precoVenda === undefined && data.freteIncluso === undefined) {
+      if (
+        data.precoVenda === undefined &&
+        data.freteIncluso === undefined &&
+        data.freteInclusoValor === undefined
+      ) {
         throw new Error("No fields to update.");
       }
 
       const precoVenda = data.precoVenda ?? Number(sale.precoVenda);
       const freteIncluso = data.freteIncluso ?? sale.freteIncluso;
 
+      let freteInclusoValor: number | null;
+      if (!freteIncluso) {
+        freteInclusoValor = null;
+      } else if (data.freteInclusoValor === null) {
+        freteInclusoValor = null;
+      } else if (data.freteInclusoValor !== undefined) {
+        freteInclusoValor = resolveFreteInclusoValor(freteIncluso, precoVenda, data.freteInclusoValor);
+      } else {
+        const existing = sale.freteInclusoValor ? Number(sale.freteInclusoValor) : null;
+        freteInclusoValor =
+          existing !== null ? resolveFreteInclusoValor(freteIncluso, precoVenda, existing) : null;
+      }
+
       return tx.venda.update({
         where: { id: saleId },
         data: {
           precoVenda,
           freteIncluso,
+          freteInclusoValor,
           ganhosTotal: precoVenda
         },
         include: {

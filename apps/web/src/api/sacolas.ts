@@ -13,6 +13,7 @@ export type PendingSacola = {
     id: string;
     precoVenda: string | number;
     freteIncluso: boolean;
+    freteInclusoValor: string | number | null;
     ganhosTotal: string | number;
     criadoEm: string;
     peca: {

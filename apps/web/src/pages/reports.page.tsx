@@ -66,6 +66,11 @@ export const ReportsPage = () => {
               {formatCurrency(summary?.faturamentoPecas ?? 0)}
             </span>
             <span className="text-sm font-semibold text-gray-500">Faturamento do mês</span>
+            {summary && summary.freteInclusoInformado > 0 && (
+              <p className="mt-1 text-xs text-gray-500">
+                incl. {formatCurrency(summary.freteInclusoInformado)} em frete (informado nas vendas)
+              </p>
+            )}
             {summary && summary.aguardandoEnvio.count > 0 && (
               <p className="mt-1 text-xs text-amber-700">
                 {summary.aguardandoEnvio.count} aguardando envio ·{" "}

@@ -9,6 +9,7 @@ import {
 } from "../api/items";
 import { listPendingSacolas, shipSacola, type PendingSacola } from "../api/sacolas";
 import { EditSaleForm } from "../components/edit-sale-form";
+import { formatFreteInclusoLabel } from "../components/frete-incluso-detail";
 import {
   AppShell,
   Button,
@@ -41,6 +42,7 @@ export const SalesHubPage = () => {
     pecaNome: string;
     preco: number;
     freteIncluso: boolean;
+    freteInclusoValor?: number | null;
   } | null>(null);
 
   const reservedItemsQuery = useQuery({
@@ -127,6 +129,7 @@ export const SalesHubPage = () => {
               pecaNome={editingSale.pecaNome}
               initialPreco={editingSale.preco}
               initialFreteIncluso={editingSale.freteIncluso}
+              initialFreteInclusoValor={editingSale.freteInclusoValor}
               canEditFreteIncluso
               onClose={() => setEditingSale(null)}
             />
@@ -274,7 +277,7 @@ export const SalesHubPage = () => {
                               venda.freteIncluso ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"
                             }`}
                           >
-                            {venda.freteIncluso ? "frete incluso" : "sem frete"}
+                            {formatFreteInclusoLabel(venda.freteIncluso, venda.freteInclusoValor)}
                           </span>
                           <button
                             type="button"
@@ -284,7 +287,10 @@ export const SalesHubPage = () => {
                                 id: venda.id,
                                 pecaNome: venda.peca.nome,
                                 preco: parseMoneyLike(venda.precoVenda),
-                                freteIncluso: venda.freteIncluso
+                                freteIncluso: venda.freteIncluso,
+                                freteInclusoValor: venda.freteInclusoValor
+                                  ? parseMoneyLike(venda.freteInclusoValor)
+                                  : null
                               })
                             }
                           >
