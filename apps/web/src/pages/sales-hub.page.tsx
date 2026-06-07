@@ -19,6 +19,7 @@ import {
   relativeAgeLabel
 } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
+import { computeLucroBruto } from "../lib/peca-lucro";
 import { useSessionStore } from "../store/session.store";
 
 const sortReservedByOldest = (items: Item[]) =>
@@ -272,6 +273,19 @@ export const SalesHubPage = () => {
                           <span className="text-xs font-semibold text-primary">
                             {formatCurrency(venda.precoVenda)}
                           </span>
+                          {computeLucroBruto(
+                            parseMoneyLike(venda.precoVenda),
+                            venda.precoCusto != null ? parseMoneyLike(venda.precoCusto) : null
+                          ) != null && (
+                            <span className="text-xs font-semibold text-green-700">
+                              Lucro {formatCurrency(
+                                computeLucroBruto(
+                                  parseMoneyLike(venda.precoVenda),
+                                  venda.precoCusto != null ? parseMoneyLike(venda.precoCusto) : null
+                                )
+                              )}
+                            </span>
+                          )}
                           <span
                             className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
                               venda.freteIncluso ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"
@@ -376,6 +390,10 @@ export const SalesHubPage = () => {
           )}
           {deliveredRows.map((sale) => {
             const pecaImg = sale.peca.fotoCapaThumbnailUrl ?? sale.peca.fotoCapaUrl;
+            const lucroBruto = computeLucroBruto(
+              parseMoneyLike(sale.precoVenda),
+              sale.precoCusto != null ? parseMoneyLike(sale.precoCusto) : null
+            );
             return (
               <article key={sale.id} className="rounded-2xl border border-rose-50 bg-white p-3 shadow-sm">
                 <div className="flex items-center gap-4">
@@ -397,6 +415,9 @@ export const SalesHubPage = () => {
                       {sale.cliente.nome} •{" "}
                       {new Date(sale.entrega?.entregueEm ?? sale.criadoEm).toLocaleDateString("pt-BR")}
                     </p>
+                    {lucroBruto != null && (
+                      <p className="text-xs font-semibold text-green-700">Lucro {formatCurrency(lucroBruto)}</p>
+                    )}
                   </div>
                   <strong className="text-primary">{formatCurrency(sale.ganhosTotal)}</strong>
                 </div>

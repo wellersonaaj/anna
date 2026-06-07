@@ -15,6 +15,7 @@ import { ApiError } from "../api/client";
 import { AppShell, Button, Field, Input, Section, Select } from "../components/ui";
 import { resizeImageToJpeg } from "../lib/imageResize";
 import { parseMoneyLike } from "../lib/money";
+import { formatExpectedMarginHint } from "../lib/peca-lucro";
 import { useSessionStore } from "../store/session.store";
 import { useItemAIDraftStore } from "../store/item-ai-draft.store";
 
@@ -113,6 +114,7 @@ export const ItemAIDraftPage = () => {
       tamanho: string;
       marca?: string;
       precoVenda?: number;
+      precoCusto?: number;
       acervoTipo: "PROPRIO" | "CONSIGNACAO";
       acervoNome?: string;
     };
@@ -443,6 +445,7 @@ export const ItemAIDraftPage = () => {
       }
 
       const precoFromForm = formValues.precoVenda.trim() ? parseMoneyLike(formValues.precoVenda) : Number.NaN;
+      const custoFromForm = formValues.precoCusto.trim() ? parseMoneyLike(formValues.precoCusto) : Number.NaN;
       const finalValues = {
         nome: formValues.nome.trim(),
         categoria: formValues.categoria,
@@ -453,6 +456,7 @@ export const ItemAIDraftPage = () => {
         tamanho: formValues.tamanho.trim(),
         marca: formValues.marca.trim() || undefined,
         precoVenda: Number.isNaN(precoFromForm) ? undefined : precoFromForm,
+        precoCusto: Number.isNaN(custoFromForm) ? undefined : custoFromForm,
         acervoTipo: formValues.acervoTipo,
         acervoNome: formValues.acervoNome.trim() || undefined
       };
@@ -869,14 +873,29 @@ export const ItemAIDraftPage = () => {
           <Field label="Marca">
             <Input value={formValues.marca} onChange={(event) => setFormField("marca", event.target.value)} />
           </Field>
-          <Field label="Preço venda">
+          <Field label="Quanto você pagou? (R$)">
             <Input
               type="number"
               step="0.01"
+              min={0}
+              value={formValues.precoCusto}
+              onChange={(event) => setFormField("precoCusto", event.target.value)}
+            />
+          </Field>
+          <Field label="Preço de venda (R$)">
+            <Input
+              type="number"
+              step="0.01"
+              min={0}
               value={formValues.precoVenda}
               onChange={(event) => setFormField("precoVenda", event.target.value)}
             />
           </Field>
+          {formatExpectedMarginHint(formValues.precoCusto, formValues.precoVenda) && (
+            <p className="text-xs font-semibold text-green-700">
+              {formatExpectedMarginHint(formValues.precoCusto, formValues.precoVenda)}
+            </p>
+          )}
           <Field label="Acervo">
             <Select
               value={formValues.acervoTipo}

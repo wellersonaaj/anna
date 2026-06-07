@@ -22,6 +22,7 @@ const DEFAULT_FIELD_LABELS: Record<string, string> = {
   condicao: "Condição",
   estampa: "Estampa",
   precoVenda: "Preço de venda",
+  precoCusto: "Custo da peça",
   acervoTipo: "Tipo de acervo",
   acervoNome: "Nome do acervo/consignante",
   telefone: "Telefone",

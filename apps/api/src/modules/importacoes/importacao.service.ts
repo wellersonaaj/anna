@@ -84,6 +84,7 @@ const formValuesFromSuggestions = (s: SuggestionsShape): Prisma.InputJsonValue =
     tamanho: s.tamanho?.trim() || "NA",
     marca: s.marca ?? "",
     precoVenda: undefined,
+    precoCusto: undefined,
     acervoTipo: "PROPRIO",
     acervoNome: ""
   } as Prisma.InputJsonValue;
@@ -730,6 +731,7 @@ export const importacaoService = {
         tamanho: string;
         marca?: string;
         precoVenda?: number;
+        precoCusto?: number;
         acervoTipo: "PROPRIO" | "CONSIGNACAO";
         acervoNome?: string;
       };
@@ -774,6 +776,7 @@ export const importacaoService = {
         tamanho: string;
         marca?: string;
         precoVenda?: number;
+        precoCusto?: number;
         acervoTipo: "PROPRIO" | "CONSIGNACAO";
         acervoNome?: string;
       };
@@ -826,6 +829,7 @@ export const importacaoService = {
       tamanho: string;
       marca?: string;
       precoVenda?: number;
+      precoCusto?: number;
       acervoTipo: "PROPRIO" | "CONSIGNACAO";
       acervoNome?: string;
     };
@@ -840,6 +844,7 @@ export const importacaoService = {
       tamanho: fv.tamanho,
       marca: fv.marca,
       precoVenda: fv.precoVenda,
+      precoCusto: fv.precoCusto,
       acervoTipo: fv.acervoTipo,
       acervoNome: fv.acervoNome
     });
@@ -883,6 +888,7 @@ export const importacaoService = {
           tamanho: fv.tamanho,
           marca: fv.marca,
           precoVenda: fv.precoVenda,
+          precoCusto: fv.precoCusto,
           acervoTipo: fv.acervoTipo,
           acervoNome: fv.acervoNome
         }

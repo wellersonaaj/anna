@@ -19,6 +19,7 @@ export type Item = {
   acervoTipo: "PROPRIO" | "CONSIGNACAO";
   acervoNome?: string | null;
   precoVenda?: string | number | null;
+  precoCusto?: string | number | null;
   marca?: string | null;
   fotoCapaId?: string | null;
   fotoPreviews?: Array<{ id: string; displayUrl: string }>;
@@ -188,9 +189,18 @@ export type DraftFeedbackPayload = {
     tamanho: string;
     marca?: string;
     precoVenda?: number;
+    precoCusto?: number;
     acervoTipo: "PROPRIO" | "CONSIGNACAO";
     acervoNome?: string;
   };
+};
+
+export type ItemVenda = {
+  id: string;
+  precoVenda: string | number;
+  precoCusto?: string | number | null;
+  ganhosTotal: string | number;
+  criadoEm: string;
 };
 
 export type FilaInteressadoEntry = {
@@ -209,7 +219,7 @@ export type FilaInteressadoEntry = {
 
 export type ItemDetail = Item & {
   historicoStatus: HistoricoStatusEntry[];
-  venda?: unknown;
+  venda?: ItemVenda | null;
   fotos?: ItemFoto[];
   fotoLotes?: ItemFotoLote[];
   filaInteressados?: FilaInteressadoEntry[];
@@ -231,6 +241,7 @@ export type SalePendingDelivery = {
 export type DeliveredSale = {
   id: string;
   precoVenda: string | number;
+  precoCusto?: string | number | null;
   ganhosTotal: string | number;
   criadoEm: string;
   peca: {
@@ -270,6 +281,7 @@ export type UpdateItemPayload = Partial<{
   tamanho: string;
   marca: string | null;
   precoVenda: number | null;
+  precoCusto: number | null;
   acervoTipo: "PROPRIO" | "CONSIGNACAO";
   acervoNome: string | null;
 }>;
@@ -534,6 +546,7 @@ export const createItem = async (
     tamanho: string;
     marca?: string;
     precoVenda?: number;
+    precoCusto?: number;
     acervoTipo: "PROPRIO" | "CONSIGNACAO";
     acervoNome?: string;
   }
@@ -629,6 +642,10 @@ export const reserveBatch = async (
 export type SalesPeriodSummary = {
   vendasNoPeriodo: number;
   faturamentoPecas: number;
+  custoPecasVendidas: number;
+  lucroBruto: number;
+  vendasSemCusto: number;
+  margemBrutaPct: number | null;
   freteInclusoInformado: number;
   aguardandoEnvio: {
     count: number;

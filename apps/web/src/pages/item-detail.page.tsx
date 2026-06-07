@@ -22,9 +22,10 @@ import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
 import { ApiError } from "../api/client";
 import { applyApiFormErrors, getApiErrorMessage } from "../lib/api-form-errors";
 import { useSessionStore } from "../store/session.store";
-import { AppShell, Button, Field, Input, ItemStatusTone, PhotoLightbox, Section, Select } from "../components/ui";
+import { AppShell, Button, Field, Input, ItemStatusTone, PhotoLightbox, Section, Select, formatCurrency } from "../components/ui";
 import { resizeImageDetailed } from "../lib/imageResize";
 import { moneyInputValue, parseMoneyLike } from "../lib/money";
+import { computeLucroBruto, formatExpectedMarginHint } from "../lib/peca-lucro";
 
 const MAX_PHOTOS = 30;
 
@@ -37,6 +38,7 @@ const editFormSchema = z.object({
   condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
   tamanho: z.string().trim().optional(),
   marca: z.string().optional(),
+  precoCusto: z.string().optional(),
   precoVenda: z.string().optional(),
   acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
   acervoNome: z.string().optional()
@@ -51,6 +53,7 @@ const editFormFields = [
   "cor",
   "tamanho",
   "marca",
+  "precoCusto",
   "precoVenda",
   "acervoTipo",
   "acervoNome",
@@ -117,6 +120,7 @@ export const ItemDetailPage = () => {
       condicao: "BOM",
       tamanho: "",
       marca: "",
+      precoCusto: "",
       precoVenda: "",
       acervoTipo: "PROPRIO",
       acervoNome: ""
@@ -137,6 +141,17 @@ export const ItemDetailPage = () => {
   const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
   const canSell = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
   const coverPhotoId = item?.fotos?.find((foto) => foto.isCover)?.id ?? null;
+  const watchedPrecoCusto = editForm.watch("precoCusto");
+  const watchedPrecoVenda = editForm.watch("precoVenda");
+  const editMarginHint = formatExpectedMarginHint(watchedPrecoCusto, watchedPrecoVenda);
+  const soldStatuses = new Set(["VENDIDO", "ENTREGUE"]);
+  const isSold = item ? soldStatuses.has(item.status) : false;
+  const salePrecoVenda = item?.venda ? parseMoneyLike(item.venda.precoVenda) : Number.NaN;
+  const salePrecoCusto = item?.venda?.precoCusto != null ? parseMoneyLike(item.venda.precoCusto) : null;
+  const saleLucroBruto =
+    item?.venda && !Number.isNaN(salePrecoVenda)
+      ? computeLucroBruto(salePrecoVenda, salePrecoCusto)
+      : null;
 
   useEffect(() => {
     if (!item) {
@@ -151,6 +166,7 @@ export const ItemDetailPage = () => {
       condicao: item.condicao,
       tamanho: item.tamanho && item.tamanho !== "NA" ? item.tamanho : "",
       marca: item.marca ?? "",
+      precoCusto: precoInputValue(item.precoCusto),
       precoVenda: precoInputValue(item.precoVenda),
       acervoTipo: item.acervoTipo,
       acervoNome: item.acervoNome ?? ""
@@ -201,6 +217,7 @@ export const ItemDetailPage = () => {
         condicao: data.condicao,
         tamanho: data.tamanho?.trim() || "NA",
         marca: data.marca?.trim() || null,
+        precoCusto: parsePreco(data.precoCusto),
         precoVenda: parsePreco(data.precoVenda),
         acervoTipo: data.acervoTipo,
         acervoNome: data.acervoNome?.trim() || null
@@ -424,9 +441,15 @@ export const ItemDetailPage = () => {
                 <Field label="Nome" error={editForm.formState.errors.nome?.message}>
                   <Input {...editForm.register("nome")} />
                 </Field>
-                <Field label="Preço (R$)" error={editForm.formState.errors.precoVenda?.message}>
+                <Field label="Quanto você pagou? (R$)" error={editForm.formState.errors.precoCusto?.message}>
+                  <Input type="number" step="0.01" min={0} {...editForm.register("precoCusto")} />
+                </Field>
+                <Field label="Preço de venda (R$)" error={editForm.formState.errors.precoVenda?.message}>
                   <Input type="number" step="0.01" min={0} {...editForm.register("precoVenda")} />
                 </Field>
+                {editMarginHint && (
+                  <p className="text-xs font-semibold text-green-700 md:col-span-2">{editMarginHint}</p>
+                )}
                 <Field label="Categoria" error={editForm.formState.errors.categoria?.message}>
                   <Select {...editForm.register("categoria")}>
                     {Object.entries(categoriaLabels).map(([value, label]) => (
@@ -491,8 +514,12 @@ export const ItemDetailPage = () => {
             ) : (
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <dt className="font-bold text-on-surface-variant">Preço</dt>
-                  <dd>{item.precoVenda ? `R$ ${String(item.precoVenda).replace(".", ",")}` : "Preço a confirmar"}</dd>
+                  <dt className="font-bold text-on-surface-variant">Custo</dt>
+                  <dd>{item.precoCusto != null ? formatCurrency(item.precoCusto) : "Não informado"}</dd>
+                </div>
+                <div>
+                  <dt className="font-bold text-on-surface-variant">Preço de venda</dt>
+                  <dd>{item.precoVenda ? formatCurrency(item.precoVenda) : "Preço a confirmar"}</dd>
                 </div>
                 <div>
                   <dt className="font-bold text-on-surface-variant">Condição</dt>
@@ -525,6 +552,27 @@ export const ItemDetailPage = () => {
               </dl>
             )}
           </Section>
+
+          {isSold && item.venda && (
+            <Section title="Resultado da venda">
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <dt className="font-bold text-on-surface-variant">Preço vendido</dt>
+                  <dd>{formatCurrency(item.venda.precoVenda)}</dd>
+                </div>
+                <div>
+                  <dt className="font-bold text-on-surface-variant">Custo (na venda)</dt>
+                  <dd>{salePrecoCusto != null ? formatCurrency(salePrecoCusto) : "Não informado"}</dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="font-bold text-on-surface-variant">Lucro bruto</dt>
+                  <dd className="text-base font-extrabold text-green-700">
+                    {saleLucroBruto != null ? formatCurrency(saleLucroBruto) : "Custo não cadastrado"}
+                  </dd>
+                </div>
+              </dl>
+            </Section>
+          )}
 
           <Section title="Fotos">
             <p className="mt-0 text-sm text-on-surface-variant">

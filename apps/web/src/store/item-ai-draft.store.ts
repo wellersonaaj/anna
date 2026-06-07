@@ -10,6 +10,7 @@ export type ItemAIDraftFormValues = {
   condicao: "OTIMO" | "BOM" | "REGULAR";
   tamanho: string;
   marca: string;
+  precoCusto: string;
   precoVenda: string;
   acervoTipo: "PROPRIO" | "CONSIGNACAO";
   acervoNome: string;
@@ -24,6 +25,7 @@ const buildInitialFormValues = (): ItemAIDraftFormValues => ({
   condicao: "OTIMO",
   tamanho: "",
   marca: "",
+  precoCusto: "",
   precoVenda: "",
   acervoTipo: "PROPRIO",
   acervoNome: ""

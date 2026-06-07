@@ -6,6 +6,7 @@ import { listAcervoSuggestions, type ItemCategoria } from "../api/items";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Button, Field, Input, Section, Select } from "../components/ui";
 import { parseMoneyLike } from "../lib/money";
+import { formatExpectedMarginHint } from "../lib/peca-lucro";
 
 type FormValues = {
   nome: string;
@@ -16,6 +17,7 @@ type FormValues = {
   condicao: "OTIMO" | "BOM" | "REGULAR";
   tamanho: string;
   marca: string;
+  precoCusto: string;
   precoVenda: string;
   acervoTipo: "PROPRIO" | "CONSIGNACAO";
   acervoNome: string;
@@ -30,6 +32,7 @@ const emptyForm: FormValues = {
   condicao: "OTIMO",
   tamanho: "",
   marca: "",
+  precoCusto: "",
   precoVenda: "",
   acervoTipo: "PROPRIO",
   acervoNome: ""
@@ -37,9 +40,11 @@ const emptyForm: FormValues = {
 
 const formValuesForApi = (f: FormValues) => {
   const precoFromForm = f.precoVenda.trim() ? parseMoneyLike(f.precoVenda) : Number.NaN;
+  const custoFromForm = f.precoCusto.trim() ? parseMoneyLike(f.precoCusto) : Number.NaN;
   return {
     ...f,
     precoVenda: Number.isNaN(precoFromForm) ? undefined : precoFromForm,
+    precoCusto: Number.isNaN(custoFromForm) ? undefined : custoFromForm,
     marca: f.marca.trim() || undefined,
     acervoNome: f.acervoNome.trim() || undefined
   };
@@ -140,6 +145,7 @@ export const ImportacaoRascunhoDetailPage = () => {
       condicao: (raw.condicao as FormValues["condicao"]) ?? "OTIMO",
       tamanho: String(raw.tamanho ?? ""),
       marca: String(raw.marca ?? ""),
+      precoCusto: raw.precoCusto != null ? String(raw.precoCusto) : "",
       precoVenda: raw.precoVenda != null ? String(raw.precoVenda) : "",
       acervoTipo: suggestedAcervo?.acervoTipo ?? rawAcervoTipo,
       acervoNome: rawAcervoNome || suggestedAcervo?.acervoNome || ""
@@ -252,12 +258,29 @@ export const ImportacaoRascunhoDetailPage = () => {
             <Field label="Marca">
               <Input value={form.marca} onChange={(e) => setFormFromUser((f) => ({ ...f, marca: e.target.value }))} />
             </Field>
-            <Field label="Preço venda (opcional)">
+            <Field label="Quanto você pagou? (R$) (opcional)">
               <Input
+                type="number"
+                step="0.01"
+                min={0}
+                value={form.precoCusto}
+                onChange={(e) => setFormFromUser((f) => ({ ...f, precoCusto: e.target.value }))}
+              />
+            </Field>
+            <Field label="Preço de venda (R$) (opcional)">
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
                 value={form.precoVenda}
                 onChange={(e) => setFormFromUser((f) => ({ ...f, precoVenda: e.target.value }))}
               />
             </Field>
+            {formatExpectedMarginHint(form.precoCusto, form.precoVenda) && (
+              <p className="text-xs font-semibold text-green-700">
+                {formatExpectedMarginHint(form.precoCusto, form.precoVenda)}
+              </p>
+            )}
             <Field label="Acervo">
               <Select
                 value={form.acervoTipo}

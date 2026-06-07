@@ -3,6 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { storageEnv } from "../../config/env.js";
 import { createPresignedGet, isStorageConfigured, resolveObjectKeyFromPublicUrl } from "../../lib/storage.js";
 import { resolveCoverFoto } from "../items/item.service.js";
+import { computeLucroBruto, computeMargemBrutaPct } from "../../lib/venda-lucro.js";
 import { resolveFreteInclusoValor } from "../../lib/venda-frete.js";
 import { sacolaService } from "../sacolas/sacola.service.js";
 
@@ -174,7 +175,7 @@ export const salesService = {
           criadoEm: { gte: since },
           peca: { brechoId }
         },
-        select: { precoVenda: true, freteInclusoValor: true }
+        select: { precoVenda: true, precoCusto: true, freteInclusoValor: true }
       }),
       prisma.venda.findMany({
         where: {
@@ -193,9 +194,23 @@ export const salesService = {
       0
     );
 
+    const vendasComCusto = periodVendas.filter((row) => row.precoCusto !== null);
+    const custoPecasVendidas = vendasComCusto.reduce((sum, row) => sum + Number(row.precoCusto), 0);
+    const faturamentoComCusto = vendasComCusto.reduce((sum, row) => sum + Number(row.precoVenda), 0);
+    const lucroBruto = vendasComCusto.reduce(
+      (sum, row) => sum + (computeLucroBruto(Number(row.precoVenda), Number(row.precoCusto)) ?? 0),
+      0
+    );
+    const vendasSemCusto = periodVendas.length - vendasComCusto.length;
+    const margemBrutaPct = computeMargemBrutaPct(lucroBruto, faturamentoComCusto);
+
     return {
       vendasNoPeriodo: periodVendas.length,
       faturamentoPecas: sumPreco(periodVendas),
+      custoPecasVendidas,
+      lucroBruto,
+      vendasSemCusto,
+      margemBrutaPct,
       freteInclusoInformado,
       aguardandoEnvio: {
         count: pendingVendas.length,

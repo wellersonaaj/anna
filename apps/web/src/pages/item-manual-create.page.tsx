@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { createItem, listAcervoSuggestions } from "../api/items";
 import { AppShell, Button, Field, Input, Section, Select } from "../components/ui";
+import { formatExpectedMarginHint } from "../lib/peca-lucro";
 import { useSessionStore } from "../store/session.store";
 
 const createItemFormSchema = z.object({
@@ -17,6 +18,7 @@ const createItemFormSchema = z.object({
   condicao: z.enum(["OTIMO", "BOM", "REGULAR"]),
   tamanho: z.string().trim().optional().default(""),
   marca: z.string().optional(),
+  precoCusto: z.coerce.number().optional(),
   precoVenda: z.coerce.number().optional(),
   acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
   acervoNome: z.string().trim().min(2).max(80).optional().or(z.literal(""))
@@ -42,6 +44,9 @@ export const ItemManualCreatePage = () => {
 
   const acervoTipo = watch("acervoTipo");
   const acervoNome = watch("acervoNome");
+  const precoCusto = watch("precoCusto");
+  const precoVenda = watch("precoVenda");
+  const marginHint = formatExpectedMarginHint(precoCusto, precoVenda);
 
   const acervoSuggestionsQuery = useQuery({
     queryKey: ["acervo-suggestions", brechoId, acervoTipo, acervoNome],
@@ -112,9 +117,15 @@ export const ItemManualCreatePage = () => {
           <Field label="Marca">
             <Input {...register("marca")} />
           </Field>
-          <Field label="Preço venda">
-            <Input type="number" step="0.01" {...register("precoVenda")} />
+          <Field label="Quanto você pagou? (R$)">
+            <Input type="number" step="0.01" min={0} {...register("precoCusto")} />
           </Field>
+          <Field label="Preço de venda (R$)">
+            <Input type="number" step="0.01" min={0} {...register("precoVenda")} />
+          </Field>
+          {marginHint && (
+            <p className="text-xs font-semibold text-green-700 md:col-span-2">{marginHint}</p>
+          )}
           <Field label="Acervo">
             <Select {...register("acervoTipo")}>
               <option value="PROPRIO">Próprio</option>

@@ -395,6 +395,7 @@ export const itemService = {
     tamanho: string;
     marca?: string;
     precoVenda?: number;
+    precoCusto?: number;
     acervoTipo: "PROPRIO" | "CONSIGNACAO";
     acervoNome?: string;
   }) {
@@ -406,7 +407,8 @@ export const itemService = {
           brechoId,
           codigo,
           acervoNome: data.acervoNome?.trim() || null,
-          precoVenda: data.precoVenda ?? null
+          precoVenda: data.precoVenda ?? null,
+          precoCusto: data.precoCusto ?? null
         }
       });
 
@@ -641,6 +643,7 @@ export const itemService = {
       tamanho?: string;
       marca?: string;
       precoVenda?: number | null;
+      precoCusto?: number | null;
       acervoTipo?: "PROPRIO" | "CONSIGNACAO";
       acervoNome?: string | null;
     }
@@ -666,6 +669,7 @@ export const itemService = {
         ...(payload.tamanho !== undefined ? { tamanho: normalizeTamanho(payload.tamanho) } : {}),
         ...(payload.marca !== undefined ? { marca: payload.marca.trim() || null } : {}),
         ...(payload.precoVenda !== undefined ? { precoVenda: payload.precoVenda } : {}),
+        ...(payload.precoCusto !== undefined ? { precoCusto: payload.precoCusto } : {}),
         ...(payload.acervoTipo !== undefined ? { acervoTipo: payload.acervoTipo } : {}),
         ...(payload.acervoNome !== undefined ? { acervoNome: payload.acervoNome?.trim() || null } : {})
       }
@@ -1065,6 +1069,7 @@ export const itemService = {
         tamanho: string;
         marca?: string;
         precoVenda?: number;
+        precoCusto?: number;
         acervoTipo: "PROPRIO" | "CONSIGNACAO";
         acervoNome?: string;
       };
@@ -1637,6 +1642,7 @@ export const itemService = {
           pecaId: itemId,
           clienteId: cliente.id,
           precoVenda: payload.precoVenda,
+          precoCusto: item.precoCusto,
           freteIncluso,
           freteInclusoValor,
           freteTexto,

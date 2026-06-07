@@ -29,6 +29,7 @@ export const createItemSchema = z.object({
   tamanho: tamanhoSchema.optional().default("NA"),
   marca: marcaOptionalSchema,
   precoVenda: moneyNonNegativeSchema.optional(),
+  precoCusto: moneyNonNegativeSchema.optional(),
   acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]).default("PROPRIO"),
   acervoNome: z.string().trim().min(2).max(80).optional()
 });
@@ -44,6 +45,7 @@ export const updateItemSchema = z
     tamanho: tamanhoOptionalSchema,
     marca: marcaOptionalSchema,
     precoVenda: moneyNullableNonNegativeSchema.optional(),
+    precoCusto: moneyNullableNonNegativeSchema.optional(),
     acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]).optional(),
     acervoNome: z.string().trim().max(80).nullable().optional()
   })
@@ -200,6 +202,7 @@ export const submitDraftFeedbackSchema = z.object({
     tamanho: z.string().trim().optional().default("NA"),
     marca: z.string().trim().optional(),
     precoVenda: moneyNonNegativeSchema.optional(),
+    precoCusto: moneyNonNegativeSchema.optional(),
     acervoTipo: z.enum(["PROPRIO", "CONSIGNACAO"]),
     acervoNome: z.string().trim().max(80).optional()
   })

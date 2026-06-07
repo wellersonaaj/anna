@@ -188,6 +188,11 @@ export const reserveBatch = async (brechoId, payload) => {
         body: payload
     });
 };
+export const getSalesPeriodSummary = async (brechoId, query) => {
+    const params = new URLSearchParams();
+    params.set("days", String(query?.days ?? 30));
+    return request(`/sales/period-summary?${params.toString()}`, { brechoId });
+};
 export const listSalesPendingDelivery = async (brechoId) => {
     return request("/sales/pending-delivery", { brechoId });
 };
@@ -197,6 +202,13 @@ export const listSalesDelivered = async (brechoId, query) => {
     params.set("limit", String(query?.limit ?? 20));
     params.set("offset", String(query?.offset ?? 0));
     return request(`/sales/delivered?${params.toString()}`, { brechoId });
+};
+export const updateSale = async (brechoId, saleId, payload) => {
+    return request(`/sales/${saleId}`, {
+        method: "PATCH",
+        brechoId,
+        body: payload
+    });
 };
 export const deliverSale = async (brechoId, saleId, payload) => {
     return request(`/sales/${saleId}/deliver`, {

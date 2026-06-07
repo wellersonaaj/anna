@@ -83,6 +83,29 @@ export const ReportsPage = () => {
           </div>
         </div>
 
+        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6 shadow-sm">
+          <div>
+            <span className="block text-4xl font-extrabold text-green-700">
+              {formatCurrency(summary?.lucroBruto ?? 0)}
+            </span>
+            <span className="text-sm font-semibold text-gray-500">Lucro bruto do mês</span>
+            {summary && summary.margemBrutaPct != null && (
+              <p className="mt-1 text-xs text-gray-500">
+                Margem bruta: {summary.margemBrutaPct.toFixed(0)}% (vendas com custo cadastrado)
+              </p>
+            )}
+            {summary && summary.vendasSemCusto > 0 && (
+              <p className="mt-1 text-xs text-amber-700">
+                {summary.vendasSemCusto} venda{summary.vendasSemCusto === 1 ? "" : "s"} sem custo cadastrado — lucro
+                pode estar incompleto
+              </p>
+            )}
+          </div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-green-700">
+            <span className="material-symbols-outlined">trending_up</span>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6">
           <div>
             <span className="block text-4xl font-extrabold text-amber-500">{staleItems.length}</span>

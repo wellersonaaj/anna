@@ -8,6 +8,7 @@ const buildInitialFormValues = () => ({
     condicao: "OTIMO",
     tamanho: "",
     marca: "",
+    precoCusto: "",
     precoVenda: "",
     acervoTipo: "PROPRIO",
     acervoNome: ""

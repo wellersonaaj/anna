@@ -179,6 +179,7 @@ export const sacolaService = {
             return {
               id: venda.id,
               precoVenda: venda.precoVenda,
+              precoCusto: venda.precoCusto,
               freteIncluso: venda.freteIncluso,
               freteInclusoValor: venda.freteInclusoValor,
               ganhosTotal: venda.ganhosTotal,
