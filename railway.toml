@@ -24,7 +24,7 @@ watchPatterns = [
 ]
 
 [deploy]
-preDeployCommand = ["npx prisma migrate deploy"]
+preDeployCommand = ["node scripts/prisma-migrate-deploy.mjs"]
 startCommand = "node apps/api/dist/index.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 60

@@ -14,7 +14,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:deploy": "node scripts/prisma-migrate-deploy.mjs",
     "build:api": "prisma generate && npm run build -w @anna/shared && npm run build -w @anna/api",
     "build:web": "npm run build -w @anna/shared && npm run build -w @anna/web",
     "start:api": "node apps/api/dist/index.js",
