@@ -4,6 +4,7 @@ import { formatZodValidationError } from "../../lib/validation-error.js";
 import {
   deliverSaleSchema,
   listDeliveredSalesQuerySchema,
+  missingCostSalesQuerySchema,
   periodSummaryQuerySchema,
   updateSaleSchema
 } from "./sales.schemas.js";
@@ -20,6 +21,22 @@ export const salesRoutes = async (app: FastifyInstance): Promise<void> => {
       const query = periodSummaryQuerySchema.parse(request.query);
       const summary = await salesService.getPeriodSummary(app.prisma, request.brechoId, query.days);
       return reply.send(summary);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return reply.code(400).send(formatZodValidationError(error));
+      }
+
+      const message = error instanceof Error ? error.message : "Unexpected error.";
+      app.log.error(error);
+      return reply.code(400).send({ message });
+    }
+  });
+
+  app.get("/sales/missing-cost", async (request, reply) => {
+    try {
+      const query = missingCostSalesQuerySchema.parse(request.query);
+      const result = await salesService.listMissingCost(app.prisma, request.brechoId, query);
+      return reply.send(result);
     } catch (error) {
       if (error instanceof ZodError) {
         return reply.code(400).send(formatZodValidationError(error));

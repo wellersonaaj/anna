@@ -14,6 +14,7 @@ type EditSaleFormProps = {
   saleId: string;
   pecaNome: string;
   initialPreco: number;
+  initialPrecoCusto?: number | null;
   initialFreteIncluso: boolean;
   initialFreteInclusoValor?: number | null;
   canEditFreteIncluso: boolean;
@@ -26,6 +27,7 @@ export const EditSaleForm = ({
   saleId,
   pecaNome,
   initialPreco,
+  initialPrecoCusto,
   initialFreteIncluso,
   initialFreteInclusoValor,
   canEditFreteIncluso,
@@ -34,6 +36,9 @@ export const EditSaleForm = ({
 }: EditSaleFormProps) => {
   const queryClient = useQueryClient();
   const [preco, setPreco] = useState(String(initialPreco));
+  const [precoCusto, setPrecoCusto] = useState(
+    initialPrecoCusto != null ? String(initialPrecoCusto) : ""
+  );
   const [freteIncluso, setFreteIncluso] = useState(initialFreteIncluso);
   const [freteInclusoValor, setFreteInclusoValor] = useState(
     initialFreteInclusoValor ? String(initialFreteInclusoValor) : ""
@@ -62,8 +67,15 @@ export const EditSaleForm = ({
         ? parseFreteInclusoValorForApi(precoVenda, freteInclusoValor)
         : undefined;
 
+      const custoTrim = precoCusto.trim();
+      const parsedCusto = custoTrim ? parseMoneyLike(custoTrim) : null;
+      if (custoTrim && (Number.isNaN(parsedCusto!) || parsedCusto! < 0)) {
+        throw new Error("Informe um custo válido.");
+      }
+
       return updateSale(brechoId, saleId, {
         precoVenda,
+        ...(custoTrim ? { precoCusto: parsedCusto } : {}),
         ...(canEditFreteIncluso
           ? {
               freteIncluso,
@@ -77,6 +89,7 @@ export const EditSaleForm = ({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["pending-sacolas", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["sales-period-summary", brechoId] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-missing-cost", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["client", brechoId] });
       onSuccess?.();
       onClose();
@@ -92,6 +105,16 @@ export const EditSaleForm = ({
       <div className="space-y-4">
         <Field label="Preço (R$)">
           <Input type="number" step="0.01" min={0} value={preco} onChange={(e) => setPreco(e.target.value)} />
+        </Field>
+        <Field label="Quanto você pagou? (R$)">
+          <Input
+            type="number"
+            step="0.01"
+            min={0}
+            placeholder="Opcional"
+            value={precoCusto}
+            onChange={(e) => setPrecoCusto(e.target.value)}
+          />
         </Field>
         {canEditFreteIncluso && (
           <Field label="Frete no preço?">

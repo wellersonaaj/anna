@@ -19,6 +19,7 @@ import {
 } from "../api/items";
 import { createFilaLink } from "../api/public-queue";
 import { FotoAiSuggestionsCard } from "../components/foto-ai-suggestions";
+import { SaleCostEditor } from "../components/sale-cost-editor";
 import { ApiError } from "../api/client";
 import { applyApiFormErrors, getApiErrorMessage } from "../lib/api-form-errors";
 import { useSessionStore } from "../store/session.store";
@@ -99,6 +100,7 @@ export const ItemDetailPage = () => {
   const [photoActionError, setPhotoActionError] = useState<string | null>(null);
   const [photoUploadHint, setPhotoUploadHint] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [showSaleCostEditor, setShowSaleCostEditor] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const pasteBoxRef = useRef<HTMLDivElement>(null);
@@ -232,6 +234,8 @@ export const ItemDetailPage = () => {
       }),
     onSuccess: async () => {
       await invalidateItem();
+      await queryClient.invalidateQueries({ queryKey: ["sales-period-summary", brechoId] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-missing-cost", brechoId] });
       setEditing(false);
     },
     onError: (error) => {
@@ -563,6 +567,25 @@ export const ItemDetailPage = () => {
 
           {isSold && item.venda && (
             <Section title="Resultado da venda">
+              {(showSaleCostEditor || salePrecoCusto == null) && (
+                <div className="mb-4">
+                  <SaleCostEditor
+                    brechoId={brechoId}
+                    saleId={item.venda.id}
+                    pecaId={item.id}
+                    pecaNome={item.nome}
+                    pecaCodigo={item.codigo}
+                    precoVenda={salePrecoVenda}
+                    pecaPrecoCusto={item.precoCusto != null ? parseMoneyLike(item.precoCusto) : null}
+                    initialPrecoCusto={salePrecoCusto}
+                    compact
+                    onSuccess={() => {
+                      setShowSaleCostEditor(false);
+                      void invalidateItem();
+                    }}
+                  />
+                </div>
+              )}
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <dt className="font-bold text-on-surface-variant">Preço vendido</dt>
@@ -570,7 +593,18 @@ export const ItemDetailPage = () => {
                 </div>
                 <div>
                   <dt className="font-bold text-on-surface-variant">Custo (na venda)</dt>
-                  <dd>{salePrecoCusto != null ? formatCurrency(salePrecoCusto) : "Não informado"}</dd>
+                  <dd className="flex flex-wrap items-center gap-2">
+                    {salePrecoCusto != null ? formatCurrency(salePrecoCusto) : "Não informado"}
+                    {salePrecoCusto != null && !showSaleCostEditor && (
+                      <button
+                        type="button"
+                        className="text-xs font-bold text-primary underline"
+                        onClick={() => setShowSaleCostEditor(true)}
+                      >
+                        Alterar custo
+                      </button>
+                    )}
+                  </dd>
                 </div>
                 {saleFreteCusto != null && (
                   <div>

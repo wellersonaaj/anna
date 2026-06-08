@@ -656,11 +656,28 @@ export type SalesPeriodSummary = {
   despesasPorCategoria: Record<"MARKETING" | "PLATAFORMAS" | "EMBALAGEM" | "OUTROS", number>;
   lucroLiquido: number;
   vendasSemCusto: number;
+  vendasComCusto: number;
   margemBrutaPct: number | null;
   freteInclusoInformado: number;
   aguardandoEnvio: {
     count: number;
     valorPecas: number;
+    countNoPeriodo: number;
+    valorNoPeriodo: number;
+  };
+};
+
+export type SaleMissingCost = {
+  id: string;
+  precoVenda: number;
+  criadoEm: string;
+  cliente: { nome: string };
+  peca: {
+    id: string;
+    nome: string;
+    codigo: string | null;
+    precoCusto: number | null;
+    fotoCapaThumbnailUrl: string | null;
   };
 };
 
@@ -691,10 +708,29 @@ export const listSalesDelivered = async (
   );
 };
 
+export const listMissingCostSales = async (
+  brechoId: string,
+  query?: { days?: number; limit?: number; offset?: number }
+): Promise<{ rows: SaleMissingCost[]; total: number; hasMore: boolean }> => {
+  const params = new URLSearchParams();
+  params.set("days", String(query?.days ?? 30));
+  params.set("limit", String(query?.limit ?? 50));
+  params.set("offset", String(query?.offset ?? 0));
+  return request<{ rows: SaleMissingCost[]; total: number; hasMore: boolean }>(
+    `/sales/missing-cost?${params.toString()}`,
+    { brechoId }
+  );
+};
+
 export const updateSale = async (
   brechoId: string,
   saleId: string,
-  payload: { precoVenda?: number; freteIncluso?: boolean; freteInclusoValor?: number | null }
+  payload: {
+    precoVenda?: number;
+    precoCusto?: number | null;
+    freteIncluso?: boolean;
+    freteInclusoValor?: number | null;
+  }
 ): Promise<void> => {
   return request(`/sales/${saleId}`, {
     method: "PATCH",

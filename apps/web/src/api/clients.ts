@@ -12,6 +12,7 @@ export type ClientDetail = ClientRow & {
   vendas: Array<{
     id: string;
     precoVenda: string | number;
+    precoCusto?: string | number | null;
     freteIncluso?: boolean;
     freteInclusoValor?: string | number | null;
     ganhosTotal: string | number;

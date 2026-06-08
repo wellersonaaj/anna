@@ -189,9 +189,11 @@ export const salesService = {
           entrega: null,
           peca: { brechoId, status: itemStatus.VENDIDO }
         },
-        select: { precoVenda: true }
+        select: { precoVenda: true, criadoEm: true }
       })
     ]);
+
+    const pendingNoPeriodo = pendingVendas.filter((row) => row.criadoEm >= since);
 
     const sumPreco = (rows: { precoVenda: { toString(): string } }[]) =>
       rows.reduce((sum, row) => sum + Number(row.precoVenda), 0);
@@ -246,12 +248,93 @@ export const salesService = {
       despesasPorCategoria,
       lucroLiquido,
       vendasSemCusto,
+      vendasComCusto: vendasComCusto.length,
       margemBrutaPct,
       freteInclusoInformado,
       aguardandoEnvio: {
         count: pendingVendas.length,
-        valorPecas: sumPreco(pendingVendas)
+        valorPecas: sumPreco(pendingVendas),
+        countNoPeriodo: pendingNoPeriodo.length,
+        valorNoPeriodo: sumPreco(pendingNoPeriodo)
       }
+    };
+  },
+
+  async listMissingCost(
+    prisma: PrismaClient,
+    brechoId: string,
+    query: { days: number; limit: number; offset: number }
+  ) {
+    const since = new Date(Date.now() - query.days * 24 * 60 * 60 * 1000);
+
+    const where = {
+      criadoEm: { gte: since },
+      precoCusto: null,
+      peca: { brechoId }
+    };
+
+    const [rows, total] = await prisma.$transaction([
+      prisma.venda.findMany({
+        where,
+        select: {
+          id: true,
+          precoVenda: true,
+          criadoEm: true,
+          peca: {
+            select: {
+              id: true,
+              nome: true,
+              codigo: true,
+              precoCusto: true,
+              fotoCapaId: true,
+              fotos: {
+                select: {
+                  id: true,
+                  url: true,
+                  thumbnailUrl: true,
+                  ordem: true,
+                  aiConfianca: true,
+                  aiQualidade: true,
+                  aiPredicaoJson: true
+                },
+                orderBy: { ordem: "asc" },
+                take: 15
+              }
+            }
+          },
+          cliente: { select: { nome: true } }
+        },
+        orderBy: { criadoEm: "desc" },
+        take: query.limit,
+        skip: query.offset
+      }),
+      prisma.venda.count({ where })
+    ]);
+
+    const mapped = await Promise.all(
+      rows.map(async (row) => {
+        const cover = resolveCoverFoto(row.peca.fotoCapaId, row.peca.fotos);
+        const thumbPrefer = cover?.thumbnailUrl ?? cover?.url ?? null;
+        return {
+          id: row.id,
+          precoVenda: Number(row.precoVenda),
+          criadoEm: row.criadoEm,
+          cliente: row.cliente,
+          peca: {
+            id: row.peca.id,
+            nome: row.peca.nome,
+            codigo: row.peca.codigo,
+            precoCusto: row.peca.precoCusto !== null ? Number(row.peca.precoCusto) : null,
+            fotoCapaThumbnailUrl: await resolveDisplayImageUrl(thumbPrefer)
+          }
+        };
+      })
+    );
+
+    return {
+      rows: mapped,
+      total,
+      hasMore: query.offset + mapped.length < total
     };
   },
 
@@ -259,7 +342,12 @@ export const salesService = {
     prisma: PrismaClient,
     brechoId: string,
     saleId: string,
-    data: { precoVenda?: number; freteIncluso?: boolean; freteInclusoValor?: number | null }
+    data: {
+      precoVenda?: number;
+      precoCusto?: number | null;
+      freteIncluso?: boolean;
+      freteInclusoValor?: number | null;
+    }
   ) {
     return prisma.$transaction(async (tx) => {
       const sale = await tx.venda.findFirst({
@@ -279,6 +367,7 @@ export const salesService = {
 
       if (
         data.precoVenda === undefined &&
+        data.precoCusto === undefined &&
         data.freteIncluso === undefined &&
         data.freteInclusoValor === undefined
       ) {
@@ -305,6 +394,7 @@ export const salesService = {
         where: { id: saleId },
         data: {
           precoVenda,
+          ...(data.precoCusto !== undefined ? { precoCusto: data.precoCusto } : {}),
           freteIncluso,
           freteInclusoValor,
           ganhosTotal: precoVenda

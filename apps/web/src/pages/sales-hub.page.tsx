@@ -44,6 +44,7 @@ export const SalesHubPage = () => {
     id: string;
     pecaNome: string;
     preco: number;
+    precoCusto?: number | null;
     freteIncluso: boolean;
     freteInclusoValor?: number | null;
   } | null>(null);
@@ -135,6 +136,7 @@ export const SalesHubPage = () => {
               saleId={editingSale.id}
               pecaNome={editingSale.pecaNome}
               initialPreco={editingSale.preco}
+              initialPrecoCusto={editingSale.precoCusto}
               initialFreteIncluso={editingSale.freteIncluso}
               initialFreteInclusoValor={editingSale.freteInclusoValor}
               canEditFreteIncluso
@@ -317,6 +319,8 @@ export const SalesHubPage = () => {
                                 id: venda.id,
                                 pecaNome: venda.peca.nome,
                                 preco: parseMoneyLike(venda.precoVenda),
+                                precoCusto:
+                                  venda.precoCusto != null ? parseMoneyLike(venda.precoCusto) : null,
                                 freteIncluso: venda.freteIncluso,
                                 freteInclusoValor: venda.freteInclusoValor
                                   ? parseMoneyLike(venda.freteInclusoValor)

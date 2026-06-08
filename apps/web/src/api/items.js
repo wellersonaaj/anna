@@ -203,6 +203,13 @@ export const listSalesDelivered = async (brechoId, query) => {
     params.set("offset", String(query?.offset ?? 0));
     return request(`/sales/delivered?${params.toString()}`, { brechoId });
 };
+export const listMissingCostSales = async (brechoId, query) => {
+    const params = new URLSearchParams();
+    params.set("days", String(query?.days ?? 30));
+    params.set("limit", String(query?.limit ?? 50));
+    params.set("offset", String(query?.offset ?? 0));
+    return request(`/sales/missing-cost?${params.toString()}`, { brechoId });
+};
 export const updateSale = async (brechoId, saleId, payload) => {
     return request(`/sales/${saleId}`, {
         method: "PATCH",

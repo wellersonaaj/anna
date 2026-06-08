@@ -8,8 +8,16 @@ import {
   listDespesas,
   type DespesaCategoria
 } from "../api/despesas";
-import { getSalesPeriodSummary, listItems } from "../api/items";
+import { getSalesPeriodSummary, listItems, listMissingCostSales } from "../api/items";
+import { ReportMetricCard } from "../components/report-metric-card";
+import { SaleCostEditor } from "../components/sale-cost-editor";
 import { AppShell, Button, Field, Input, Section, Select, formatCurrency } from "../components/ui";
+import {
+  buildFaturamentoFootnotes,
+  buildLucroFootnotes,
+  formatLucroDisplay,
+  getLucroCompleteness
+} from "../lib/report-metrics";
 import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 
@@ -19,10 +27,18 @@ const inStockStatuses = new Set(["DISPONIVEL", "RESERVADO", "INDISPONIVEL"]);
 
 const todayInputValue = () => new Date().toISOString().slice(0, 10);
 
+const MISSING_COST_PAGE_SIZE = 10;
+
+const scrollToCompletarCustos = () => {
+  document.getElementById("completar-custos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
 export const ReportsPage = () => {
   const brechoId = useSessionStore((state) => state.brechoId);
   const queryClient = useQueryClient();
   const [showDespesaForm, setShowDespesaForm] = useState(false);
+  const [showFinanceGuide, setShowFinanceGuide] = useState(false);
+  const [missingCostOffset, setMissingCostOffset] = useState(0);
   const [despesaCategoria, setDespesaCategoria] = useState<DespesaCategoria>("MARKETING");
   const [despesaValor, setDespesaValor] = useState("");
   const [despesaDescricao, setDespesaDescricao] = useState("");
@@ -36,6 +52,20 @@ export const ReportsPage = () => {
   const periodSummaryQuery = useQuery({
     queryKey: ["sales-period-summary", brechoId],
     queryFn: () => getSalesPeriodSummary(brechoId, { days: 30 })
+  });
+
+  const summary = periodSummaryQuery.data;
+  const vendasSemCusto = summary?.vendasSemCusto ?? 0;
+
+  const missingCostQuery = useQuery({
+    queryKey: ["sales-missing-cost", brechoId, missingCostOffset],
+    queryFn: () =>
+      listMissingCostSales(brechoId, {
+        days: 30,
+        limit: MISSING_COST_PAGE_SIZE,
+        offset: missingCostOffset
+      }),
+    enabled: vendasSemCusto > 0
   });
 
   const despesasQuery = useQuery({
@@ -75,14 +105,23 @@ export const ReportsPage = () => {
   });
 
   const items = itemsQuery.data ?? [];
-  const summary = periodSummaryQuery.data;
   const despesas = despesasQuery.data ?? [];
+  const missingCostRows = missingCostQuery.data?.rows ?? [];
 
   const stockCount = items.filter((item) => inStockStatuses.has(item.status)).length;
   const staleItems = items
     .filter((item) => inStockStatuses.has(item.status) && daysSince(item.criadoEm) > 30)
     .sort((a, b) => new Date(a.criadoEm).getTime() - new Date(b.criadoEm).getTime())
     .slice(0, 10);
+
+  const lucroCompleteness = summary
+    ? getLucroCompleteness(summary.vendasSemCusto, summary.vendasNoPeriodo)
+    : "empty";
+
+  const faturamentoBarPct =
+    summary && summary.faturamentoPecas > 0 && summary.aguardandoEnvio.valorNoPeriodo > 0
+      ? Math.min(100, (summary.aguardandoEnvio.valorNoPeriodo / summary.faturamentoPecas) * 100)
+      : 0;
 
   return (
     <AppShell showTopBar showBottomNav activeTab="relatorios">
@@ -94,116 +133,221 @@ export const ReportsPage = () => {
       {(itemsQuery.isLoading || periodSummaryQuery.isLoading) && <p>Carregando indicadores...</p>}
 
       <div className="grid grid-cols-1 gap-4">
-        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6">
-          <div>
-            <span className="block text-4xl font-extrabold">{stockCount}</span>
-            <span className="text-sm font-semibold text-gray-500">Peças em estoque</span>
-          </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-primary">
-            <span className="material-symbols-outlined">inventory_2</span>
-          </div>
-        </div>
+        <ReportMetricCard
+          value={stockCount}
+          label="Peças em estoque"
+          helpText="Disponíveis, reservadas e indisponíveis no estoque"
+          icon="inventory_2"
+        />
 
-        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6">
-          <div>
-            <span className="block text-4xl font-extrabold">{summary?.vendasNoPeriodo ?? 0}</span>
-            <span className="text-sm font-semibold text-gray-500">Vendidas este mês</span>
-          </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-green-600">
-            <span className="material-symbols-outlined">shopping_bag</span>
-          </div>
-        </div>
+        <ReportMetricCard
+          value={summary?.vendasNoPeriodo ?? 0}
+          label="Vendidas este mês"
+          helpText="Quantidade de vendas registradas nos últimos 30 dias"
+          icon="shopping_bag"
+          iconClassName="bg-green-50 text-green-600"
+        />
 
-        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6 shadow-sm">
-          <div>
-            <span className="block text-4xl font-extrabold text-primary">
-              {formatCurrency(summary?.faturamentoPecas ?? 0)}
+        <button
+          type="button"
+          className="rounded-2xl border border-rose-100 bg-white px-4 py-3 text-left"
+          onClick={() => setShowFinanceGuide((open) => !open)}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-bold text-gray-800">Como ler seus números</span>
+            <span className="material-symbols-outlined text-gray-400">
+              {showFinanceGuide ? "expand_less" : "expand_more"}
             </span>
-            <span className="text-sm font-semibold text-gray-500">Faturamento do mês</span>
-            {summary && summary.freteInclusoInformado > 0 && (
-              <p className="mt-1 text-xs text-gray-500">
-                incl. {formatCurrency(summary.freteInclusoInformado)} em frete (informado nas vendas)
-              </p>
-            )}
-            {summary && summary.aguardandoEnvio.count > 0 && (
-              <p className="mt-1 text-xs text-amber-700">
-                {summary.aguardandoEnvio.count} aguardando envio ·{" "}
-                {formatCurrency(summary.aguardandoEnvio.valorPecas)}
-              </p>
-            )}
           </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-primary">
-            <span className="material-symbols-outlined">payments</span>
-          </div>
-        </div>
+          {showFinanceGuide && (
+            <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-gray-600">
+              <li>
+                <strong>Faturamento</strong> — soma dos preços vendidos (últimos 30 dias)
+              </li>
+              <li>
+                <strong>Lucro bruto</strong> — preço vendido menos o que você pagou pela peça
+              </li>
+              <li>
+                <strong>Lucro operacional</strong> — lucro bruto menos frete e embalagem pagos por você
+              </li>
+              <li>
+                <strong>Lucro líquido</strong> — lucro operacional menos despesas gerais do brechó
+              </li>
+            </ol>
+          )}
+        </button>
 
-        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6 shadow-sm">
-          <div>
-            <span className="block text-4xl font-extrabold text-green-700">
-              {formatCurrency(summary?.lucroBruto ?? 0)}
-            </span>
-            <span className="text-sm font-semibold text-gray-500">Lucro bruto do mês</span>
-            {summary && summary.margemBrutaPct != null && (
-              <p className="mt-1 text-xs text-gray-500">
-                Margem bruta: {summary.margemBrutaPct.toFixed(0)}% (vendas com custo cadastrado)
-              </p>
-            )}
-            {summary && summary.vendasSemCusto > 0 && (
-              <p className="mt-1 text-xs text-amber-700">
-                {summary.vendasSemCusto} venda{summary.vendasSemCusto === 1 ? "" : "s"} sem custo cadastrado — lucro
-                pode estar incompleto
-              </p>
-            )}
-          </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-green-700">
-            <span className="material-symbols-outlined">trending_up</span>
-          </div>
-        </div>
+        <ReportMetricCard
+          value={formatCurrency(summary?.faturamentoPecas ?? 0)}
+          label="Faturamento do mês"
+          helpText="Soma dos preços das peças vendidas nos últimos 30 dias"
+          icon="payments"
+          iconClassName="bg-rose-100 text-primary"
+          valueClassName="text-primary"
+          shadow
+          footnotes={summary ? buildFaturamentoFootnotes(summary, formatCurrency) : []}
+          extra={
+            faturamentoBarPct > 0 ? (
+              <div className="mt-2 max-w-xs">
+                <div className="h-1.5 overflow-hidden rounded-full bg-rose-100">
+                  <div className="h-full rounded-full bg-amber-400" style={{ width: `${faturamentoBarPct}%` }} />
+                </div>
+                <p className="mt-1 text-[10px] text-gray-500">
+                  {faturamentoBarPct.toFixed(0)}% do faturamento aguarda envio
+                </p>
+              </div>
+            ) : undefined
+          }
+        />
 
-        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6 shadow-sm">
-          <div>
-            <span className="block text-4xl font-extrabold text-emerald-700">
-              {formatCurrency(summary?.lucroOperacional ?? 0)}
-            </span>
-            <span className="text-sm font-semibold text-gray-500">Lucro operacional</span>
-            {summary && summary.custosFreteEmbalagem > 0 && (
-              <p className="mt-1 text-xs text-gray-500">
-                após {formatCurrency(summary.custosFreteEmbalagem)} em frete/embalagem das vendas
-              </p>
-            )}
-          </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
-            <span className="material-symbols-outlined">local_shipping</span>
-          </div>
-        </div>
+        <ReportMetricCard
+          value={formatLucroDisplay(summary?.lucroBruto ?? 0, lucroCompleteness, formatCurrency)}
+          label="Lucro bruto do mês"
+          helpText="Preço vendido menos o que você pagou pela peça"
+          icon="trending_up"
+          iconClassName="bg-green-50 text-green-700"
+          valueClassName="text-green-700"
+          shadow
+          footnotes={
+            summary
+              ? buildLucroFootnotes(
+                  {
+                    vendasNoPeriodo: summary.vendasNoPeriodo,
+                    vendasComCusto: summary.vendasComCusto,
+                    vendasSemCusto: summary.vendasSemCusto,
+                    margemBrutaPct: summary.margemBrutaPct
+                  },
+                  lucroCompleteness,
+                  "bruto"
+                )
+              : []
+          }
+          action={
+            summary && summary.vendasSemCusto > 0 ? (
+              <button
+                type="button"
+                className="text-xs font-bold text-primary underline"
+                onClick={scrollToCompletarCustos}
+              >
+                Completar custos ↓
+              </button>
+            ) : undefined
+          }
+        />
 
-        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6 shadow-sm">
-          <div>
-            <span className="block text-4xl font-extrabold text-indigo-700">
-              {formatCurrency(summary?.lucroLiquido ?? 0)}
-            </span>
-            <span className="text-sm font-semibold text-gray-500">Lucro líquido do mês</span>
-            {summary && summary.despesasGerais > 0 && (
-              <p className="mt-1 text-xs text-gray-500">
-                após {formatCurrency(summary.despesasGerais)} em despesas gerais
-              </p>
-            )}
-          </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
-            <span className="material-symbols-outlined">account_balance_wallet</span>
-          </div>
-        </div>
+        <ReportMetricCard
+          value={formatLucroDisplay(summary?.lucroOperacional ?? 0, lucroCompleteness, formatCurrency)}
+          label="Lucro operacional"
+          helpText="Lucro bruto menos frete e embalagem pagos por você"
+          icon="local_shipping"
+          iconClassName="bg-emerald-50 text-emerald-700"
+          valueClassName="text-emerald-700"
+          shadow
+          footnotes={
+            summary
+              ? buildLucroFootnotes(
+                  {
+                    vendasNoPeriodo: summary.vendasNoPeriodo,
+                    vendasComCusto: summary.vendasComCusto,
+                    vendasSemCusto: summary.vendasSemCusto,
+                    margemBrutaPct: summary.margemBrutaPct,
+                    custosFreteEmbalagem: summary.custosFreteEmbalagem
+                  },
+                  lucroCompleteness,
+                  "operacional"
+                )
+              : []
+          }
+        />
 
-        <div className="flex items-center justify-between rounded-3xl border border-rose-50 bg-white p-6">
-          <div>
-            <span className="block text-4xl font-extrabold text-amber-500">{staleItems.length}</span>
-            <span className="text-sm font-semibold text-gray-500">Paradas há +30 dias</span>
-          </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-            <span className="material-symbols-outlined">timer</span>
-          </div>
-        </div>
+        <ReportMetricCard
+          value={formatLucroDisplay(summary?.lucroLiquido ?? 0, lucroCompleteness, formatCurrency)}
+          label="Lucro líquido do mês"
+          helpText="Lucro operacional menos despesas gerais do brechó"
+          icon="account_balance_wallet"
+          iconClassName="bg-indigo-50 text-indigo-700"
+          valueClassName="text-indigo-700"
+          shadow
+          footnotes={
+            summary
+              ? [
+                  ...buildLucroFootnotes(
+                    {
+                      vendasNoPeriodo: summary.vendasNoPeriodo,
+                      vendasComCusto: summary.vendasComCusto,
+                      vendasSemCusto: summary.vendasSemCusto,
+                      margemBrutaPct: summary.margemBrutaPct,
+                      despesasGerais: summary.despesasGerais
+                    },
+                    lucroCompleteness,
+                    "liquido"
+                  ),
+                  ...(summary.despesasGerais > 0 && lucroCompleteness !== "empty"
+                    ? [
+                        {
+                          tone: "neutral" as const,
+                          text: `Descontadas ${formatCurrency(summary.despesasGerais)} em despesas gerais`
+                        }
+                      ]
+                    : [])
+                ]
+              : []
+          }
+        />
+
+        <ReportMetricCard
+          value={staleItems.length}
+          label="Paradas há +30 dias"
+          helpText="Peças em estoque há mais de 30 dias sem venda"
+          icon="timer"
+          iconClassName="bg-amber-50 text-amber-600"
+          valueClassName="text-amber-500"
+        />
       </div>
+
+      {vendasSemCusto > 0 && (
+        <div id="completar-custos" className="mt-4 scroll-mt-24">
+        <Section title="Completar custos do mês">
+          <p className="mb-3 text-sm text-on-surface-variant">
+            {vendasSemCusto} venda{vendasSemCusto === 1 ? "" : "s"} sem custo — o lucro acima não inclui essas
+            vendas. Informe quanto você pagou por cada peça.
+          </p>
+          {missingCostQuery.isLoading && <p className="text-sm">Carregando vendas...</p>}
+          <div className="space-y-2">
+            {missingCostRows.map((sale) => (
+              <SaleCostEditor
+                key={sale.id}
+                brechoId={brechoId}
+                saleId={sale.id}
+                pecaId={sale.peca.id}
+                pecaNome={sale.peca.nome}
+                pecaCodigo={sale.peca.codigo}
+                precoVenda={sale.precoVenda}
+                criadoEm={sale.criadoEm}
+                clienteNome={sale.cliente.nome}
+                pecaPrecoCusto={sale.peca.precoCusto}
+                pecaThumbnailUrl={sale.peca.fotoCapaThumbnailUrl}
+              />
+            ))}
+          </div>
+          {!missingCostQuery.isLoading && missingCostRows.length === 0 && (
+            <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
+              Nenhuma venda pendente de custo neste período.
+            </p>
+          )}
+          {missingCostQuery.data?.hasMore && (
+            <Button
+              type="button"
+              className="mt-3 w-full"
+              disabled={missingCostQuery.isFetching}
+              onClick={() => setMissingCostOffset((prev) => prev + MISSING_COST_PAGE_SIZE)}
+            >
+              Ver mais
+            </Button>
+          )}
+        </Section>
+        </div>
+      )}
 
       <Section title="Despesas do mês">
         <div className="mb-3 flex items-center justify-between gap-2">

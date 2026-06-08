@@ -648,31 +648,42 @@ export const itemService = {
       acervoNome?: string | null;
     }
   ) {
-    const item = await prisma.peca.findFirst({
-      where: { id: itemId, brechoId },
-      select: { id: true }
-    });
+    return prisma.$transaction(async (tx) => {
+      const item = await tx.peca.findFirst({
+        where: { id: itemId, brechoId },
+        select: { id: true, venda: { select: { id: true } } }
+      });
 
-    if (!item) {
-      throw new Error("Item not found.");
-    }
-
-    return prisma.peca.update({
-      where: { id: itemId },
-      data: {
-        ...(payload.nome !== undefined ? { nome: payload.nome.trim() } : {}),
-        ...(payload.categoria !== undefined ? { categoria: payload.categoria } : {}),
-        ...(payload.subcategoria !== undefined ? { subcategoria: payload.subcategoria.trim() } : {}),
-        ...(payload.cor !== undefined ? { cor: payload.cor.trim() } : {}),
-        ...(payload.estampa !== undefined ? { estampa: payload.estampa } : {}),
-        ...(payload.condicao !== undefined ? { condicao: payload.condicao } : {}),
-        ...(payload.tamanho !== undefined ? { tamanho: normalizeTamanho(payload.tamanho) } : {}),
-        ...(payload.marca !== undefined ? { marca: payload.marca.trim() || null } : {}),
-        ...(payload.precoVenda !== undefined ? { precoVenda: payload.precoVenda } : {}),
-        ...(payload.precoCusto !== undefined ? { precoCusto: payload.precoCusto } : {}),
-        ...(payload.acervoTipo !== undefined ? { acervoTipo: payload.acervoTipo } : {}),
-        ...(payload.acervoNome !== undefined ? { acervoNome: payload.acervoNome?.trim() || null } : {})
+      if (!item) {
+        throw new Error("Item not found.");
       }
+
+      const updated = await tx.peca.update({
+        where: { id: itemId },
+        data: {
+          ...(payload.nome !== undefined ? { nome: payload.nome.trim() } : {}),
+          ...(payload.categoria !== undefined ? { categoria: payload.categoria } : {}),
+          ...(payload.subcategoria !== undefined ? { subcategoria: payload.subcategoria.trim() } : {}),
+          ...(payload.cor !== undefined ? { cor: payload.cor.trim() } : {}),
+          ...(payload.estampa !== undefined ? { estampa: payload.estampa } : {}),
+          ...(payload.condicao !== undefined ? { condicao: payload.condicao } : {}),
+          ...(payload.tamanho !== undefined ? { tamanho: normalizeTamanho(payload.tamanho) } : {}),
+          ...(payload.marca !== undefined ? { marca: payload.marca.trim() || null } : {}),
+          ...(payload.precoVenda !== undefined ? { precoVenda: payload.precoVenda } : {}),
+          ...(payload.precoCusto !== undefined ? { precoCusto: payload.precoCusto } : {}),
+          ...(payload.acervoTipo !== undefined ? { acervoTipo: payload.acervoTipo } : {}),
+          ...(payload.acervoNome !== undefined ? { acervoNome: payload.acervoNome?.trim() || null } : {})
+        }
+      });
+
+      if (payload.precoCusto !== undefined && item.venda) {
+        await tx.venda.update({
+          where: { id: item.venda.id },
+          data: { precoCusto: payload.precoCusto }
+        });
+      }
+
+      return updated;
     });
   },
 

@@ -28,6 +28,7 @@ export const ClientDetailPage = () => {
     id: string;
     pecaNome: string;
     preco: number;
+    precoCusto?: number | null;
     freteIncluso: boolean;
     freteInclusoValor?: number | null;
     canEditFreteIncluso: boolean;
@@ -86,6 +87,7 @@ export const ClientDetailPage = () => {
               saleId={editingSale.id}
               pecaNome={editingSale.pecaNome}
               initialPreco={editingSale.preco}
+              initialPrecoCusto={editingSale.precoCusto}
               initialFreteIncluso={editingSale.freteIncluso}
               initialFreteInclusoValor={editingSale.freteInclusoValor}
               canEditFreteIncluso={editingSale.canEditFreteIncluso}
@@ -233,6 +235,7 @@ export const ClientDetailPage = () => {
                           id: sale.id,
                           pecaNome: sale.peca.nome,
                           preco: toNumber(sale.precoVenda),
+                          precoCusto: sale.precoCusto != null ? toNumber(sale.precoCusto) : null,
                           freteIncluso: sale.freteIncluso ?? false,
                           freteInclusoValor: sale.freteInclusoValor
                             ? toNumber(sale.freteInclusoValor)
