@@ -89,8 +89,8 @@ export const ItemAIDraftPage = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const initializedRef = useRef(false);
   const fotoSectionRef = useRef<HTMLDivElement>(null);
-  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const shutterAnimTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashTimeoutRef = useRef<number | null>(null);
+  const shutterAnimTimeoutRef = useRef<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [completedItemId, setCompletedItemId] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
