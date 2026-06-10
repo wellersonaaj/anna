@@ -1744,5 +1744,22 @@ export const itemService = {
       entries.push(entry);
     }
     return { reservedCount: entries.length, entries };
+  },
+
+  async remove(prisma: PrismaClient, brechoId: string, itemId: string) {
+    const item = await prisma.peca.findFirst({
+      where: { id: itemId, brechoId },
+      select: { id: true, status: true, venda: { select: { id: true } } }
+    });
+
+    if (!item) {
+      throw new Error("Item not found.");
+    }
+
+    if (item.venda || item.status === itemStatus.VENDIDO || item.status === itemStatus.ENTREGUE) {
+      throw new Error("Item cannot be deleted.");
+    }
+
+    await prisma.peca.delete({ where: { id: itemId } });
   }
 };

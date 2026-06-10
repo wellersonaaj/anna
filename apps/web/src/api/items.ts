@@ -505,6 +505,13 @@ export const putToPresignedUrl = async (
   }
 };
 
+export const deleteItem = async (brechoId: string, itemId: string): Promise<void> => {
+  return request<void>(`/items/${itemId}`, {
+    method: "DELETE",
+    brechoId
+  });
+};
+
 export const deleteItemFoto = async (brechoId: string, itemId: string, fotoId: string): Promise<void> => {
   return request<void>(`/items/${itemId}/fotos/${fotoId}`, {
     method: "DELETE",

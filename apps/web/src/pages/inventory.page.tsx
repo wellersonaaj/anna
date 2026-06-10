@@ -17,6 +17,8 @@ import {
   SOLD_ITEM_STATUSES,
   writeInventoryPrefs
 } from "../lib/inventory-prefs";
+import { useInventoryScrollRestore } from "../hooks/use-inventory-scroll-restore";
+import { parseMoneyLike } from "../lib/money";
 import { useSessionStore } from "../store/session.store";
 import { AppShell, Input, PhotoLightbox, PillButton, ProductCard, formatCurrency } from "../components/ui";
 
@@ -90,6 +92,18 @@ export const InventoryPage = () => {
     queryFn: () => listItems(brechoId, listFilters)
   });
 
+  const { captureScroll, restoreScroll } = useInventoryScrollRestore(brechoId, itemsQuery.isSuccess);
+
+  const inventoryTotals = useMemo(() => {
+    const items = itemsQuery.data ?? [];
+    const totalPrecoVenda = items.reduce((sum, item) => {
+      const price = parseMoneyLike(item.precoVenda);
+      return sum + (Number.isFinite(price) ? price : 0);
+    }, 0);
+
+    return { count: items.length, totalPrecoVenda };
+  }, [itemsQuery.data]);
+
   const importPendentesQuery = useQuery({
     queryKey: ["importacoes-pendentes", brechoId],
     queryFn: () => countImportacoesPendentes(brechoId)
@@ -106,6 +120,7 @@ export const InventoryPage = () => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
       await queryClient.invalidateQueries({ queryKey: ["item", brechoId, expandedItemId] });
+      requestAnimationFrame(() => restoreScroll());
     }
   });
 
@@ -239,6 +254,19 @@ export const InventoryPage = () => {
         </div>
       </div>
 
+      {itemsQuery.isSuccess ? (
+        <p className="mb-4 rounded-2xl border border-rose-100 bg-white px-4 py-3 text-sm font-semibold text-on-surface-variant">
+          {inventoryTotals.count === 0 ? (
+            "0 peças"
+          ) : (
+            <>
+              {inventoryTotals.count} {inventoryTotals.count === 1 ? "peça" : "peças"} ·{" "}
+              {formatCurrency(inventoryTotals.totalPrecoVenda)}
+            </>
+          )}
+        </p>
+      ) : null}
+
       {itemsQuery.isLoading && <p>Carregando...</p>}
       {itemsQuery.isError && (
         <p className="rounded-2xl border border-rose-100 bg-white p-4 text-sm text-on-surface-variant">
@@ -253,7 +281,7 @@ export const InventoryPage = () => {
       {itemsQuery.isSuccess && itemsQuery.data?.length ? (
         <div className="grid grid-cols-2 gap-x-4 gap-y-8">
           {itemsQuery.data.map((item) => (
-            <div key={item.id}>
+            <div key={item.id} data-inventory-item-id={item.id}>
               <ProductCard
                 key={item.id}
                 item={item}
@@ -262,6 +290,7 @@ export const InventoryPage = () => {
                 onImageClick={
                   (item.fotoPreviews?.length || item.fotoCapaThumbnailUrl || item.fotoCapaUrl)
                     ? () => {
+                        captureScroll();
                         setExpandedItemId(item.id);
                       }
                     : undefined
@@ -308,7 +337,10 @@ export const InventoryPage = () => {
           coverPhotoId={(expandedItemQuery.data.fotos ?? []).find((foto) => foto.isCover)?.id}
           onSetCover={(fotoId) => setCoverMutation.mutate({ itemId: expandedItemQuery.data.id, fotoId })}
           setCoverPending={setCoverMutation.isPending}
-          onClose={() => setExpandedItemId(null)}
+          onClose={() => {
+            setExpandedItemId(null);
+            requestAnimationFrame(() => restoreScroll());
+          }}
         />
       )}
     </AppShell>

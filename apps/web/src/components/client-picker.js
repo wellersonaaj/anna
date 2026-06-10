@@ -30,6 +30,7 @@ const displayWhatsapp = (whatsapp) => {
     return `WhatsApp ${whatsapp}`;
 };
 const contactFromClient = (client) => ({
+    id: client.id,
     nome: client.nome,
     whatsapp: client.whatsapp ?? "",
     instagram: client.instagram ?? ""

@@ -2,11 +2,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import {
   addItemFoto,
   createFotoLote,
+  deleteItem,
   deleteItemFoto,
   getItem,
   presignFotoLoteUpload,
@@ -92,6 +93,7 @@ export const ItemDetailPage = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const brechoId = useSessionStore((state) => state.brechoId);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [filaLinkCopied, setFilaLinkCopied] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -142,6 +144,8 @@ export const ItemDetailPage = () => {
   );
   const canQueue = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
   const canSell = item?.status === "DISPONIVEL" || item?.status === "RESERVADO";
+  const canDelete =
+    item?.status === "DISPONIVEL" || item?.status === "INDISPONIVEL" || item?.status === "RESERVADO";
   const coverPhotoId = item?.fotos?.find((foto) => foto.isCover)?.id ?? null;
   const watchedPrecoCusto = editForm.watch("precoCusto");
   const watchedPrecoVenda = editForm.watch("precoVenda");
@@ -247,6 +251,35 @@ export const ItemDetailPage = () => {
     mutationFn: (status: "DISPONIVEL" | "INDISPONIVEL") => updateItemStatus(brechoId, itemId!, status),
     onSuccess: invalidateItem
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteItem(brechoId, itemId!),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["items", brechoId] });
+      navigate("/");
+    }
+  });
+
+  const handleDeleteItem = () => {
+    if (!item) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Excluir "${item.nome}" permanentemente? Essa ação não pode ser desfeita. Peças vendidas não podem ser excluídas.`
+    );
+
+    if (confirmed) {
+      deleteMutation.mutate();
+    }
+  };
+
+  const deleteErrorMessage =
+    deleteMutation.error instanceof ApiError && deleteMutation.error.statusCode === 409
+      ? "Esta peça não pode ser excluída porque já foi vendida."
+      : deleteMutation.error
+        ? getApiErrorMessage(deleteMutation.error, "Não foi possível excluir a peça.")
+        : null;
 
   const filaLinkMutation = useMutation({
     mutationFn: () => createFilaLink(brechoId, itemId!),
@@ -373,7 +406,9 @@ export const ItemDetailPage = () => {
 
   return (
     <AppShell>
-      <Link to="/">← Estoque</Link>
+      <Link to="/" state={{ scrollToItemId: itemId }}>
+        ← Estoque
+      </Link>
       {itemQuery.isLoading && <p>Carregando...</p>}
       {itemQuery.isError && <p>Não foi possível carregar a peça.</p>}
       {item && (
@@ -441,7 +476,20 @@ export const ItemDetailPage = () => {
                   Tornar disponível
                 </Button>
               )}
+              {canDelete && (
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center rounded-xl px-4 text-sm font-bold text-red-600 underline disabled:opacity-50"
+                  disabled={deleteMutation.isPending}
+                  onClick={handleDeleteItem}
+                >
+                  {deleteMutation.isPending ? "Excluindo..." : "Excluir peça"}
+                </button>
+              )}
             </div>
+            {deleteErrorMessage ? (
+              <p className="mt-2 text-sm font-semibold text-red-600">{deleteErrorMessage}</p>
+            ) : null}
           </header>
 
           <Section title="Cadastro da peça">

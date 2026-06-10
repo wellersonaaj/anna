@@ -33,6 +33,10 @@ const handleError = (error: unknown, app: FastifyInstance) => {
     return { statusCode: 404, body: { message } };
   }
 
+  if (message === "Item cannot be deleted.") {
+    return { statusCode: 409, body: { message } };
+  }
+
   if (message === "Photo not found.") {
     return { statusCode: 404, body: { message } };
   }
@@ -121,6 +125,17 @@ export const itemRoutes = async (app: FastifyInstance): Promise<void> => {
       const payload = updateItemSchema.parse(request.body);
       const item = await itemService.update(app.prisma, request.brechoId, params.id, payload);
       return reply.send(item);
+    } catch (error) {
+      const normalized = handleError(error, app);
+      return reply.code(normalized.statusCode).send(normalized.body);
+    }
+  });
+
+  app.delete("/items/:id", async (request, reply) => {
+    try {
+      const params = request.params as { id: string };
+      await itemService.remove(app.prisma, request.brechoId, params.id);
+      return reply.code(204).send();
     } catch (error) {
       const normalized = handleError(error, app);
       return reply.code(normalized.statusCode).send(normalized.body);
